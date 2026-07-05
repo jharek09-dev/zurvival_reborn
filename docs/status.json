@@ -1,0 +1,45 @@
+{
+  "updated": "2026-07-05 (ADR-0002 accepted)",
+  "phase": "M0 Foundation — stack (TypeScript) and content format (JSON + JSON Schema) decided; building the deterministic skeleton",
+  "currentMilestone": "M0",
+  "milestones": [
+    { "id": "PRE", "name": "Pre-production", "theme": "GDD / PRD / DESIGN / Production Plan / art direction", "effort": "-", "status": "done" },
+    { "id": "M0", "name": "Foundation", "theme": "The skeleton runs", "effort": "M", "status": "active" },
+    { "id": "M1", "name": "Core loop playable", "theme": "The loop is satisfying", "effort": "L", "status": "pending" },
+    { "id": "M2", "name": "Reactive world", "theme": "The world moves on its own", "effort": "L", "status": "pending" },
+    { "id": "M3", "name": "People, shelter & first story", "theme": "A run becomes a story — Slice Fun Gate", "effort": "XL", "status": "pending" },
+    { "id": "M4", "name": "Content-complete city", "theme": "Breadth without repetition — MVP/beta", "effort": "XL", "status": "pending" },
+    { "id": "M5", "name": "Release candidate", "theme": "Balanced, accessible, hardened — v1.0", "effort": "XL", "status": "pending" }
+  ],
+  "tasks": [
+    { "id": "T1", "title": "Accept ADR-0001 — engine language & runtime", "milestone": "M0", "status": "done", "note": "Accepted 2026-07-05: TypeScript, pure dependency-free engine package, Node ≥22, Vitest + fast-check." },
+    { "id": "T2", "title": "Accept ADR-0002 — content data format", "milestone": "M0", "status": "done", "note": "Accepted 2026-07-05: JSON + JSON Schema (2020-12), one entity per file, Ajv in CI/loader only, ICU strings. Unblocks T6, T8." },
+    { "id": "T3", "title": "Define GameState shape (single serializable state)", "milestone": "M0", "status": "todo", "note": "TEC-04; source of truth for saves and debugging." },
+    { "id": "T4", "title": "Turn pipeline shell — all 14 stages as no-ops", "milestone": "M0", "status": "todo", "note": "applyAction(state, action) runs full pipeline order deterministically." },
+    { "id": "T5", "title": "Seeded RNG with named streams", "milestone": "M0", "status": "todo", "note": "All randomness from run seed; no Math.random/Date.now in core." },
+    { "id": "T6", "title": "Content loader + first schemas", "milestone": "M0", "status": "todo", "note": "One throwaway test region only." },
+    { "id": "T7", "title": "Save/load lossless round-trip", "milestone": "M0", "status": "todo", "note": "Versioned from the first format (feeds ADR-0003)." },
+    { "id": "T8", "title": "CI that fails on malformed content", "milestone": "M0", "status": "todo", "note": "Schema gate — volume can never corrupt a run." },
+    { "id": "T9", "title": "Terminal harness runs an empty turn", "milestone": "M0", "status": "todo", "note": "M0 exit: byte-identical result from same seed+state, test-proven." }
+  ],
+  "adrs": [
+    { "id": "ADR-0001", "title": "Engine language & runtime", "resolveBy": "M0", "status": "accepted", "blocks": "Unblocked: TypeScript accepted 2026-07-05" },
+    { "id": "ADR-0002", "title": "Content data format", "resolveBy": "M0", "status": "accepted", "blocks": "Unblocked: JSON + JSON Schema accepted 2026-07-05" },
+    { "id": "ADR-0003", "title": "Save storage & versioning", "resolveBy": "M1", "status": "open", "blocks": "Save migration design" },
+    { "id": "ADR-0004", "title": "Platform ordering (native/Steam/bot)", "resolveBy": "M4", "status": "open", "blocks": "Post-launch client work" }
+  ],
+  "risks": [
+    { "risk": "Undecided stack stalls delivery", "retiredAt": "M0", "status": "done", "how": "ADR-0001 accepted — TypeScript. Risk retired." },
+    { "risk": "Systemic but not fun", "retiredAt": "M3 Fun Gate", "status": "open", "how": "Prove the slice grips before any content pour" },
+    { "risk": "Impressive but static world", "retiredAt": "M2", "status": "open", "how": "Off-screen evolution + director" },
+    { "risk": "Content volume / repetition", "retiredAt": "M4", "status": "open", "how": "AI-at-volume behind review-capacity cap" },
+    { "risk": "Scope creep", "retiredAt": "every boundary", "status": "managed", "how": "Cut filter + Won't-now register + parking lot" },
+    { "risk": "Balance fragility", "retiredAt": "M5", "status": "open", "how": "Staged passes justified by telemetry" },
+    { "risk": "Save-schema churn", "retiredAt": "M1 onward", "status": "open", "how": "Versioned saves from first format" }
+  ],
+  "tripwires": [
+    { "trap": "Stack analysis paralysis", "tripwire": "ADR-0001 open at M0 exit", "response": "Force the time-boxed decision; pick and move" },
+    { "trap": "Systemic but not fun", "tripwire": "Slice Fun Gate fails", "response": "Freeze content; re-invest in loop/director/characters" },
+    { "trap": "Ambition creep", "tripwire": "New idea enters a live milestone", "response": "Route to Parking Lot; triage at boundary only" },
+    { "trap": "Solo overreach", "tripwire": "Build unplayed > 1 week, or 3+ systems half-done", "response": "Stop; drive one to done; play it" },
+    { "trap": "Content-hunger repetition"

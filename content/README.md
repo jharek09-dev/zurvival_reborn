@@ -25,5 +25,5 @@ designer should be able to add a location or a survivor without touching the eng
   data can be validated in CI.
 - **Every entry passes the five-question test** (see `CONTRIBUTING.md`). No filler.
 
-Format (JSON, YAML, or other) will be fixed alongside the engine-language decision — see
-`design/decisions/`.
+Format: **JSON, validated by JSON Schema** (one schema per type in `schemas/`, `$schema`
+reference in each file)

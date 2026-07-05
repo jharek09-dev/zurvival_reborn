@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1044" font-family="'Inter','Segoe UI',Arial,sans-serif">
+<rect width="1600" height="1044" fill="#0E0F10"/>
+<rect x="0" y="0" width="1600" height="4" fill="#F2803A" opacity="0.9"/>
+<text x="40" y="52" font-family="'Literata','Georgia',serif" font-size="30" font-weight="600" fill="#F2803A">Zurvival Reborn — Production Roadmap</text>
+<text x="40" y="78" font-size="15" fill="#B7B3A9">Solo + AI · effort-based (no dates) · depth before breadth. A small, complete, stable, fun game beats a huge, broken one.</text>
+<text x="1180" y="44" font-size="12" fill="#8B8981" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace">EFFORT</text>
+<text x="1250" y="44" font-size="11" fill="#B7B3A9" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" text-anchor="start">XS &lt;½w</text>
+<text x="1322" y="44" font-size="11" fill="#B7B3A9" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" text-anchor="start">S ~1w</text>
+<text x="1394" y="44" font-size="11" fill="#B7B3A9" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" text-anchor="start">M ~2-3w</text>
+<text x="1466" y="44" font-size="11" fill="#B7B3A9" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" text-anchor="start">L ~4-6w</text>
+<text x="1538" y="44" font-size="11" fill="#B7B3A9" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" text-anchor="start">XL ~8w+</text>
+<rect x="40" y="100" width="200" height="26" rx="6" fill="#5C7A94" opacity="0.16"/>
+<rect x="40" y="100" width="4" height="26" rx="2" fill="#5C7A94"/>
+<text x="54" y="117" font-size="12" font-weight="700" fill="#5C7A94" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" letter-spacing="0.04em">FOUNDATION</text>
+<rect x="260" y="100" width="640" height="26" rx="6" fill="#F2803A" opacity="0.16"/>
+<rect x="260" y="100" width="4" height="26" rx="2" fill="#F2803A"/>
+<text x="274" y="117" font-size="12" font-weight="700" fill="#F2803A" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" letter-spacing="0.04em">VERTICAL SLICE  ·  prove the core is fun</text>
+<rect x="920" y="100" width="200" height="26" rx="6" fill="#93A63E" opacity="0.16"/>
+<rect x="920" y="100" width="4" height="26" rx="2" fill="#93A63E"/>
+<text x="934" y="117" font-size="12" font-weight="700" fill="#93A63E" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" letter-spacing="0.04em">MVP / PUBLIC BETA</text>
+<rect x="1140" y="100" width="200" height="26" rx="6" fill="#5FB3A1" opacity="0.16"/>
+<rect x="1140" y="100" width="4" height="26" rx="2" fill="#5FB3A1"/>
+<text x="1154" y="117" font-size="12" font-weight="700" fill="#5FB3A1" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" letter-spacing="0.04em">v1.0 LAUNCH</text>
+<rect x="1360" y="100" width="200" height="26" rx="6" fill="#8B8981" opacity="0.16"/>
+<rect x="1360" y="100" width="4" height="26" rx="2" fill="#8B8981"/>
+<text x="1374" y="117" font-size="12" font-weight="700" fill="#8B8981" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" letter-spacing="0.04em">LIVE</text>
+<path d="M 244 245 L 255 250 L 244 255 Z" fill="#F2803A"/>
+<path d="M 464 245 L 475 250 L 464 255 Z" fill="#F2803A"/>
+<path d="M 684 245 L 695 250 L 684 255 Z" fill="#F2803A"/>
+<path d="M 904 245 L 915 250 L 904 255 Z" fill="#F2803A"/>
+<path d="M 1124 245 L 1135 250 L 1124 255 Z" fill="#F2803A"/>
+<path d="M 1344 245 L 1355 250 L 1344 255 Z" fill="#F2803A"/>
+<rect x="40" y="170" width="200" height="170" rx="12" fill="#1E2024" stroke="#2C2E34" stroke-width="1"/>
+<rect x="40" y="170" width="5" height="170" rx="2" fill="#F2803A"/>
+<text x="58" y="210" font-family="'Literata','Georgia',serif" font-size="30" font-weight="700" fill="#F2803A">M0</text>
+<rect x="182" y="186" width="42" height="22" rx="11" fill="none" stroke="#5C7A94" stroke-width="1.2"/>
+<text x="203" y="201" font-size="12" fill="#5C7A94" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" text-anchor="middle">M</text>
+<text x="58" y="240" font-size="15" font-weight="700" fill="#EDE7DB">Foundation</text>
+<text x="58" y="266" font-size="12.5" fill="#B7B3A9" font-style="italic">The skeleton runs</text>
+<line x1="56" y1="300" x2="224" y2="300" stroke="#2C2E34" stroke-width="1"/>
+<text x="58" y="318" font-size="10.5" fill="#8B8981" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace">RETIRES</text>
+<text x="58" y="332" font-size="11.5" fill="#D84334" font-weight="600">stack paralysis</text>
+<rect x="260" y="170" width="200" height="170" rx="12" fill="#1E2024" stroke="#2C2E34" stroke-width="1"/>
+<rect x="260" y="170" width="5" height="170" rx="2" fill="#F2803A"/>
+<text x="278" y="210" font-family="'Literata','Georgia',serif" font-size="30" font-weight="700" fill="#F2803A">M1</text>
+<rect x="402" y="186" width="42" height="22" rx="11" fill="none" stroke="#5C7A94" stroke-width="1.2"/>
+<text x="423" y="201" font-size="12" fill="#5C7A94" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" text-anchor="middle">L</text>
+<text x="278" y="240" font-size="15" font-weight="700" fill="#EDE7DB">Core</text>
+<text x="278" y="260" font-size="15" font-weight="700" fill="#EDE7DB">loop playable</text>
+<text x="278" y="284" font-size="12.5" fill="#B7B3A9" font-style="italic">The loop is satisfying</text>
+<line x1="276" y1="300" x2="444" y2="300" stroke="#2C2E34" stroke-width="1"/>
+<text x="278" y="318" font-size="10.5" fill="#8B8981" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace">RETIRES</text>
+<text x="278" y="332" font-size="11.5" fill="#8B8981" font-weight="600">— loop-feel read</text>
+<rect x="480" y="170" width="200" height="170" rx="12" fill="#1E2024" stroke="#2C2E34" stroke-width="1"/>
+<rect x="480" y="170" width="5" height="170" rx="2" fill="#F2803A"/>
+<text x="498" y="210" font-family="'Literata','Georgia',serif" font-size="30" font-weight="700" fill="#F2803A">M2</text>
+<rect x="622" y="186" width="42" height="22" rx="11" fill="none" stroke="#5C7A94" stroke-width="1.2"/>
+<text x="643" y="201" font-size="12" fill="#5C7A94" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" text-anchor="middle">L</text>
+<text x="498" y="240" font-size="15" font-weight="700" fill="#EDE7DB">Reactive world</text>
+<text x="498" y="266" font-size="12.5" fill="#B7B3A9" font-style="italic">World moves on its own</text>
+<line x1="496" y1="300" x2="664" y2="300" stroke="#2C2E34" stroke-width="1"/>
+<text x="498" y="318" font-size="10.5" fill="#8B8981" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace">RETIRES</text>
+<text x="498" y="332" font-size="11.5" fill="#D84334" font-weight="600">static world</text>
+<rect x="700" y="170" width="200" height="170" rx="12" fill="#1E2024" stroke="#2C2E34" stroke-width="1"/>
+<rect x="700" y="170" width="5" height="170" rx="2" fill="#D84334"/>
+<text x="718" y="210" font-family="'Literata','Georgia',serif" font-size="30" font-weight="700" fill="#D84334">M3</text>
+<rect x="842" y="186" width="42" height="22" rx="11" fill="none" stroke="#5C7A94" stroke-width="1.2"/>
+<text x="863" y="201" font-size="12" fill="#5C7A94" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" text-anchor="middle">XL</text>
+<text x="718" y="240" font-size="15" font-weight="700" fill="#EDE7DB">People &amp;</text>
+<text x="718" y="260" font-size="15" font-weight="700" fill="#EDE7DB">first story</text>
+<text x="718" y="284" font-size="12.5" fill="#B7B3A9" font-style="italic">A run becomes a story</text>
+<line x1="716" y1="300" x2="884" y2="300" stroke="#2C2E34" stroke-width="1"/>
+<text x="718" y="318" font-size="10.5" fill="#8B8981" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace">RETIRES</text>
+<text x="718" y="332" font-size="11.5" fill="#D84334" font-weight="600">systemic-not-fun</text>
+<rect x="920" y="170" width="200" height="170" rx="12" fill="#1E2024" stroke="#2C2E34" stroke-width="1"/>
+<rect x="920" y="170" width="5" height="170" rx="2" fill="#F2803A"/>
+<text x="938" y="210" font-family="'Literata','Georgia',serif" font-size="30" font-weight="700" fill="#F2803A">M4</text>
+<rect x="1062" y="186" width="42" height="22" rx="11" fill="none" stroke="#5C7A94" stroke-width="1.2"/>
+<text x="1083" y="201" font-size="12" fill="#5C7A94" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" text-anchor="middle">XL</text>
+<text x="938" y="240" font-size="15" font-weight="700" fill="#EDE7DB">Content-complete</text>
+<text x="938" y="260" font-size="15" font-weight="700" fill="#EDE7DB">city</text>
+<text x="938" y="284" font-size="12.5" fill="#B7B3A9" font-style="italic">Breadth without repeats</text>
+<line x1="936" y1="300" x2="1104" y2="300" stroke="#2C2E34" stroke-width="1"/>
+<text x="938" y="318" font-size="10.5" fill="#8B8981" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace">RETIRES</text>
+<text x="938" y="332" font-size="11.5" fill="#D84334" font-weight="600">content volume</text>
+<rect x="1140" y="170" width="200" height="170" rx="12" fill="#1E2024" stroke="#2C2E34" stroke-width="1"/>
+<rect x="1140" y="170" width="5" height="170" rx="2" fill="#F2803A"/>
+<text x="1158" y="210" font-family="'Literata','Georgia',serif" font-size="30" font-weight="700" fill="#F2803A">M5</text>
+<rect x="1282" y="186" width="42" height="22" rx="11" fill="none" stroke="#5C7A94" stroke-width="1.2"/>
+<text x="1303" y="201" font-size="12" fill="#5C7A94" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" text-anchor="middle">XL</text>
+<text x="1158" y="240" font-size="15" font-weight="700" fill="#EDE7DB">Release</text>
+<text x="1158" y="260" font-size="15" font-weight="700" fill="#EDE7DB">candidate</text>
+<text x="1158" y="284" font-size="12.5" fill="#B7B3A9" font-style="italic">Balanced &amp; hardened</text>
+<line x1="1156" y1="300" x2="1324" y2="300" stroke="#2C2E34" stroke-width="1"/>
+<text x="1158" y="318" font-size="10.5" fill="#8B8981" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace">RETIRES</text>
+<text x="1158" y="332" font-size="11.5" fill="#D84334" font-weight="600">balance / saves</text>
+<rect x="1360" y="170" width="200" height="170" rx="12" fill="#1E2024" stroke="#2C2E34" stroke-width="1"/>
+<rect x="1360" y="170" width="5" height="170" rx="2" fill="#5C7A94"/>
+<text x="1378" y="210" font-family="'Literata','Georgia',serif" font-size="30" font-weight="700" fill="#5C7A94">P+</text>
+<rect x="1502" y="186" width="42" height="22" rx="11" fill="none" stroke="#5C7A94" stroke-width="1.2"/>
+<text x="1523" y="201" font-size="12" fill="#5C7A94" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" text-anchor="middle">~</text>
+<text x="1378" y="240" font-size="15" font-weight="700" fill="#EDE7DB">Post-launch</text>
+<text x="1378" y="266" font-size="12.5" fill="#B7B3A9" font-style="italic">Cadence + new clients</text>
+<line x1="1376" y1="300" x2="1544" y2="300" stroke="#2C2E34" stroke-width="1"/>
+<text x="1378" y="318" font-size="10.5" fill="#8B8981" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace">RETIRES</text>
+<text x="1378" y="332" font-size="11.5" fill="#8B8981" font-weight="600">long-tail</text>
+<line x1="470" y1="340" x2="470" y2="367" stroke="#E0A33B" stroke-width="1.5" stroke-dasharray="4 3"/>
+<path d="M 470 367 L 483 380 L 470 393 L 457 380 Z" fill="#0E0F10" stroke="#E0A33B" stroke-width="2"/>
+<text x="470" y="411" font-size="11" font-weight="700" fill="#E0A33B" text-anchor="middle" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace">LOOP-FEEL CHECK</text>
+<text x="470" y="427" font-size="11" fill="#B7B3A9" text-anchor="middle">fun? if not, stay on the loop</text>
+<line x1="910" y1="340" x2="910" y2="362" stroke="#D84334" stroke-width="2.5" stroke-dasharray="4 3"/>
+<path d="M 910 362 L 928 380 L 910 398 L 892 380 Z" fill="#0E0F10" stroke="#D84334" stroke-width="3"/>
+<text x="910" y="416" font-size="13" font-weight="700" fill="#D84334" text-anchor="middle" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace">◆ SLICE FUN GATE ◆</text>
+<text x="910" y="432" font-size="11" fill="#B7B3A9" text-anchor="middle">decisive go / no-go — fail = re-invest, freeze content</text>
+<line x1="1350" y1="340" x2="1350" y2="367" stroke="#5FB3A1" stroke-width="1.5" stroke-dasharray="4 3"/>
+<path d="M 1350 367 L 1363 380 L 1350 393 L 1337 380 Z" fill="#0E0F10" stroke="#5FB3A1" stroke-width="2"/>
+<text x="1350" y="411" font-size="11" font-weight="700" fill="#5FB3A1" text-anchor="middle" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace">“ONE MORE DAY”</text>
+<text x="1350" y="427" font-size="11" fill="#B7B3A9" text-anchor="middle">external playtest verdict</text>
+<text x="40" y="480" font-size="12" font-weight="700" fill="#5C7A94" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" letter-spacing="0.04em">DECISION GATES (ADRs) — resolve by the milestone below</text>
+<rect x="46" y="494" width="196" height="18" rx="9" fill="#D84334" opacity="0.14"/>
+<text x="56" y="507" font-size="11" fill="#D84334" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" font-weight="700">ADR-0001  engine language ★</text>
+<rect x="46" y="516" width="196" height="18" rx="9" fill="#5C7A94" opacity="0.14"/>
+<text x="56" y="529" font-size="11" fill="#B7B3A9" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" font-weight="400">ADR-0002  data format</text>
+<rect x="266" y="494" width="196" height="18" rx="9" fill="#5C7A94" opacity="0.14"/>
+<text x="276" y="507" font-size="11" fill="#B7B3A9" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" font-weight="400">ADR-0003  save versioning</text>
+<rect x="926" y="494" width="196" height="18" rx="9" fill="#5C7A94" opacity="0.14"/>
+<text x="936" y="507" font-size="11" fill="#B7B3A9" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" font-weight="400">ADR-0004  platform order</text>
+<rect x="926" y="516" width="196" height="18" rx="9" fill="#5C7A94" opacity="0.14"/>
+<text x="936" y="529" font-size="11" fill="#B7B3A9" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" font-weight="400">Licensing (pre-beta)</text>
+<rect x="1146" y="494" width="196" height="18" rx="9" fill="#5C7A94" opacity="0.14"/>
+<text x="1156" y="507" font-size="11" fill="#B7B3A9" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" font-weight="400">Monetization</text>
+<rect x="40" y="560" width="1520" height="452" rx="14" fill="#17181B" stroke="#2C2E34" stroke-width="1"/>
+<rect x="40" y="560" width="6" height="452" rx="3" fill="#F2803A"/>
+<text x="66" y="598" font-family="'Literata','Georgia',serif" font-size="24" font-weight="700" fill="#F2803A">Scope control — the “no machine”</text>
+<text x="66" y="622" font-size="14" fill="#B7B3A9">A deep design tempts endless expansion; a solo builder can be buried by their own ambition. These mechanisms hold the line.</text>
+<text x="66" y="656" font-size="13" font-weight="700" fill="#F2803A" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" letter-spacing="0.03em">THE CUT FILTER</text>
+<text x="66" y="680" font-size="12.5" fill="#B7B3A9" font-style="italic">Every feature meets ONE gate:</text>
+<circle cx="70" cy="697" r="2.4" fill="#F2803A"/>
+<text x="82" y="701" font-size="12.5" fill="#EDE7DB">Serves ≥1 of the six principles?</text>
+<circle cx="70" cy="718" r="2.4" fill="#F2803A"/>
+<text x="82" y="722" font-size="12.5" fill="#EDE7DB">If none → it waits or dies.</text>
+<circle cx="70" cy="739" r="2.4" fill="#F2803A"/>
+<text x="82" y="743" font-size="12.5" fill="#EDE7DB">Costs &gt; review budget → it defers.</text>
+<text x="66" y="764" font-size="12.5" fill="#B7B3A9" font-style="italic">P1 systemic loop · P2 injuries=stories</text>
+<text x="66" y="785" font-size="12.5" fill="#B7B3A9" font-style="italic">P3 node memory · P4 survival triangle</text>
+<text x="66" y="806" font-size="12.5" fill="#B7B3A9" font-style="italic">P5 social sim · P6 artifacts over XP</text>
+<text x="66" y="844" font-size="13" font-weight="700" fill="#D84334" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" letter-spacing="0.03em">MoSCoW CUT ORDER</text>
+<circle cx="70" cy="864" r="2.4" fill="#D84334"/>
+<text x="82" y="868" font-size="12.5" fill="#EDE7DB">Coulds cut first,</text>
+<circle cx="70" cy="885" r="2.4" fill="#D84334"/>
+<text x="82" y="889" font-size="12.5" fill="#EDE7DB">then Shoulds,</text>
+<circle cx="70" cy="906" r="2.4" fill="#D84334"/>
+<text x="82" y="910" font-size="12.5" fill="#EDE7DB">then re-scope the milestone.</text>
+<text x="66" y="931" font-size="12.5" fill="#B7B3A9" font-style="italic">NEVER cut a Must or skip a gate.</text>
+<text x="560" y="656" font-size="13" font-weight="700" fill="#5C7A94" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" letter-spacing="0.03em">CHANGE CONTROL — parking lot</text>
+<circle cx="564" cy="676" r="2.4" fill="#5C7A94"/>
+<text x="576" y="680" font-size="12.5" fill="#EDE7DB">New idea → Parking Lot, never a</text>
+<text x="560" y="701" font-size="12.5" fill="#B7B3A9" font-style="italic">   live milestone.</text>
+<circle cx="564" cy="718" r="2.4" fill="#5C7A94"/>
+<text x="576" y="722" font-size="12.5" fill="#EDE7DB">Triage at BOUNDARIES only.</text>
+<circle cx="564" cy="739" r="2.4" fill="#5C7A94"/>
+<text x="576" y="743" font-size="12.5" fill="#EDE7DB">Score vs principles + review cost.</text>
+<circle cx="564" cy="760" r="2.4" fill="#5C7A94"/>
+<text x="576" y="764" font-size="12.5" fill="#EDE7DB">Name what it replaces (zero-sum).</text>
+<circle cx="564" cy="781" r="2.4" fill="#5C7A94"/>
+<text x="576" y="785" font-size="12.5" fill="#EDE7DB">Route: schedule / defer / kill.</text>
+<text x="560" y="844" font-size="13" font-weight="700" fill="#E0A33B" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" letter-spacing="0.03em">WIP LIMITS (solo)</text>
+<circle cx="564" cy="864" r="2.4" fill="#E0A33B"/>
+<text x="576" y="868" font-size="12.5" fill="#EDE7DB">One milestone in flight.</text>
+<circle cx="564" cy="885" r="2.4" fill="#E0A33B"/>
+<text x="576" y="889" font-size="12.5" fill="#EDE7DB">Finish-to-done before starting new.</text>
+<circle cx="564" cy="906" r="2.4" fill="#E0A33B"/>
+<text x="576" y="910" font-size="12.5" fill="#EDE7DB">Always a playable build — play it</text>
+<text x="560" y="931" font-size="12.5" fill="#B7B3A9" font-style="italic">   weekly (unplayed &gt;1wk = tripwire).</text>
+<text x="1054" y="656" font-size="13" font-weight="700" fill="#5FB3A1" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" letter-spacing="0.03em">BUDGETS = REVIEW CAPACITY</text>
+<circle cx="1058" cy="676" r="2.4" fill="#5FB3A1"/>
+<text x="1070" y="680" font-size="12.5" fill="#EDE7DB">Content caps per milestone (regions,</text>
+<text x="1054" y="701" font-size="12.5" fill="#B7B3A9" font-style="italic">   nodes, survivors, encounters…).</text>
+<circle cx="1058" cy="718" r="2.4" fill="#5FB3A1"/>
+<text x="1070" y="722" font-size="12.5" fill="#EDE7DB">Over a cap → cut or defer, not add</text>
+<text x="1054" y="743" font-size="12.5" fill="#B7B3A9" font-style="italic">   hours. Red cell = stop, playtest.</text>
+<circle cx="1058" cy="760" r="2.4" fill="#5FB3A1"/>
+<text x="1070" y="764" font-size="12.5" fill="#EDE7DB">Effort &gt;25% over band → scope review.</text>
+<circle cx="1058" cy="781" r="2.4" fill="#5FB3A1"/>
+<text x="1070" y="785" font-size="12.5" fill="#EDE7DB">AI generates; the human gates. The</text>
+<text x="1054" y="806" font-size="12.5" fill="#B7B3A9" font-style="italic">   cap is what one person can review.</text>
+<text x="1054" y="844" font-size="13" font-weight="700" fill="#8B8981" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace" letter-spacing="0.03em">FROZEN — Won’t-now</text>
+<circle cx="1058" cy="864" r="2.4" fill="#8B8981"/>
+<text x="1070" y="868" font-size="12.5" fill="#EDE7DB">Multiplayer/PvP · UGC store</text>
+<circle cx="1058" cy="885" r="2.4" fill="#8B8981"/>
+<text x="1070" y="889" font-size="12.5" fill="#EDE7DB">Cities beyond the launch city</text>
+<circle cx="1058" cy="906" r="2.4" fill="#8B8981"/>
+<text x="1070" y="910" font-size="12.5" fill="#EDE7DB">Faction wars · animal ecosystems</text>
+<circle cx="1058" cy="927" r="2.4" fill="#8B8981"/>
+<text x="1070" y="931" font-size="12.5" fill="#EDE7DB">Deep vehicle modding</text>
+<text x="1054" y="952" font-size="12.5" fill="#B7B3A9" font-style="italic">Recorded, not relitigated.</text>
+<text x="66" y="998" font-size="12.5" fill="#B7B3A9" font-family="'JetBrains Mono',ui-monospace,Consolas,monospace">The gate is the point.  Keep it small, complete, stable, and fun.  ·  Reads with GDD.md · PRD.md · DESIGN.md · PRODUCTION.md</text>
+</svg>
