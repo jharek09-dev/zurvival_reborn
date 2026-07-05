@@ -1,0 +1,292 @@
+Zurvival (Original Kik Bot) – Pure Gameplay Outline
+(Single‑player focus, no chat/social features)
+
+1. Core Loop
+Game runs in turns.
+
+Each turn you choose one main action.
+
+The game resolves that action, updates your stats, describes what happens, then advances time.
+
+2. Starting the Game
+Begin a new run.
+
+You start with:
+
+Basic health.
+
+A weak starting weapon (often melee).
+
+Minimal or no supplies.
+
+A starting location on the map.
+
+3. Player Stats
+Core tracked values:
+
+Health (HP)
+
+Damage from zombies reduces HP.
+
+HP reaching 0 = death / run ends.
+
+Stamina (used in many versions)
+
+Spent on actions like running, melee attacks, heavy searches.
+
+Regenerates over time or when resting.
+
+Ammo (for ranged weapons)
+
+Consumed when shooting.
+
+Inventory
+
+Weapons, ammo, meds, food, etc.
+
+Limited by slots or weight (depending on implementation).
+
+Optional stats some versions used:
+
+Hunger / Thirst.
+
+Infection level.
+
+4. Map & Locations
+World is a set of locations connected to each other.
+
+Typical locations:
+
+Houses, streets, stores, police station, hospital, mall, etc.
+
+Each location has:
+
+A description.
+
+Possible loot.
+
+A chance to contain or spawn zombies.
+
+Connections to other locations you can move to.
+
+You can usually:
+
+Look / Map – see current location and exits.
+
+Move – go to a connected location.
+
+5. Available Actions (Per Turn)
+You generally get one primary action per turn:
+
+Move
+Go to an adjacent/connected location.
+
+Advances time.
+
+May trigger an encounter on arrival.
+
+Search / Scavenge
+Search the current location for items.
+
+Consumes time and often stamina.
+
+Rolls against a loot table to give you:
+
+Weapons
+
+Ammo
+
+Medkits / healing items
+
+Food / drink
+
+Occasionally special or story items
+
+Can trigger zombies or an ambush.
+
+Attack / Fight
+Used when zombies are present.
+
+Choose to:
+
+Melee attack (uses stamina, no ammo).
+
+Shoot (uses ammo, may attract more zombies).
+
+Sometimes flee to another location.
+
+Game resolves:
+
+Hit/miss.
+
+Damage to zombies.
+
+Damage to you from counterattacks.
+
+Combat may:
+
+Be resolved in one summary per turn, or
+
+Run as a short sub‑sequence of turns until enemies are dead, you flee, or you die.
+
+Rest / Heal
+Rest:
+
+Takes time.
+
+Restores stamina, sometimes HP.
+
+May increase risk of zombie encounters unless in a safe spot.
+
+Use Medkit / Heal:
+
+Consumes a healing item.
+
+Restores HP.
+
+May take a turn or be part of resting.
+
+Inventory Management
+View inventory.
+
+Equip weapon (set active melee or ranged).
+
+Drop item.
+
+Consume item (food, drink, meds).
+
+(If crafting exists:) Craft using materials.
+
+6. Zombies & Encounters
+Zombies appear:
+
+When you enter certain locations.
+
+When you search.
+
+As scheduled waves or end‑of‑turn spawns.
+
+Base behavior:
+
+Attack you each turn they’re present.
+
+Deal damage that reduces your HP.
+
+Stronger variants may exist:
+
+Faster, tougher, or higher damage enemies.
+
+Special zombies with unique effects (e.g., infection).
+
+Spawn rates often increase with:
+
+Time survived / day count.
+
+Noisy actions (e.g., gunfire).
+
+Higher‑risk locations.
+
+7. Items & Equipment
+Weapons
+Melee: bat, knife, crowbar, etc.
+
+No ammo.
+
+Uses stamina.
+
+Generally silent.
+
+Ranged: pistol, shotgun, rifle, etc.
+
+Requires matching ammo.
+
+Higher damage, but can attract more zombies.
+
+Each weapon effectively defines:
+
+Damage potential.
+
+Accuracy / hit chance.
+
+Resource cost (stamina or ammo).
+
+Ammo
+Separate inventory item.
+
+Required for ranged weapons.
+
+Consumed per shot.
+
+Healing & Consumables
+Medkits / bandages – restore HP.
+
+Food / water – restore hunger/thirst (if present), sometimes small HP/stamina benefits.
+
+Optional buffs (stims, etc.).
+
+Other Items
+Crafting materials (if crafting is included).
+
+Key/story items to unlock areas or trigger endgame.
+
+8. Turn Resolution Flow (Abstract)
+Each turn:
+
+Show current:
+
+HP, stamina, ammo, inventory summary.
+
+Location and description.
+
+Visible threats (zombies, hazards).
+
+Player chooses one action (move, search, attack, rest, etc.).
+
+Game resolves:
+
+Movement and new location, or
+
+Loot roll and item gain, or
+
+Combat outcome, or
+
+Rest/heal effects.
+
+Apply passive changes:
+
+Time advance.
+
+Stamina/hunger/thirst changes.
+
+Status effects (injury, infection, etc.).
+
+Spawn or update zombies as needed.
+
+Check for:
+
+Death (HP ≤ 0) → run ends.
+
+Win condition (if any) → endgame.
+
+9. Win / Loss Conditions
+Loss
+Death:
+
+HP drops to 0.
+
+Run ends; game shows stats (days survived, zombies killed, etc.).
+
+Win (varies by version/mode)
+Possible end conditions:
+
+Survive a set number of days/turns.
+
+Reach a specific “safe zone” or extraction point.
+
+Complete objectives (collect key items, visit certain locations).
+
+Survive a final “invasion” event at a designated location.
+
+If no explicit win condition is defined, the game is endless survival, with score based on how long you last and what you accomplish before dying.
+
+This is the distilled gameplay outline of the original Zurvival / Zombie Invasion bot, stripped of all chat and social elements and presented as pure single‑player mechanics.

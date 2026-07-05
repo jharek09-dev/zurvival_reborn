@@ -1,0 +1,48 @@
+# ─── OS / editor ───────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+*~
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ─── Documents: build artifacts (keep .md source, ignore locks/temp) ─
+~$*.docx
+~$*.pptx
+~$*.xlsx
+*.tmp
+
+# ─── Language-agnostic build / dependency dirs (for when code lands) ─
+# Node
+node_modules/
+dist/
+build/
+.cache/
+*.log
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# ─── Env / secrets ─────────────────────────────────────────────
+.env
+.env.local
+*.local
+
+# ─── Game / tooling ────────────────────────────────────────────
+/coverage/
+/tmp/
+/.tmp/
+saves/
+*.save
