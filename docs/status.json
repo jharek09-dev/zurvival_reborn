@@ -1,6 +1,6 @@
 {
-  "updated": "2026-07-05 (M0 COMPLETE — T7 save/load, T8 CI schema gate, T9 terminal harness done; skeleton runs)",
-  "phase": "M0 Foundation — DONE. Deterministic skeleton runs: 14-stage pipeline, seeded named-stream RNG, content loader + schema gate, versioned lossless save/load, and a terminal harness that resolves an empty turn. Ready to enter M1 (core loop).",
+  "updated": "2026-07-05 (M1: T13 done — per-turn change telemetry proves FR-CORE-04, no no-op turns; a 100-turn audit over Rivermouth is green; engine 79 + harness 11 tests green)",
+  "phase": "M1 Core loop playable — Vertical Slice part 1. Prove the moment-to-moment choosing is satisfying: real move/search/fight-or-avoid/rest loop over a 5–8 node region with fog-of-war, noise, named wounds, a finite loot economy and a story-first single-decision UI. Ends at the Loop-Feel Check.",
   "currentMilestone": "M1",
   "milestones": [
     {
@@ -22,7 +22,7 @@
       "name": "Core loop playable",
       "theme": "The loop is satisfying",
       "effort": "L",
-      "status": "pending"
+      "status": "active"
     },
     {
       "id": "M2",
@@ -116,6 +116,90 @@
       "milestone": "M0",
       "status": "done",
       "note": "Done 2026-07-05: prototype/harness/ (@zurvival/harness) — first headless engine client. runEmptyTurn() creates a run, resolves one turn through the pipeline, renders the Scene, and asserts the two M0 exit proofs (byte-identical determinism + lossless save round-trip). Runnable via `npm start` (tsx); 5 tests. M0 exit criterion met."
+    },
+    {
+      "id": "T10",
+      "title": "Accept ADR-0003 — save storage & versioning",
+      "milestone": "M1",
+      "status": "done",
+      "note": "Accepted 2026-07-05: design/decisions/0003-save-storage-versioning.md. Local-first, client-owned I/O of the T7 SaveFile string (harness/native → atomic file under OS app-data; web → IndexedDB, not localStorage); single rolling autosave slot per run written write-temp-then-atomic-rename with a retained .bak (zero-corruption target); saves export/import as text (bug repro, DESIGN §9); migration = T7 forward-only ladder, one integer SAVE_SCHEMA_VERSION bumped only on breaking state-shape change, one pure/total N→N+1 rung per bump; optional cloud sync deferred post-launch as additive transport. Unblocks T11+ real saves."
+    },
+    {
+      "id": "T11",
+      "title": "Region & node graph with fog-of-war + node memory",
+      "milestone": "M1",
+      "status": "done",
+      "note": "Done 2026-07-05: node graph is content — new content/schemas/node.schema.json + content/nodes/ (6 Rivermouth nodes forming a ring) + content/regions/region.rivermouth.json (replaced throwaway test-downtown). Engine prototype/engine/src/map/: buildRegionGraph enforces cross-file integrity JSON Schema can't (symmetric routes, one start, fully connected, known region/node refs) throwing MapError; NodeState gains a `discovered` fog flag (visited = lastVisit!==null); fogOfWar.discoverAround reveals a node + its neighbors; seedWorld.startRun bootstraps a run — seeds regions/nodes from baselines, stands player on start (visited today), reveals fog around it. Pure/dependency-free/integer/plain-JSON, deterministic, save-round-trips. 21 engine tests (integrity failures, reveal, seed, property) + 3 harness integration tests over shipped content. FR-SIM-02, FR-MAP-01..03,06. Unblocks T12 (move/search/rest over the graph)."
+    },
+    {
+      "id": "T12",
+      "title": "Core action loop — move / search / rest with time cost",
+      "milestone": "M1",
+      "status": "done",
+      "note": "Done 2026-07-05: pipeline stages 1-4 + 14 made real (stages 5-13 still identity). New src/time/clock.ts (phaseOf + advanceClock: hours→day/phase rollover, turn++) and src/actions/coreActions.ts (availableActions/assertLegal/applyPlayerAction/tickNeeds/sceneOf); Action/Scene/SceneChoice extracted to src/pipeline/contract.ts. applyAction(state,action,graph?) now threads the transient graph: validate rejects unoffered actions (IllegalActionError, FR-CORE-01), advanceTime spends each action's hours (move 2/search 3/rest 6) so time always advances (FR-CORE-03), resolvePlayerAction applies move (relocate+visit+fog reveal), search (searchPct+34), rest (fatigue-40); updatePlayer drifts hunger/thirst/fatigue by hours; generateScene renders the Four Questions (FR-CORE-05). wait stays inert (0-cost) so all M0 tests pass unchanged. Pure/deterministic/integer/plain-JSON; save-lossless after every turn (FR-CORE-07). 14 engine loop tests + 2 harness integration turns over shipped Rivermouth. Unblocks T13 (telemetry that every turn changes >=1 system), T14 (noise), T17 (loot yield on search)."
+    },
+    {
+      "id": "T13",
+      "title": "Every resolved turn changes ≥1 system (telemetry-audited)",
+      "milestone": "M1",
+      "status": "done",
+      "note": "Done 2026-07-05: prototype/engine/src/telemetry/turnAudit.ts — the FR-CORE-04 no-no-op-turn audit, by machine not by hand. jsonEqual (by-value plain-JSON deep-equal, honest where a pure stage re-allocates an identical slice) + diffSystems (which TRACKED_SYSTEMS changed) + auditTurn ({turn,resolved,changedSystems,ok}). TRACKED_SYSTEMS deliberately EXCLUDES meta: counting the always-advancing clock/turn would make the invariant vacuous — the audit asks whether a real system moved beyond time. applyAction now instruments every turn, returning changed[] on TurnResult (empty for an inert wait — no turn resolved). Pure/deterministic/dependency-free. 12 engine tests (jsonEqual, meta-exclusion, per-action change reporting, a fast-check property that every resolved turn over random play changes >=1 system, and a hand-built clock-only turn proving the audit reports ok:false) + a harness 100-turn telemetry audit over shipped Rivermouth (all 100 resolved turns changed >=1 system, zero violations). engine 79 + harness 11 green. Feeds T14 (noise as a per-turn node-memory change) and the T21 Loop-Feel gate."
+    },
+    {
+      "id": "T14",
+      "title": "Noise deposit model",
+      "milestone": "M1",
+      "status": "todo",
+      "note": "FR-SIM-06: loud actions (search, firearms, movement) deposit noise into node memory that feeds encounter pressure; the quiet path must be legibly quieter."
+    },
+    {
+      "id": "T15",
+      "title": "Avoidable turn-based combat + loud firearms + stealth path",
+      "milestone": "M1",
+      "status": "todo",
+      "note": "FR-CBT-01,02,04,05: turn-based combat the player can decline; firearms are loud and deposit noise; a full stealth path exists through every combat scenario (DoD)."
+    },
+    {
+      "id": "T16",
+      "title": "Named wounds — treated, not regenerated",
+      "milestone": "M1",
+      "status": "todo",
+      "note": "FR-INJ-01,04: injuries are discrete named wounds that persist and must be treated with items/time; no passive HP regen."
+    },
+    {
+      "id": "T17",
+      "title": "Finite, contested, depleting loot economy",
+      "milestone": "M1",
+      "status": "todo",
+      "note": "FR-ECO-01,02,03: loot is finite per node, depletes as it is taken, and is contested by the world so scarcity is real."
+    },
+    {
+      "id": "T18",
+      "title": "Weight-limited inventory",
+      "milestone": "M1",
+      "status": "todo",
+      "note": "FR-PLR-03: inventory is capped by weight, forcing take/leave decisions that interact with the loot economy."
+    },
+    {
+      "id": "T19",
+      "title": "Story-first single-decision UI",
+      "milestone": "M1",
+      "status": "todo",
+      "note": "FR-UI-01,02,03,05: each turn renders as a short scene resolving to one meaningful decision; the first playable client presents the loop as narrative, not a stat grid."
+    },
+    {
+      "id": "T20",
+      "title": "Accessibility baseline",
+      "milestone": "M1",
+      "status": "todo",
+      "note": "NFR-ACC-01,02: baseline accessibility starts in M1, not bolted on later — screen-reader-friendly scene text and keyboard-only play from the first client."
+    },
+    {
+      "id": "T21",
+      "title": "Lossless quit/resume at any turn boundary → Loop-Feel Check",
+      "milestone": "M1",
+      "status": "todo",
+      "note": "M1 DoD & §4 gate: a full slice runs end to end; quit/resume at any turn boundary is byte-lossless; then run the Loop-Feel Check — is picking an action interesting?"
     }
   ],
   "adrs": [
@@ -137,8 +221,8 @@
       "id": "ADR-0003",
       "title": "Save storage & versioning",
       "resolveBy": "M1",
-      "status": "open",
-      "blocks": "Save migration design"
+      "status": "accepted",
+      "blocks": "Unblocked: local-first client-owned saves + T7 forward-only migration ladder accepted 2026-07-05; cloud sync deferred post-launch"
     },
     {
       "id": "ADR-0004",

@@ -1,0 +1,9 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.rivermouth.corner-store",
+  "regionId": "region.rivermouth",
+  "name": "Corner Store",
+  "description": "A convenience store with its shutter half-down. Shelves stripped at eye level, but the back room and the crawlspace under the counter look untouched.",
+  "adjacent": ["node.rivermouth.transit-plaza", "node.rivermouth.clinic"],
+  "notes": "Loot-forward node; rewards a search but the shutter noise carries."
+}

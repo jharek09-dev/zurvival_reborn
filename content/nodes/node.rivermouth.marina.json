@@ -1,0 +1,10 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.rivermouth.marina",
+  "regionId": "region.rivermouth",
+  "name": "Marina",
+  "description": "A small-craft harbor of listing boats and a locked dockmaster's office. Defensible, with water on three sides and one gangway in.",
+  "adjacent": ["node.rivermouth.overpass", "node.rivermouth.police-post"],
+  "claimable": true,
+  "notes": "The claimable safehouse (FR-MAP-06): one approach, good sightlines. A claim can later be lost."
+}

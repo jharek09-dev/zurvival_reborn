@@ -232,6 +232,12 @@ export interface NodeState {
   readonly lastVisit: number | null;
   /** Noise deposited this turn (stage 6), consumed by hordes next turn (stage 9). */
   readonly noise: number;
+  /**
+   * Fog of war: true once the node is on the player's map — known to exist and routable to
+   * (FR-MAP-02). Scouting reveals a node and its neighbors. Distinct from *visited*
+   * (`lastVisit !== null`): a discovered node may never have been entered.
+   */
+  readonly discovered: boolean;
 }
 
 // ---------------------------------------------------------------------------

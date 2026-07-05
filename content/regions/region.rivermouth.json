@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/region.schema.json",
+  "id": "region.rivermouth",
+  "name": "Rivermouth District",
+  "description": "A silted-up harbor quarter where the river meets the sea — transit yards, a shuttered clinic, a small-craft marina. The first ground you learn to read.",
+  "baseline": {
+    "threat": 35,
+    "zombieDensity": 45,
+    "loot": 70,
+    "survivorActivity": 25,
+    "power": 0,
+    "water": 20
+  },
+  "adjacent": [],
+  "notes": "M1's first real region (T11). Six nodes forming a ring so fog-of-war reveals two neighbors from the start node. Region-to-region adjacency stays empty until a second region ships (M4)."
+}
