@@ -1,0 +1,76 @@
+name: CI
+
+# The M0 automated pyramid + schema gate (QA_PLAN §4.1, §5). Red CI blocks merge.
+# Runs the determinism/save/pipeline suites for every package and proves the content
+# schema gate both accepts valid content and rejects deliberately malformed content
+# (M0 task T8 · FR-CNT-02 — "volume can never corrupt a run").
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build, typecheck, test & schema gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # --- Engine: pure deterministic core (T3–T5, T7) ---
+      - name: Engine — install
+        working-directory: prototype/engine
+        run: npm install --no-audit --no-fund
+      - name: Engine — typecheck
+        working-directory: prototype/engine
+        run: npm run typecheck
+      - name: Engine — test (determinism · save round-trip · pipeline)
+        working-directory: prototype/engine
+        run: npm test
+
+      # --- Content loader: the schema gate's engine (T6) ---
+      - name: Content loader — install
+        working-directory: prototype/content-loader
+        run: npm install --no-audit --no-fund
+      - name: Content loader — typecheck
+        working-directory: prototype/content-loader
+        run: npm run typecheck
+      - name: Content loader — test
+        working-directory: prototype/content-loader
+        run: npm test
+
+      # --- Terminal harness: runs an empty turn (T9) ---
+      - name: Harness — install
+        working-directory: prototype/harness
+        run: npm install --no-audit --no-fund
+      - name: Harness — typecheck
+        working-directory: prototype/harness
+        run: npm run typecheck
+      - name: Harness — test
+        working-directory: prototype/harness
+        run: npm test
+      - name: Harness — run an empty turn end to end
+        working-directory: prototype/harness
+        run: npm start
+
+      # --- Schema gate (T8): the merge-blocking content check ---
+      - name: Schema gate — real content/ must pass
+        working-directory: prototype/content-loader
+        run: npm run validate
+
+      - name: Schema gate — malformed content must be rejected
+        working-directory: prototype/content-loader
+        run: |
+          if npm run --silent validate -- test/fixtures/bad-json; then
+            echo "::error::schema gate ACCEPTED malformed content — the gate is not gating"
+            exit 1
+          fi
+          echo "OK — schema gate rejected malformed content as required"
