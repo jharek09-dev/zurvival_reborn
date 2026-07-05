@@ -1,0 +1,1 @@
+{ "id": "region.beta", "name": "Beta", "description": "Another valid region.", "adjacent": ["region.alpha"] }

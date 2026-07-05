@@ -1,0 +1,19 @@
+{
+  "name": "@zurvival/engine",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Zurvival Reborn deterministic engine core — pure, headless, dependency-free (ADR-0001).",
+  "type": "module",
+  "main": "./src/index.ts",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "fast-check": "^4.1.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}

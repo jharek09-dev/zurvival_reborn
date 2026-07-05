@@ -1,0 +1,1 @@
+{ "id": "region.x", "name": "X", "description": "threat out of 0-100 range.", "baseline": { "threat": 150 } }

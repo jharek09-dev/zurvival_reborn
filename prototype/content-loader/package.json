@@ -1,0 +1,25 @@
+{
+  "name": "@zurvival/content-loader",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Zurvival Reborn content loader + schema gate (T6, ADR-0002). Validates content/ with Ajv and hands the engine already-validated plain objects. Loader/tooling dependency only — never imported by the dependency-free engine core.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "validate": "tsx src/validateCli.ts"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0",
+    "@types/node": "^22.0.0"
+  }
+}

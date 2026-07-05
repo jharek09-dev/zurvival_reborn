@@ -1,0 +1,2 @@
+{ "id": "region.alpha", "name": "Alpha", "description": "A valid fixture region.",
+  "baseline": { "threat": 10, "loot": 90 } }

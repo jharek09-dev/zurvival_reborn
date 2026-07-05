@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/region.schema.json",
+  "title": "Region",
+  "description": "A large zone of the city (Downtown, Residential, ...) with its own independent threat/loot/density clock (GDD IV, VII). Static definition only — live 0-100 state lives in GameState.regions, seeded from `baseline`.",
+  "type": "object",
+  "required": ["id", "name", "description"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional editor hint pointing at this schema."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^region\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+      "description": "Stable content id, e.g. \"region.downtown\". Referenced by id from GameState (never embedded)."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Player-facing display name (ICU MessageFormat string, LOCALIZATION §13)."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short flavor description (ICU MessageFormat string)."
+    },
+    "baseline": {
+      "type": "object",
+      "description": "Initial 0-100 integer state used to seed GameState.regions[id] at run start.",
+      "additionalProperties": false,
+      "properties": {
+        "threat": { "$ref": "#/$defs/pct" },
+        "zombieDensity": { "$ref": "#/$defs/pct" },
+        "loot": { "$ref": "#/$defs/pct" },
+        "survivorActivity": { "$ref": "#/$defs/pct" },
+        "power": { "$ref": "#/$defs/pct" },
+        "water": { "$ref": "#/$defs/pct" }
+      }
+    },
+    "adjacent": {
+      "type": "array",
+      "description": "Region ids reachable from this one.",
+      "items": {
+        "type": "string",
+        "pattern": "^region\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$"
+      },
+      "uniqueItems": true
+    },
+    "notes": {
+      "type": "string",
+      "description": "Author commentary. JSON has no comments (ADR-0002); use this field."
+    }
+  },
+  "$defs": {
+    "pct": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "A 0-100 integer scale (ADR-0001 numeric discipline)."
+    }
+  }
+}
