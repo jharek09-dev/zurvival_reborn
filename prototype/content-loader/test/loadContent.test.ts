@@ -67,11 +67,12 @@ describe("Content loader + schema gate (T6, DESIGN §8, ADR-0002)", () => {
     expect(() => loadContent(fixture("does-not-exist"))).toThrow(ContentValidationError);
   });
 
-  it.skipIf(!repoContentExists)("validates the real repo content, incl. the throwaway region", () => {
+  it.skipIf(!repoContentExists)("validates the real shipped repo content (Rivermouth region)", () => {
     const reg = loadContent(repoContent);
-    expect(reg.regions!["region.test-downtown"]).toMatchObject({
-      id: "region.test-downtown",
-      baseline: { threat: 40, loot: 70 },
+    expect(reg.regions!["region.rivermouth"]).toMatchObject({
+      id: "region.rivermouth",
+      name: "Rivermouth District",
+      baseline: { threat: 35, loot: 70 },
     });
   });
 });
