@@ -27,5 +27,6 @@ What becomes easier or harder as a result.
 
 - **0001 — Engine language & runtime.** Deferred by design.
 - **0002 — Content data format** (JSON vs YAML vs custom).
-- **0003 — Save format & versioning strategy.**
+- ~~**0003 — Save format & versioning strategy.**~~ **Accepted 2026-07-05** — local-first,
+  client-owned saves; T7 forward-only migration ladder; cloud sync deferred post-launch.
 - **0004 — Platform priority** (web-first confirmed; bot/native ordering TBD).

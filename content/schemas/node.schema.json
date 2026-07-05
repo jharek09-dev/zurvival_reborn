@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/node.schema.json",
+  "title": "Node",
+  "description": "A single location within a region — the unit of the fog-of-war node graph (FR-MAP-01). Static definition only: live per-node memory (searchPct, damage, corpses, noise, fog-of-war discovery, ...) lives in GameState.nodes, seeded from this definition at run start. Routes are the undirected edges of the graph; the engine's map integrity check requires them to be symmetric and the whole region to be connected from its single start node.",
+  "type": "object",
+  "required": ["id", "regionId", "name", "description", "adjacent"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional editor hint pointing at this schema."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^node(?:\\.[a-z0-9]+(?:[-_][a-z0-9]+)*){2}$",
+      "description": "Stable content id of the form node.<region-slug>.<node-slug>, e.g. \"node.rivermouth.transit-plaza\". Referenced by id from GameState (never embedded)."
+    },
+    "regionId": {
+      "type": "string",
+      "pattern": "^region\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+      "description": "Id of the region this node belongs to (FR-MAP-01 — locations grouped into regions)."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Player-facing display name (ICU MessageFormat string, LOCALIZATION §13)."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short flavor description shown when the node is scouted or entered (ICU MessageFormat string)."
+    },
+    "adjacent": {
+      "type": "array",
+      "description": "Node ids directly reachable by one travel step (the graph's edges). Must be symmetric (if A lists B, B lists A) — enforced by the engine's map integrity check, not the schema.",
+      "items": {
+        "type": "string",
+        "pattern": "^node(?:\\.[a-z0-9]+(?:[-_][a-z0-9]+)*){2}$"
+      },
+      "uniqueItems": true
+    },
+    "start": {
+      "type": "boolean",
+      "description": "True on exactly one node per shipped region set — where a new run begins. The engine rejects a set with zero or many start nodes."
+    },
+    "claimable": {
+      "type": "boolean",
+      "description": "True if this node can be claimed as a safehouse (FR-MAP-06). A claimed node can later be lost; claim state itself lives in GameState, not here."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Author commentary. JSON has no comments (ADR-0002); use this field."
+    }
+  }
+}
