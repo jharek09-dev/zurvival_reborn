@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zurvival Reborn — Wireframe Kit (Ashfall & Ember)</title>
+<style>
+:root{
+  /* ——— ASHFALL & EMBER · core tokens (single source of truth) ——— */
+  --bg:#0E0F10;          /* app base */
+  --surface-1:#17181B;   /* panels, story card */
+  --surface-2:#1E2024;   /* raised cards, choice rows */
+  --surface-3:#26282E;   /* hover / elevated */
+  --line:#2C2E34;        /* hairline border */
+  --line-strong:#3A3D45; /* stronger divider */
+  --text:#EDE7DB;        /* primary — bone */
+  --text-2:#B7B3A9;      /* secondary */
+  --muted:#8B8981;       /* tertiary / meta */
+  --accent:#F2803A;      /* ember — action, links, interactive */
+  --accent-press:#D96A28;
+  --danger:#D84334;      /* blood — combat, health critical */
+  --infection:#93A63E;   /* bile — infection, toxic */
+  --hope:#5FB3A1;        /* clean water — relief, safe, success */
+  --info:#5C7A94;        /* steel — radio, map, night, info */
+  --warning:#E0A33B;     /* amber — caution */
+  --font-sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
+  --font-mono:ui-monospace,'JetBrains Mono','SFMono-Regular',Menlo,Consolas,monospace;
+  --r-sm:8px; --r-md:12px; --r-lg:18px; --r-phone:26px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:#08090A;color:var(--text);font-family:var(--font-sans);line-height:1.5;-webkit-font-smoothing:antialiased}
+.doc{max-width:1080px;margin:0 auto;padding:40px 24px 80px}
+a{color:var(--accent);text-decoration:none}
+h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+
+/* cover */
+.cover{border:1px solid var(--line);border-radius:var(--r-lg);padding:34px 32px;background:
+   radial-gradient(120% 140% at 100% 0%, #1a140f 0%, var(--bg) 55%);position:relative;overflow:hidden}
+.cover::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--accent)}
+.kick{font-family:var(--font-mono);font-size:12px;letter-spacing:.24em;color:var(--muted)}
+.cover h1{font-size:38px;margin:10px 0 4px;line-height:1.02}
+.cover h1 .em{color:var(--accent)}
+.cover .lede{color:var(--text-2);max-width:640px;font-size:15px;margin-top:10px}
+.cover .meta{margin-top:18px;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);letter-spacing:.04em}
+
+/* section frame */
+.section{margin-top:46px}
+.section > .sh{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:22px}
+.section > .sh .n{font-family:var(--font-mono);font-size:12px;color:var(--accent);letter-spacing:.1em}
+.section > .sh h2{font-size:21px}
+.section > .sh .d{margin-left:auto;color:var(--muted);font-size:12.5px}
+
+/* palette */
+.pal{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:12px}
+.chip{border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;background:var(--surface-1)}
+.chip .cap{height:74px}
+.chip .info{padding:9px 10px}
+.chip .role{font-size:12px;font-weight:600}
+.chip .hex{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:1px}
+.chip .use{font-size:10.5px;color:var(--text-2);margin-top:5px;line-height:1.35}
+
+/* principles */
+.princ{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.pcard{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-md);padding:14px 16px;background:var(--surface-1)}
+.pcard h3{font-size:14px;margin-bottom:5px}
+.pcard p{margin:0;font-size:12.5px;color:var(--text-2)}
+
+/* screen layout: phone + annotations */
+.screen{display:grid;grid-template-columns:322px 1fr;gap:30px;align-items:start;margin-bottom:14px}
+@media(max-width:760px){.screen{grid-template-columns:1fr}}
+.screen .cap{margin-bottom:14px}
+.screen .cap .t{font-size:16px;font-weight:700}
+.screen .cap .s{color:var(--muted);font-size:12.5px;margin-top:2px}
+.notes{padding-top:2px}
+.notes ol{margin:0;padding:0;list-style:none;counter-reset:pin}
+.notes li{position:relative;padding:0 0 14px 34px;counter-increment:pin}
+.notes li::before{content:counter(pin);position:absolute;left:0;top:0;width:22px;height:22px;border-radius:50%;
+  background:var(--accent);color:#160b04;font-family:var(--font-mono);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.notes li b{color:var(--text)}
+.notes li span{color:var(--text-2);font-size:13px}
+.notes .grp{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;color:var(--muted);margin:6px 0 10px;text-transform:uppercase}
+
+/* ——— phone component ——— */
+.phone{width:322px;border:1px solid var(--line-strong);border-radius:var(--r-phone);background:var(--bg);
+  box-shadow:0 18px 50px rgba(0,0,0,.55);overflow:hidden;display:flex;flex-direction:column;min-height:640px}
+.phone.tall{min-height:660px}
+.notch{height:26px;display:flex;align-items:center;justify-content:center}
+.notch::before{content:"";width:96px;height:5px;border-radius:3px;background:#000;opacity:.6}
+.p{padding-left:16px;padding-right:16px}
+.hbar{display:flex;justify-content:space-between;align-items:center;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.06em;color:var(--muted);padding:2px 16px 9px}
+.loc{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-2);padding:0 16px 10px;border-bottom:1px solid var(--line)}
+.loc .rg{color:var(--muted)}
+/* status bar */
+.status{display:flex;gap:7px;align-items:center;padding:11px 16px 12px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.st{flex:1 1 0;min-width:46px}
+.st .l{font-family:var(--font-mono);font-size:7.5px;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;display:flex;justify-content:space-between}
+.st .trk{height:5px;border-radius:3px;background:#000;overflow:hidden}
+.st .fil{height:100%;border-radius:3px;background:var(--text)}
+.st.crit .fil{background:var(--danger)}
+.st.warn .fil{background:var(--warning)}
+.symp{font-family:var(--font-mono);font-size:8px;letter-spacing:.1em;padding:4px 7px;border-radius:6px;border:1px solid var(--infection);color:var(--infection);background:rgba(147,166,62,.12);align-self:center}
+/* story */
+.story{padding:16px;font-size:13.5px;line-height:1.6;color:var(--text);flex:0 0 auto}
+.story .who{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:9px}
+.story .hot{color:var(--accent);font-weight:600}
+.story .dgr{color:var(--danger);font-weight:600}
+.micro{margin:0 16px 12px;font-size:11.5px;color:var(--muted);display:flex;gap:12px}
+.micro a{color:var(--info);border-bottom:1px dotted var(--info)}
+/* choices */
+.choices{padding:6px 16px 14px;display:flex;flex-direction:column;gap:9px;margin-top:auto}
+.choice{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:var(--r-sm);padding:11px 13px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.choice .t{font-size:13px;font-weight:600}
+.choice .m{font-family:var(--font-mono);font-size:9px;letter-spacing:.05em;color:var(--accent);white-space:nowrap}
+.choice .m.q{color:var(--muted)}
+.choice.ghost{border-left-color:var(--line);background:transparent}
+.choice.ghost .t{color:var(--muted)}
+.choice.dgr{border-left-color:var(--danger)}.choice.dgr .m{color:var(--danger)}
+.choice.hope{border-left-color:var(--hope)}.choice.hope .m{color:var(--hope)}
+/* bottom nav */
+.nav{display:flex;justify-content:space-around;align-items:center;padding:10px 8px 14px;border-top:1px solid var(--line)}
+.nav .i{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:7.5px;letter-spacing:.06em;font-family:var(--font-mono)}
+.nav .i.on{color:var(--accent)}
+.nav svg{width:20px;height:20px}
+/* generic bits reused across screens */
+.hd{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;padding:14px 16px 8px}
+.row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line)}
+.row .ico{width:30px;height:30px;border-radius:7px;background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.row .ico svg{width:16px;height:16px}
+.row .main{flex:1;min-width:0}
+.row .main .a{font-size:12.5px;font-weight:600}
+.row .main .b{font-size:10.5px;color:var(--muted);margin-top:1px}
+.row .end{font-family:var(--font-mono);font-size:10px;color:var(--text-2);white-space:nowrap}
+.pill{font-family:var(--font-mono);font-size:8.5px;letter-spacing:.06em;padding:2px 6px;border-radius:5px;border:1px solid var(--line);color:var(--text-2)}
+.pill.acc{color:var(--accent);border-color:var(--accent)}
+.pill.inf{color:var(--infection);border-color:var(--infection)}
+.pill.hp{color:var(--hope);border-color:var(--hope)}
+.pill.dg{color:var(--danger);border-color:var(--danger)}
+.pill.info{color:var(--info);border-color:var(--info)}
+/* component library */
+.lib{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.libcard{border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-1);padding:16px}
+.libcard .lh{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;color:var(--muted);margin-bottom:12px;text-transform:uppercase}
+.stack{display:flex;flex-direction:column;gap:9px}
+.type-row{display:flex;align-items:baseline;gap:14px;padding:9px 0;border-bottom:1px solid var(--line)}
+.type-row .spec{font-family:var(--font-mono);font-size:10.5px;color:var(--muted);width:150px;flex:0 0 auto}
+.foot{margin-top:52px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.foot .em{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="doc">
+<h2 class="sr-only">Zurvival Reborn wireframe kit using the Ashfall and Ember colorway: cover and palette, design principles, component library, type scale, and annotated mobile screens for exploration, combat, inventory, companions, shelter, world map, codex, and the quiet death screen.</h2>
+
+<!-- ===== COVER ===== -->
+<div class="cover">
+  <div class="kick">ZURVIVAL REBORN · WIREFRAME KIT</div>
+  <h1>Ashfall <span class="em">&amp;</span> Ember</h1>
+  <div class="lede">The core visual system for a chat-driven survival roguelite. A desaturated, warm-charcoal world where saturated color is rationed — spent only to <b>communicate</b>: ember for action, blood for danger, bile for infection, clean-water teal for relief.</div>
+  <div class="meta">MOBILE-FIRST · STORY-FIRST · ONE DECISION AT A TIME · v0.1 · maps to GDD Part XVII</div>
+</div>
+
+<!-- ===== PALETTE ===== -->
+<div class="section">
+  <div class="sh"><span class="n">01</span><h2>The Colorway</h2><span class="d">Ashfall &amp; Ember · the tokens below drive every screen</span></div>
+  <div class="pal">
+    <div class="chip"><div class="cap" style="background:#0E0F10"></div><div class="info"><div class="role">Base</div><div class="hex">#0E0F10</div><div class="use">App background. The dark you read on.</div></div></div>
+    <div class="chip"><div class="cap" style="background:#17181B"></div><div class="info"><div class="role">Surface</div><div class="hex">#17181B</div><div class="use">Story card, panels, sheets.</div></div></div>
+    <div class="chip"><div class="cap" style="background:#1E2024"></div><div class="info"><div class="role">Raised</div><div class="hex">#1E2024</div><div class="use">Choice rows, list items, cards.</div></div></div>
+    <div class="chip"><div class="cap" style="background:#EDE7DB"></div><div class="info"><div class="role">Text · Bone</div><div class="hex">#EDE7DB</div><div class="use">Primary body — the star.</div></div></div>
+    <div class="chip"><div class="cap" style="background:#8B8981"></div><div class="info"><div class="role">Muted</div><div class="hex">#8B8981</div><div class="use">Meta, labels, timestamps.</div></div></div>
+    <div class="chip"><div class="cap" style="background:#F2803A"></div><div class="info"><div class="role">Ember · Accent</div><div class="hex">#F2803A</div><div class="use">Action, links, focus, interactive.</div></div></div>
+    <div class="chip"><div class="cap" style="background:#D84334"></div><div class="info"><div class="role">Blood · Danger</div><div class="hex">#D84334</div><div class="use">Combat, low health, threats.</div></div></div>
+    <div class="chip"><div class="cap" style="background:#93A63E"></div><div class="info"><div class="role">Bile · Infection</div><div class="hex">#93A63E</div><div class="use">Infection symptoms, toxins.</div></div></div>
+    <div class="chip"><div class="cap" style="background:#5FB3A1"></div><div class="info"><div class="role">Water · Hope</div><div class="hex">#5FB3A1</div><div class="use">Relief, safe, success, rescue.</div></div></div>
+    <div class="chip"><div class="cap" style="background:#5C7A94"></div><div class="info"><div class="role">Steel · Info</div><div class="hex">#5C7A94</div><div class="use">Radio, map, night, quiet info.</div></div></div>
+  </div>
+</div>
+
+<!-- ===== PRINCIPLES ===== -->
+<div class="section">
+  <div class="sh"><span class="n">02</span><h2>Rules the UI Obeys</h2><span class="d">every screen is measured against these</span></div>
+  <div class="princ">
+    <div class="pcard"><h3>Story first</h3><p>Text is the art. Chrome serves the words, then disappears. Typography carries the mood before any color does.</p></div>
+    <div class="pcard"><h3>One decision at a time</h3><p>The screen centers the current situation and its choices — never a dashboard of competing demands. Depth is one tap away.</p></div>
+    <div class="pcard"><h3>Color communicates</h3><p>The base is desaturated. Saturated hue is a signal, not decoration: ember=act, blood=danger, bile=infection, teal=relief.</p></div>
+    <div class="pcard"><h3>Minimal status</h3><p>Only critical stats are ever visible. Infection is never a bar — it surfaces as a symptom tag and as degraded text.</p></div>
+    <div class="pcard"><h3>Show real costs</h3><p>Choices display known costs (time, noise, a resource) and hide the outcome. Never a fake choice.</p></div>
+    <div class="pcard"><h3>Restraint is a tool</h3><p>In loss, the UI strips back — the Quiet Screen. It can go dark when the power fails and degrade when the player is feverish.</p></div>
+  </div>
+</div>
+
+<!-- ===== COMPONENT LIBRARY ===== -->
+<div class="section">
+  <div class="sh"><span class="n">03</span><h2>Component Library</h2><span class="d">the parts every screen is assembled from</span></div>
+  <div class="lib">
+    <div class="libcard">
+      <div class="lh">Choice rows</div>
+      <div class="stack">
+        <div class="choice"><span class="t">Pry the cabinet open</span><span class="m">LOUD · 10m</span></div>
+        <div class="choice dgr"><span class="t">Rush the doorway</span><span class="m">RISK · FIGHT</span></div>
+        <div class="choice hope"><span class="t">Share your water</span><span class="m">−1 WATER</span></div>
+        <div class="choice ghost"><span class="t">Leave — this feels wrong</span><span class="m q">›</span></div>
+      </div>
+    </div>
+    <div class="libcard">
+      <div class="lh">Status &amp; vitals</div>
+      <div class="stack">
+        <div class="st crit"><div class="l"><span>HEALTH</span><span>24%</span></div><div class="trk"><div class="fil" style="width:24%"></div></div></div>
+        <div class="st warn"><div class="l"><span>FATIGUE</span><span>62%</span></div><div class="trk"><div class="fil" style="width:62%"></div></div></div>
+        <div class="st"><div class="l"><span>WATER</span><span>61%</span></div><div class="trk"><div class="fil" style="width:61%"></div></div></div>
+      </div>
+    </div>
+    <div class="libcard">
+      <div class="lh">Tags &amp; signals</div>
+      <div class="stack" style="flex-direction:row;flex-wrap:wrap;gap:8px">
+        <span class="symp">FEVERISH</span>
+        <span class="pill inf">INFECTED · II</span>
+        <span class="pill dg">BLEEDING</span>
+        <span class="pill acc">NEW</span>
+        <span class="pill hp">SAFE</span>
+        <span class="pill info">SIGNAL</span>
+        <span class="pill">SPRAINED ANKLE</span>
+      </div>
+    </div>
+    <div class="libcard">
+      <div class="lh">List row (loot / people / rooms)</div>
+      <div class="stack">
+        <div class="row" style="border:1px solid var(--line);border-radius:8px;background:var(--surface-2)">
+          <div class="ico"><svg viewBox="0 0 22 22"><path d="M6 9V7a5 5 0 0 1 10 0v2m-11 0h12v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2Z" fill="none" stroke="#F2803A" stroke-width="1.4"/></svg></div>
+          <div class="main"><div class="a">Firefighter’s axe</div><div class="b">Hospital · repaired twice · <span style="color:var(--hope)">artifact</span></div></div>
+          <div class="end">3.1 kg</div>
+        </div>
+      </div>
+    </div>
+    <div class="libcard" style="grid-column:1/-1">
+      <div class="lh">Bottom navigation</div>
+      <div class="nav" style="border-top:none;justify-content:flex-start;gap:26px">
+        <div class="i on"><svg viewBox="0 0 22 22"><path d="M9 2 3 4v14l6-2 6 2 6-2V2l-6 2-6-2Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M9 2v14M15 4v14" stroke="currentColor" stroke-width="1.4"/></svg>MAP</div>
+        <div class="i"><svg viewBox="0 0 22 22"><path d="M7 8V6a3 3 0 0 1 6 0v2m-8 0h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>PACK</div>
+        <div class="i"><svg viewBox="0 0 22 22"><circle cx="7" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3 18c0-2.5 1.8-4 4-4s4 1.5 4 4m0 0c0-2.5 1.8-4 4-4s4 1.5 4 4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>PEOPLE</div>
+        <div class="i"><svg viewBox="0 0 22 22"><rect x="3" y="7" width="16" height="11" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="12.5" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 5.5 12 3M6 10.5h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>RADIO</div>
+        <div class="i"><svg viewBox="0 0 22 22"><path d="M5 3h9l4 4v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 10h8M7 13h8M7 16h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>JOURNAL</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TYPE SCALE ===== -->
+<div class="section">
+  <div class="sh"><span class="n">04</span><h2>Type &amp; Space</h2><span class="d">Inter for prose · monospace for system voice</span></div>
+  <div class="type-row"><div class="spec">Inter · 38 / 700</div><div style="font-size:30px;font-weight:700;letter-spacing:-.02em">Day six. It won’t rain forever.</div></div>
+  <div class="type-row"><div class="spec">Inter · 21 / 700</div><div style="font-size:19px;font-weight:700">Section &amp; screen titles</div></div>
+  <div class="type-row"><div class="spec">Inter · 14 / 400 · 1.6</div><div style="font-size:14px;color:var(--text)">Body / story copy — the star of every screen. Large, well-spaced, never crowded.</div></div>
+  <div class="type-row"><div class="spec">Inter · 13 / 600</div><div style="font-size:13px;font-weight:600">Choice labels — the one thing you tap.</div></div>
+  <div class="type-row"><div class="spec">Mono · 10 · .14em</div><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;color:var(--muted)">SYSTEM VOICE · TIME · NOISE · LABELS</div></div>
+  <div style="margin-top:14px;color:var(--text-2);font-size:12.5px">Spacing scale: <b>4 · 8 · 12 · 16 · 24 · 32</b>. Radii: 8 (controls) · 12 (cards) · 18 (sheets) · 26 (device). Touch targets ≥ 44px. One-hand reach: primary actions live in the lower third.</div>
+</div>
+
+<!-- ===== SCREENS ===== -->
+<div class="section">
+  <div class="sh"><span class="n">05</span><h2>The Screens</h2><span class="d">annotated · numbered pins map to the notes</span></div>
+
+  <!-- Screen 1: Exploration -->
+  <div class="screen">
+    <div>
+      <div class="cap"><div class="t">1 · Primary — Exploration</div><div class="s">The home screen. 90% of the game lives here.</div></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hbar"><span>DAY 6 · 02:14</span><span>LATE NIGHT · RAIN</span></div>
+        <div class="loc">Downtown <span class="rg">— Riverside Pharmacy</span></div>
+        <div class="status">
+          <div class="st crit"><div class="l"><span>HP</span><span>24</span></div><div class="trk"><div class="fil" style="width:24%"></div></div></div>
+          <div class="st"><div class="l"><span>FOOD</span><span>48</span></div><div class="trk"><div class="fil" style="width:48%"></div></div></div>
+          <div class="st"><div class="l"><span>WTR</span><span>61</span></div><div class="trk"><div class="fil" style="width:61%"></div></div></div>
+          <div class="st warn"><div class="l"><span>REST</span><span>33</span></div><div class="trk"><div class="fil" style="width:33%"></div></div></div>
+          <span class="symp">FEVERISH</span>
+        </div>
+        <div class="story">
+          <div class="who">Riverside Pharmacy · dark</div>
+          Rain hammers the shutters. The shelves are stripped, but behind the counter there’s a <span class="hot">locked cabinet</span> — and somewhere in the <span class="dgr">stockroom</span>, something drags itself across the floor.
+        </div>
+        <div class="micro"><a>Leave the flashlight on?</a><a>Close the door?</a></div>
+        <div class="choices">
+          <div class="choice"><span class="t">Pry the cabinet open</span><span class="m">LOUD · 10m</span></div>
+          <div class="choice"><span class="t">Search the shelves quietly</span><span class="m q">25m</span></div>
+          <div class="choice ghost"><span class="t">Leave — this feels wrong</span><span class="m q">›</span></div>
+        </div>
+        <div class="nav">
+          <div class="i on"><svg viewBox="0 0 22 22"><path d="M9 2 3 4v14l6-2 6 2 6-2V2l-6 2-6-2Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M9 2v14M15 4v14" stroke="currentColor" stroke-width="1.4"/></svg>MAP</div>
+          <div class="i"><svg viewBox="0 0 22 22"><path d="M7 8V6a3 3 0 0 1 6 0v2m-8 0h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>PACK</div>
+          <div class="i"><svg viewBox="0 0 22 22"><circle cx="7" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3 18c0-2.5 1.8-4 4-4s4 1.5 4 4m0 0c0-2.5 1.8-4 4-4s4 1.5 4 4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>PEOPLE</div>
+          <div class="i"><svg viewBox="0 0 22 22"><rect x="3" y="7" width="16" height="11" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="12.5" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6 5.5 12 3M6 10.5h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>RADIO</div>
+          <div class="i"><svg viewBox="0 0 22 22"><path d="M5 3h9l4 4v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 10h8M7 13h8M7 16h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>JOURNAL</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="grp">Anatomy — top to bottom</div>
+      <ol>
+        <li><b>Header — system voice.</b> <span>Day, time, phase, weather in mono. This is the world talking, not the story. Never competes with the prose.</span></li>
+        <li><b>Location strip.</b> <span>Answers “where am I?” Region muted, node bright. Tapping opens the map.</span></li>
+        <li><b>Status — critical only.</b> <span>HP red at 24% (blood token). Infection is <em>not</em> a bar — it shows as the <span style="color:var(--infection)">FEVERISH</span> tag and, deeper in, by degrading this very screen.</span></li>
+        <li><b>Story window — the star.</b> <span>Largest type, most breathing room. Ember marks an interactable noun (<span style="color:var(--accent)">locked cabinet</span>); blood marks a threat (<span style="color:var(--danger)">stockroom</span>).</span></li>
+        <li><b>Micro-choices.</b> <span>Cheap, tactile taps in steel/info. They rarely swing a run alone but compound — the door you didn’t close.</span></li>
+        <li><b>Choice rows.</b> <span>Known costs shown in mono (LOUD · 10m); outcome always hidden. The 3px ember left-edge = “this is interactive.” Ghost row = low-commitment exit.</span></li>
+        <li><b>Bottom nav — depth on demand.</b> <span>Map · Pack · People · Radio · Journal. One tap away, never crowding the decision.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Screen 2: Combat -->
+  <div class="screen">
+    <div>
+      <div class="cap"><div class="t">2 · Combat — a bad exchange</div><div class="s">Turn-based, last-resort, always costly. The screen tightens.</div></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hbar"><span>DAY 6 · 02:15</span><span style="color:var(--danger)">● CONTACT</span></div>
+        <div class="loc">Stockroom <span class="rg">— no way around it</span></div>
+        <div class="status">
+          <div class="st crit"><div class="l"><span>HP</span><span>19</span></div><div class="trk"><div class="fil" style="width:19%"></div></div></div>
+          <div class="st warn"><div class="l"><span>STAM</span><span>28</span></div><div class="trk"><div class="fil" style="width:28%"></div></div></div>
+          <span class="pill dg">ROTTER · CLOSE</span>
+          <span class="symp">FEVERISH</span>
+        </div>
+        <div class="story">
+          <div class="who" style="color:var(--danger)">It has your sleeve</div>
+          The rotter is on you before the light finds it — cold hands, that <span class="dgr">wet, clicking breath</span>. Your knife is out but your footing is wrong. Every second here is noise, and noise is more of them.
+        </div>
+        <div class="choices">
+          <div class="choice dgr"><span class="t">Drive the knife in</span><span class="m">STAM −8</span></div>
+          <div class="choice"><span class="t">Shove it off, make space</span><span class="m q">PUSH</span></div>
+          <div class="choice"><span class="t">Fire — end it now</span><span class="m">NOISE +12</span></div>
+          <div class="choice hope"><span class="t">Break for the door</span><span class="m">FLEE</span></div>
+        </div>
+        <div class="nav">
+          <div class="i on"><svg viewBox="0 0 22 22"><path d="M4 4l14 14M8 4H4v4M14 18h4v-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>FIGHT</div>
+          <div class="i"><svg viewBox="0 0 22 22"><path d="M7 8V6a3 3 0 0 1 6 0v2m-8 0h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>PACK</div>
+          <div class="i"><svg viewBox="0 0 22 22"><path d="M11 3l7 4v5c0 4-3 6-7 7-4-1-7-3-7-7V7l7-4Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>GUARD</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="grp">What changes in combat</div>
+      <ol>
+        <li><b>The frame reddens, not reddens-everything.</b> <span>Header contact dot, threat pill, and threat nouns take the blood token. The base stays charcoal so danger still <em>reads</em> as danger.</span></li>
+        <li><b>Actions replace exploration choices.</b> <span>Attack · Push · Fire · Flee. Each shows its scarce cost — stamina, or <span style="color:var(--danger)">NOISE +12</span> for the gun, the loudest and most dangerous “win.”</span></li>
+        <li><b>Escape is always first-class.</b> <span>The teal “Break for the door” is never hidden. The best fight is the one avoided.</span></li>
+        <li><b>Fear is felt, not metered.</b> <span>As the hidden Fear rises, prose shortens and blurs and options quietly thin. No fear bar — the writing carries it.</span></li>
+        <li><b>Nav swaps to combat verbs.</b> <span>Fight · Pack (quick-swap weapon) · Guard. Depth still one tap away, tuned to the moment.</span></li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <!-- Screen 3: Inventory -->
+  <div class="screen">
+    <div>
+      <div class="cap"><div class="t">3 · Pack — Inventory</div><div class="s">Weight-bound. Every pickup is “what do I leave behind?”</div></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hbar"><span>PACK</span><span>14.2 / 20.0 KG</span></div>
+        <div class="status" style="border-bottom:1px solid var(--line)">
+          <div class="st warn" style="min-width:auto"><div class="l"><span>CARRY WEIGHT</span><span>71%</span></div><div class="trk"><div class="fil" style="width:71%"></div></div></div>
+        </div>
+        <div style="display:flex;gap:7px;padding:11px 16px;flex-wrap:wrap;border-bottom:1px solid var(--line)">
+          <span class="pill acc">ALL</span><span class="pill">MEDICAL</span><span class="pill">FOOD</span><span class="pill">WEAPONS</span><span class="pill">MATS</span>
+        </div>
+        <div style="overflow:hidden">
+          <div class="row">
+            <div class="ico"><svg viewBox="0 0 22 22"><path d="M6 9V7a5 5 0 0 1 10 0v2m-11 0h12v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2Z" fill="none" stroke="#F2803A" stroke-width="1.4"/></svg></div>
+            <div class="main"><div class="a">Firefighter’s axe <span class="pill hp" style="margin-left:4px">ARTIFACT</span></div><div class="b">Hospital · repaired twice · well-kept</div></div>
+            <div class="end">3.1</div>
+          </div>
+          <div class="row">
+            <div class="ico"><svg viewBox="0 0 22 22"><rect x="6" y="3" width="10" height="16" rx="2" fill="none" stroke="#93A63E" stroke-width="1.4"/><path d="M9 7h4M9 10h4" stroke="#93A63E" stroke-width="1.4"/></svg></div>
+            <div class="main"><div class="a">Antibiotics <span class="pill inf" style="margin-left:4px">×3</span></div><div class="b">Treats early infection · fever</div></div>
+            <div class="end">0.2</div>
+          </div>
+          <div class="row">
+            <div class="ico"><svg viewBox="0 0 22 22"><path d="M5 8h12l-1 10a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8Z" fill="none" stroke="#EDE7DB" stroke-width="1.4"/><path d="M8 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="#EDE7DB" stroke-width="1.4"/></svg></div>
+            <div class="main"><div class="a">Canned food <span class="pill" style="margin-left:4px">×4</span></div><div class="b">The last of it. Someone will ask.</div></div>
+            <div class="end">1.6</div>
+          </div>
+          <div class="row">
+            <div class="ico"><svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="7" fill="none" stroke="#5C7A94" stroke-width="1.4"/><path d="M11 7v4l3 2" stroke="#5C7A94" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+            <div class="main"><div class="a">Sarah’s flashlight <span class="pill hp" style="margin-left:4px">ARTIFACT</span></div><div class="b">Found in the hospital · repaired twice</div></div>
+            <div class="end">0.4</div>
+          </div>
+          <div class="row" style="opacity:.6">
+            <div class="ico"><svg viewBox="0 0 22 22"><path d="M4 12h14M12 6l6 6-6 6" fill="none" stroke="#8B8981" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="main"><div class="a">Scrap, tape, wire…</div><div class="b">7 crafting components</div></div>
+            <div class="end">2.0</div>
+          </div>
+        </div>
+        <div class="choices" style="margin-top:auto">
+          <div class="choice"><span class="t">Equip · Use · Drop</span><span class="m">SELECT</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="grp">Pack rules</div>
+      <ol>
+        <li><b>Weight is the pressure.</b> <span>The carry bar warns amber past 70%. Over-capacity forces an explicit drop/replace — never a silent “can’t pick up.”</span></li>
+        <li><b>Categories, not clutter.</b> <span>Filter chips keep the list to one intent at a time. Ember chip = active filter.</span></li>
+        <li><b>Artifacts carry history.</b> <span>“Sarah’s flashlight — found in the hospital, repaired twice.” The teal ARTIFACT tag means it has provenance and losing it will hurt.</span></li>
+        <li><b>The last can is visible.</b> <span>Copy foreshadows the moral squeeze (“someone will ask”). The economy is designed to make food a choice.</span></li>
+        <li><b>No XP anywhere.</b> <span>Growth is this list — a better axe, a working light, a full pack. There is no level to see.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Screen 4: Companions -->
+  <div class="screen">
+    <div>
+      <div class="cap"><div class="t">4 · People — Companions</div><div class="s">Handcrafted survivors. Trust is per-person and earned.</div></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hbar"><span>PEOPLE</span><span>3 WITH YOU · 5 AT HOME</span></div>
+        <div class="row" style="border-top:1px solid var(--line)">
+          <div class="ico" style="border-color:var(--accent)"><span style="color:var(--accent);font-weight:700">M</span></div>
+          <div class="main"><div class="a">Marcus — mechanic</div><div class="b">Hurt ankle · steady · <span style="color:var(--hope)">trusts you</span></div></div>
+          <div class="end"><span class="pill hp">TRUST 4</span></div>
+        </div>
+        <div style="padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface-1)">
+          <div class="who" style="font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;color:var(--muted);margin-bottom:8px">MARCUS · ORDERS</div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <span class="pill acc">FOLLOW</span><span class="pill">HOLD</span><span class="pill">SCAVENGE</span><span class="pill">GUARD HOME</span>
+          </div>
+          <div style="margin-top:11px;font-size:12px;color:var(--text-2);line-height:1.55">“My dad kept spare batteries in the <span style="color:var(--accent)">freezer</span> — habit I never broke.”</div>
+          <div style="margin-top:8px;font-size:10.5px;color:var(--muted)">↳ a hint, not a quest. Somewhere out there, a freezer.</div>
+        </div>
+        <div class="row">
+          <div class="ico"><span style="color:var(--text-2);font-weight:700">D</span></div>
+          <div class="main"><div class="a">Dana — ex-soldier</div><div class="b">Healthy · guarded · won’t say why</div></div>
+          <div class="end"><span class="pill">TRUST 2</span></div>
+        </div>
+        <div class="row">
+          <div class="ico"><span style="color:var(--infection);font-weight:700">E</span></div>
+          <div class="main"><div class="a">Eli — teenager</div><div class="b"><span style="color:var(--infection)">Feverish</span> · scared · needs meds</div></div>
+          <div class="end"><span class="pill inf">SICK</span></div>
+        </div>
+        <div class="choices" style="margin-top:auto">
+          <div class="choice"><span class="t">Talk to Marcus</span><span class="m">›</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="grp">People, not spawns</div>
+      <ol>
+        <li><b>Trust is per-relationship.</b> <span>Each person shows their own trust (teal when high, plain when guarded) — no single global reputation bar.</span></li>
+        <li><b>Orders gate on trust.</b> <span>Marcus (trust 4) takes FOLLOW; a wary Dana might refuse the dangerous order. Active order in ember.</span></li>
+        <li><b>Conversation is a mechanic.</b> <span>Marcus’s offhand memory is a real, actionable loot hint (ember “freezer”). Listening pays.</span></li>
+        <li><b>Their state is legible at a glance.</b> <span>Eli’s bile-green “SICK” tag reads the infection story instantly; his initial glyph carries the color too.</span></li>
+        <li><b>Everyone is a mouth and a risk.</b> <span>Three with you, five at home — the header keeps the cost of the community present.</span></li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <!-- Screen 5: Shelter -->
+  <div class="screen">
+    <div>
+      <div class="cap"><div class="t">5 · Home — The Shelter</div><div class="s">The one place that feels safe — and the thing you fear losing.</div></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hbar"><span>THE OVERLOOK</span><span>DAY 6 · DUSK</span></div>
+        <div class="status" style="border-bottom:1px solid var(--line)">
+          <div class="st"><div class="l"><span>INTEGRITY</span><span>78</span></div><div class="trk"><div class="fil" style="width:78%"></div></div></div>
+          <div class="st warn"><div class="l"><span>MORALE</span><span>41</span></div><div class="trk"><div class="fil" style="width:41%"></div></div></div>
+          <div class="st crit"><div class="l"><span>FOOD</span><span>2d</span></div><div class="trk"><div class="fil" style="width:22%"></div></div></div>
+        </div>
+        <div class="hd">Rooms</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px 12px">
+          <div style="border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--surface-2)"><div style="font-size:12px;font-weight:600">Kitchen <span style="color:var(--hope)">●</span></div><div style="font-size:10px;color:var(--muted)">cooking · +morale</div></div>
+          <div style="border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--surface-2)"><div style="font-size:12px;font-weight:600">Medical <span style="color:var(--infection)">●</span></div><div style="font-size:10px;color:var(--muted)">Eli in quarantine</div></div>
+          <div style="border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--surface-2)"><div style="font-size:12px;font-weight:600">Workshop <span style="color:var(--hope)">●</span></div><div style="font-size:10px;color:var(--muted)">repairing gear</div></div>
+          <div style="border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--surface-2)"><div style="font-size:12px;font-weight:600">Watchtower <span style="color:var(--warning)">●</span></div><div style="font-size:10px;color:var(--muted)">1 guard · thin</div></div>
+          <div style="border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--surface-1);border-style:dashed"><div style="font-size:12px;font-weight:600;color:var(--muted)">Radio Room</div><div style="font-size:10px;color:var(--muted)">+ build</div></div>
+          <div style="border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--surface-1);border-style:dashed"><div style="font-size:12px;font-weight:600;color:var(--muted)">Garden</div><div style="font-size:10px;color:var(--muted)">+ build</div></div>
+        </div>
+        <div style="margin:0 16px;padding:11px 12px;border:1px solid var(--line);border-left:3px solid var(--info);border-radius:8px;background:var(--surface-1)">
+          <div class="who" style="font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;color:var(--info);margin-bottom:6px">DAILY REPORT · DAY 5 → 6</div>
+          <div style="font-size:11.5px;color:var(--text-2);line-height:1.5">Foragers brought back little. Dana and Rae argued over rations. Eli’s fever held. The east wall took wind damage.</div>
+        </div>
+        <div class="choices" style="margin-top:auto">
+          <div class="choice"><span class="t">Assign jobs</span><span class="m">6 PEOPLE</span></div>
+          <div class="choice dgr"><span class="t">Sleep — end the day</span><span class="m">RISK: NIGHT</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="grp">The shelter is a character</div>
+      <ol>
+        <li><b>One home, evolving.</b> <span>Built rooms glow; unbuilt ones are dashed “+ build” slots. The shelter grows from a barricaded room into a community.</span></li>
+        <li><b>It lives while you’re away.</b> <span>The steel-blue Daily Report is how the simulation tells you what your absence cost — arguments, weather, the fever that held.</span></li>
+        <li><b>Hope vs. survival.</b> <span>Morale sits amber at 41. Cold-optimal calls (quarantine Eli, ration hard) keep people alive but bleed morale — and a shelter without hope falls from inside.</span></li>
+        <li><b>Night is the bill.</b> <span>“Sleep” carries a blood-red RISK: NIGHT — attacks land on the preparation of the days before.</span></li>
+        <li><b>Food at 2 days.</b> <span>Critical stat in red. The countdown is the pressure that pushes you back outside.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Screen 6: Map / Journal -->
+  <div class="screen">
+    <div>
+      <div class="cap"><div class="t">6 · Map — The Living Journal</div><div class="s">Nodes with memory. Fog of war. Your own handwriting.</div></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hbar"><span>CITY MAP</span><span>FOG · 41% KNOWN</span></div>
+        <svg viewBox="0 0 290 372" style="width:100%;display:block">
+          <rect x="0" y="0" width="290" height="372" fill="#0E0F10"/>
+          <!-- region washes -->
+          <rect x="150" y="14" width="128" height="150" rx="14" fill="#D84334" opacity="0.07"/>
+          <rect x="14" y="150" width="150" height="150" rx="14" fill="#5FB3A1" opacity="0.05"/>
+          <!-- edges -->
+          <g stroke="#2C2E34" stroke-width="2">
+            <line x1="80" y1="235" x2="150" y2="180"/><line x1="150" y1="180" x2="210" y2="95"/>
+            <line x1="150" y1="180" x2="95" y2="120"/><line x1="80" y1="235" x2="150" y2="300"/>
+            <line x1="210" y1="95" x2="235" y2="55" stroke-dasharray="4 5" stroke="#3A3D45"/>
+            <line x1="95" y1="120" x2="60" y2="70" stroke-dasharray="4 5" stroke="#3A3D45"/>
+          </g>
+          <!-- fogged/unknown nodes -->
+          <g>
+            <circle cx="235" cy="55" r="7" fill="none" stroke="#3A3D45" stroke-width="1.6" stroke-dasharray="3 3"/>
+            <circle cx="60" cy="70" r="7" fill="none" stroke="#3A3D45" stroke-width="1.6" stroke-dasharray="3 3"/>
+            <text x="235" y="40" fill="#5b5b57" font-family="monospace" font-size="8" text-anchor="middle">?</text>
+          </g>
+          <!-- known nodes -->
+          <g font-family="monospace" font-size="8.5" fill="#B7B3A9" text-anchor="middle">
+            <circle cx="210" cy="95" r="8" fill="#17181B" stroke="#D84334" stroke-width="1.8"/>
+            <text x="210" y="80">Pharmacy</text>
+            <circle cx="95" cy="120" r="7" fill="#17181B" stroke="#5C7A94" stroke-width="1.6"/>
+            <text x="95" y="105">Fire Stn</text>
+            <circle cx="150" cy="300" r="7" fill="#17181B" stroke="#5C7A94" stroke-width="1.6"/>
+            <text x="150" y="318">Riverfront</text>
+            <!-- home -->
+            <circle cx="80" cy="235" r="10" fill="#5FB3A1" opacity="0.18"/>
+            <circle cx="80" cy="235" r="6" fill="#5FB3A1"/>
+            <text x="80" y="255" fill="#5FB3A1">The Overlook</text>
+            <!-- current (you) -->
+            <circle cx="150" cy="180" r="11" fill="none" stroke="#F2803A" stroke-width="1.4" opacity="0.5"/>
+            <circle cx="150" cy="180" r="6.5" fill="#F2803A"/>
+            <text x="150" y="164" fill="#F2803A">YOU</text>
+          </g>
+          <!-- region labels -->
+          <text x="245" y="30" fill="#D84334" font-family="monospace" font-size="8" text-anchor="end" opacity="0.9">DOWNTOWN · HIGH</text>
+          <!-- handwritten note pins -->
+          <g font-family="'Bradley Hand','Segoe Script',cursive" font-size="11" fill="#EDE7DB">
+            <path d="M172 205 h60 v20 h-60 z" fill="#1E2024" stroke="#F2803A" stroke-width="1"/>
+            <text x="177" y="219" fill="#EDE7DB">lost Marcus here?</text>
+            <path d="M18 300 h74 v20 h-74 z" fill="#1E2024" stroke="#5C7A94" stroke-width="1"/>
+            <text x="23" y="314">good water ↓</text>
+          </g>
+        </svg>
+        <div class="choices" style="margin-top:auto">
+          <div class="choice"><span class="t">Travel to Fire Station</span><span class="m">40m · NOISE 3</span></div>
+          <div class="choice ghost"><span class="t">Add a note here</span><span class="m q">✎</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="grp">The map is the story</div>
+      <ol>
+        <li><b>Fog of war.</b> <span>Only 41% known. Dashed “?” nodes are rumor and blank space — discovery is its own reward.</span></li>
+        <li><b>Regions carry threat.</b> <span>Downtown glows faint blood-red at “HIGH.” The wash and label read the region’s evolving danger before you travel.</span></li>
+        <li><b>Home and here.</b> <span>Teal marks the safe Overlook; the pulsing ember “YOU” is the current node. Color instantly separates safe from active.</span></li>
+        <li><b>Nodes remember.</b> <span>The pharmacy stays outlined blood-red because of what happened there — the map holds the memory, not just the geography.</span></li>
+        <li><b>Your handwriting.</b> <span>Player notes pinned in a script face — “lost Marcus here?”, “good water ↓.” By the end, the map is a personal archive.</span></li>
+        <li><b>Travel has a price.</b> <span>Every route shows time and noise up front — a Survival-Triangle trade, never a free move.</span></li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <!-- Screen 7: Codex / Journal -->
+  <div class="screen">
+    <div>
+      <div class="cap"><div class="t">7 · Journal — Lore, Radio &amp; Memorial</div><div class="s">The story you uncover, and the people you couldn’t keep.</div></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hbar"><span>JOURNAL</span><span>DAY 6</span></div>
+        <div style="display:flex;gap:7px;padding:11px 16px;flex-wrap:wrap;border-bottom:1px solid var(--line)">
+          <span class="pill acc">LORE</span><span class="pill">RADIO</span><span class="pill">RUMORS</span><span class="pill">MEMORIAL</span>
+        </div>
+        <div class="row">
+          <div class="ico"><svg viewBox="0 0 22 22"><rect x="4" y="3" width="14" height="16" rx="2" fill="none" stroke="#EDE7DB" stroke-width="1.4"/><path d="M7 7h8M7 10h8M7 13h5" stroke="#8B8981" stroke-width="1.4"/></svg></div>
+          <div class="main"><div class="a">“They told us the bridge would hold.”</div><div class="b">Note · found at the checkpoint</div></div>
+        </div>
+        <div class="row">
+          <div class="ico"><svg viewBox="0 0 22 22"><rect x="3" y="7" width="16" height="11" rx="1.6" fill="none" stroke="#5C7A94" stroke-width="1.4"/><circle cx="14" cy="12.5" r="2.6" fill="none" stroke="#5C7A94" stroke-width="1.4"/></svg></div>
+          <div class="main"><div class="a" style="color:var(--info)">Military · Channel 7</div><div class="b">Evac at the stadium — looping, 3 days old</div></div>
+          <div class="end"><span class="pill info">SIGNAL</span></div>
+        </div>
+        <div class="hd" style="color:var(--muted)">Memorial wall</div>
+        <div class="row">
+          <div class="ico" style="border-color:var(--line)"><span style="color:var(--muted)">†</span></div>
+          <div class="main"><div class="a">Sarah — paramedic</div><div class="b">Day 4 · gave her antibiotics to Eli</div></div>
+        </div>
+        <div class="row">
+          <div class="ico" style="border-color:var(--line)"><span style="color:var(--muted)">†</span></div>
+          <div class="main"><div class="a">Old Tom</div><div class="b">Day 2 · held the door so we could run</div></div>
+        </div>
+        <div class="choices" style="margin-top:auto">
+          <div class="choice ghost"><span class="t">Read Sarah’s page</span><span class="m q">›</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="grp">Never explain everything</div>
+      <ol>
+        <li><b>Three layers, your pace.</b> <span>Your story, the city’s story, and the truth. Fragments — not chapters — accumulate into a codex.</span></li>
+        <li><b>The radio is alive.</b> <span>Steel-blue signals evolve with the world; that evac loop is already three days old. Some voices go silent mid-sentence.</span></li>
+        <li><b>The memorial remembers.</b> <span>The dead are listed by name and by <em>how</em> — Sarah’s dose, Tom’s door. It weighs on morale and on you.</span></li>
+        <li><b>Living History.</b> <span>These entries persist as the run’s record and can echo into later runs as ruins, rumor, and legend.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Screen 8: Quiet Screen -->
+  <div class="screen">
+    <div>
+      <div class="cap"><div class="t">8 · The Quiet Screen</div><div class="s">On loss, the UI strips back. Death is a scene, not a card.</div></div>
+      <div class="phone" style="justify-content:center">
+        <div class="notch"></div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:30px 26px;gap:22px">
+          <div style="font-family:var(--font-mono);font-size:9.5px;letter-spacing:.2em;color:#4a4a47">DAY 6 · 02:19</div>
+          <div style="font-size:16px;line-height:1.7;color:var(--text)">You held the door so Marcus could reach the stairs.<br><br>You do not hear it close behind him.</div>
+          <div style="width:34px;height:1px;background:var(--accent);opacity:.7"></div>
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;color:var(--muted)">SIX DAYS · NINE SAVED · ONE LAST STAND</div>
+        </div>
+        <div class="choices">
+          <div class="choice ghost" style="justify-content:center"><span class="t" style="color:var(--text-2)">See how their story ends</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="grp">Restraint as design</div>
+      <ol>
+        <li><b>Everything falls away.</b> <span>No stats, no nav, no choices but one. Whitespace and a single ember hairline give the moment room to land.</span></li>
+        <li><b>A death you can name.</b> <span>The last line states the decision that killed you — “you held the door.” The Last Stand made it a scene.</span></li>
+        <li><b>No “You Died.”</b> <span>The one action leads to an epilogue and run summary — the story continues past the character.</span></li>
+        <li><b>Same device for grief mid-run.</b> <span>After any major loss, the game can go this quiet for a beat, then return.</span></li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATES & MOTION ===== -->
+<div class="section">
+  <div class="sh"><span class="n">06</span><h2>States, Motion &amp; Access</h2><span class="d">how the system flexes</span></div>
+  <div class="princ">
+    <div class="pcard"><h3>Feverish / infected</h3><p>As infection advances, story text desaturates, letter-spacing drifts, and a word may be “wrong.” The bile tag is the only overt tell — the rest is felt.</p></div>
+    <div class="pcard" style="border-left-color:var(--info)"><h3>Power out</h3><p>When the grid fails, the whole UI dims a step, the header loses color, and night screens go darker. The interface tells the world’s story too.</p></div>
+    <div class="pcard" style="border-left-color:var(--hope)"><h3>Motion</h3><p>Minimal and diegetic. Story text arrives with weight; a failing light flickers; nothing bounces. Transitions are cross-fades, not slides.</p></div>
+    <div class="pcard" style="border-left-color:var(--warning)"><h3>Focus &amp; touch</h3><p>Focus ring is a 2px ember halo. Targets ≥ 44px, primary actions in the lower third for one-hand reach.</p></div>
+    <div class="pcard"><h3>Accessibility</h3><p>Color is never the sole signal — every hue pairs with a label or icon. Scales to 200% text, ships a high-contrast mode, and reads cleanly to a screen reader (it’s mostly text).</p></div>
+    <div class="pcard" style="border-left-color:var(--info)"><h3>One system, many clients</h3><p>These tokens and components are the source of truth for web, native, and a future chat-bot client. Same palette everywhere.</p></div>
+  </div>
+</div>
+
+<div class="foot">
+  <span>Zurvival Reborn · Wireframe Kit · <span class="em">Ashfall &amp; Ember</span> v0.1</span>
+  <span>Tokens: <code style="font-family:var(--font-mono);color:var(--text-2)">design/tokens.css</code> · Spec: <code style="font-family:var(--font-mono);color:var(--text-2)">design/colorway.md</code> · Maps to GDD Part XVII</span>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,65 @@
+/* ===================================================================
+   ZURVIVAL REBORN — DESIGN TOKENS
+   Colorway: "Ashfall & Ember" (v0.1)
+   Single source of truth for color, type, radius, and spacing.
+   Import this everywhere: web UI, tools, docs. Do not hard-code hex.
+   Spec + rationale: design/colorway.md
+   =================================================================== */
+
+:root {
+  /* ---- Core surfaces (desaturated, warm charcoal) ---- */
+  --bg:           #0E0F10; /* app base — the dark you read on */
+  --surface-1:    #17181B; /* story card, panels, sheets */
+  --surface-2:    #1E2024; /* raised cards, choice rows, list items */
+  --surface-3:    #26282E; /* hover / elevated */
+  --line:         #2C2E34; /* hairline border / divider */
+  --line-strong:  #3A3D45; /* stronger divider, device edge */
+
+  /* ---- Text ---- */
+  --text:         #EDE7DB; /* primary — bone. The star. */
+  --text-2:       #B7B3A9; /* secondary */
+  --muted:        #8B8981; /* tertiary — meta, labels, timestamps */
+
+  /* ---- Semantic hues (rationed; each is a SIGNAL, not decoration) ---- */
+  --accent:       #F2803A; /* EMBER — action, links, focus, interactive */
+  --accent-press: #D96A28; /* pressed / active accent */
+  --danger:       #D84334; /* BLOOD — combat, low health, threats */
+  --infection:    #93A63E; /* BILE — infection symptoms, toxins */
+  --hope:         #5FB3A1; /* CLEAN WATER — relief, safe, success, rescue */
+  --info:         #5C7A94; /* STEEL — radio, map, night, quiet info */
+  --warning:      #E0A33B; /* AMBER — caution, thresholds */
+
+  /* ---- Tints (for backgrounds of tags/states — hue at low alpha) ---- */
+  --accent-wash:    rgba(242,128,58,.12);
+  --danger-wash:    rgba(216,67,52,.12);
+  --infection-wash: rgba(147,166,62,.12);
+  --hope-wash:      rgba(95,179,161,.12);
+  --info-wash:      rgba(92,122,148,.12);
+
+  /* ---- Typography ---- */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  /* ---- Radius ---- */
+  --r-sm: 8px;   /* controls, choice rows */
+  --r-md: 12px;  /* cards */
+  --r-lg: 18px;  /* sheets, modals */
+  --r-phone: 26px;
+
+  /* ---- Spacing scale (4-based) ---- */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+
+  /* ---- Elevation ---- */
+  --shadow-card: 0 8px 26px rgba(0,0,0,.5);
+  --focus-ring: 0 0 0 2px var(--accent);
+
+  /* ---- Ergonomics ---- */
+  --tap-min: 44px; /* minimum touch target */
+}
+
+/* Optional high-contrast override (accessibility). Toggle on <html data-contrast="high">. */
+[data-contrast="high"] {
+  --text:  #FFFDF7;
+  --muted:  #A6A49B;
+  --line:   #3A3D45;
+}
