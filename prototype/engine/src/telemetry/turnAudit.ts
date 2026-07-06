@@ -39,6 +39,7 @@ export const TRACKED_SYSTEMS = [
   "world",
   "regions",
   "nodes",
+  "routes",
   "actors",
   "groups",
   "hordes",

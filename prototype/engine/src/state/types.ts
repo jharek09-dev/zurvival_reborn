@@ -15,7 +15,7 @@
  */
 
 /** Bump on any breaking change to this shape; checked on load (DESIGN §9). */
-export const SAVE_SCHEMA_VERSION = 3;
+export const SAVE_SCHEMA_VERSION = 4;
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -267,6 +267,18 @@ export interface NodeState {
   readonly discovered: boolean;
 }
 
+/**
+ * The live condition of one undirected route between two nodes (M2 task T29 · FR-MAP-04). Keyed in
+ * `GameState.routes` by the sorted node-id pair (`routeKey`). `wear` is a 0–100 int the route
+ * accrues under bad weather / broken roads and sheds as they clear; it maps to a passability
+ * condition (clear/costly/flooded/blocked) that changes move cost and availability. Extensible: new
+ * route facts (a story-blocked flag, a toll) get their own fields without a reshape.
+ */
+export interface RouteState {
+  /** 0–100 int route wear; higher is worse. 0 is a clear, free route. */
+  readonly wear: number;
+}
+
 // ---------------------------------------------------------------------------
 // hordes, items, story (GDD IX, V, XIII)
 // ---------------------------------------------------------------------------
@@ -379,6 +391,8 @@ export interface GameState {
   readonly world: World;
   readonly regions: { readonly [regionId: RegionId]: RegionState };
   readonly nodes: { readonly [nodeId: NodeId]: NodeState };
+  /** Live per-route conditions, keyed by the sorted node-id pair (T29 · FR-MAP-04). */
+  readonly routes: { readonly [routeKey: string]: RouteState };
   readonly actors: { readonly [actorId: ActorId]: Survivor };
   readonly groups: { readonly [groupId: GroupId]: SurvivorGroup };
   readonly hordes: readonly Horde[];

@@ -96,9 +96,24 @@ function migrateV2toV3(state: GameState): GameState {
   };
 }
 
+/**
+ * v3 -> v4 (task T29): route conditions arrived. v3 states have no `routes` slice; a forward-only
+ * rung adds it empty (`routes: {}`) and stamps `meta.version` to 4. Empty is the safe default — every
+ * route reads as clear until the world re-seeds/degrades it. Pure and total — one N->N+1 rung.
+ */
+function migrateV3toV4(state: GameState): GameState {
+  const src = state as unknown as { readonly routes?: unknown };
+  return {
+    ...state,
+    meta: { ...state.meta, version: 4 },
+    routes: (src.routes as GameState["routes"] | undefined) ?? {},
+  };
+}
+
 const MIGRATIONS: { readonly [fromVersion: number]: SaveMigration } = {
   1: (save) => ({ ...save, saveSchemaVersion: 2, state: migrateV1toV2(save.state) }),
   2: (save) => ({ ...save, saveSchemaVersion: 3, state: migrateV2toV3(save.state) }),
+  3: (save) => ({ ...save, saveSchemaVersion: 4, state: migrateV3toV4(save.state) }),
 };
 
 /** Two-digit zero-pad for the summary clock (pure, allocation-light). */

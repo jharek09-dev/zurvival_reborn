@@ -60,7 +60,7 @@ describe("story-first screen shape (T19 · FR-UI-01)", () => {
     const { state, graph } = startRun(opts, regions, nodes);
     const scene = playSession(state, graph, []).opening;
     const lines = renderScene(scene, state);
-    expect(lines[0]).toMatch(/^Day \d+ · \w+ · \d\d:00 · turn \d+$/); // header
+    expect(lines[0]).toMatch(/^Day \d+ · \w+ · \w+ · \d\d:00 · turn \d+$/); // header now surfaces weather (T28 surfacing) // header
     const whatIdx = lines.indexOf("What do you do?");
     expect(whatIdx).toBeGreaterThan(0);
     expect(lines[lines.length - 1]).toBe(FOOTER); // footer last

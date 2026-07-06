@@ -51,11 +51,24 @@ describe("the six layers, in canonical execution order (T23 · FR-SIM-01)", () =
 });
 
 describe("layers are independently tickable (T23 · FR-SIM-01)", () => {
-  it("each no-op layer leaves the whole state untouched (reference-identical)", () => {
+  it("the timeOfDay layer moves only the world slice (the diurnal threat tide, T28)", () => {
     const { state, graph } = run();
-    for (const id of ["timeOfDay", "director"] as const) {
-      expect(runLayer(state, id, { hours: 5, graph })).toBe(state);
-    }
+    const after = runLayer(state, "timeOfDay", { hours: 5, graph });
+    // dawn pulls globalThreat up from its 0 seed toward the phase target — world moves, nothing else
+    expect(after.world.globalThreat).toBeGreaterThan(state.world.globalThreat);
+    expect(after.regions).toBe(state.regions);
+    expect(after.nodes).toBe(state.nodes);
+    expect(after.player).toBe(state.player);
+    expect(after.hordes).toBe(state.hordes);
+  });
+
+  it("the director layer moves only the world/regions danger dials, nothing else (T30)", () => {
+    const { state, graph } = run();
+    const after = runLayer(state, "director", { hours: 5, graph });
+    // the director only ever nudges danger dials (regions/world); it never touches the player or map
+    expect(after.player).toBe(state.player);
+    expect(after.nodes).toBe(state.nodes);
+    expect(after.hordes).toBe(state.hordes);
   });
 
   it("the live regions layer moves only the regions slice, nothing else", () => {

@@ -16,6 +16,7 @@ import type { GameState, NodeState, RegionId, RegionState } from "../state/types
 import { buildRegionGraph } from "./regionGraph.js";
 import { discoverAround } from "./fogOfWar.js";
 import { seedStarterHordes } from "../sim/hordes.js";
+import { seedRoutes } from "../sim/routes.js";
 import type { NodeDef, RegionDef, RegionGraph } from "./types.js";
 
 /** Clamp to a 0–100 integer; content baselines are already ints, this guards bad data. */
@@ -109,5 +110,10 @@ export function startRun(
   // Reveal the start node and everything one step out.
   nodes = discoverAround(nodes, graph, graph.startNodeId);
 
-  return { state: { ...base, regions, nodes, hordes: seedStarterHordes(graph) }, graph };
+  // Seed a clear route for every undirected edge in the graph (T29 · FR-MAP-04).
+  const adjacency: Record<string, readonly string[]> = {};
+  for (const def of nodeDefs) adjacency[def.id] = def.adjacent;
+  const routes = seedRoutes(adjacency);
+
+  return { state: { ...base, regions, nodes, routes, hordes: seedStarterHordes(graph) }, graph };
 }

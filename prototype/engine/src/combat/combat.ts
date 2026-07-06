@@ -32,6 +32,7 @@ import { discoverAround } from "../map/fogOfWar.js";
 import { drawFloat, drawInt, drawPick } from "../rng/streams.js";
 import { inflictNamedWound } from "../sim/wounds.js";
 import { weatherDetectionDelta } from "../sim/weather.js";
+import { phaseConcealment } from "../sim/timeOfDay.js";
 
 // --- tuning constants -----------------------------------------------------------------------
 
@@ -148,7 +149,9 @@ export function detectChance(
   phase: GameState["meta"]["phase"],
   weather?: ContentId,
 ): number {
-  const phaseBonus = phase === "night" ? 0.15 : phase === "dawn" || phase === "evening" ? 0.05 : 0;
+  // Phase term is owned by T28 (timeOfDay): dimmer light conceals a stealth mover, lowering the
+  // chance of being spotted. Same numbers T15 always used; night hides most.
+  const phaseBonus = phaseConcealment(phase) / 100;
   const weatherDelta = weather === undefined ? 0 : weatherDetectionDelta(weather) / 100;
   const p = 0.25 + noise * 0.005 - phaseBonus + weatherDelta;
   return Math.max(0, Math.min(0.9, p));

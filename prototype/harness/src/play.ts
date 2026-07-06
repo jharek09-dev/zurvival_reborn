@@ -36,6 +36,12 @@ import {
 
 const pad2 = (n: number): string => (n < 10 ? `0${n}` : `${n}`);
 
+/** Humanise a weather content id for the header: "weather.storm" -> "storm". */
+function weatherLabel(id: string): string {
+  const tail = id.split(".").slice(1).join(" ").trim();
+  return tail.length > 0 ? tail : id;
+}
+
 /** Join a list into readable prose: "a", "a and b", "a, b, and c". */
 function conjoin(parts: readonly string[]): string {
   if (parts.length === 0) return "";
@@ -135,7 +141,7 @@ export type ScreenRegions = { readonly [R in ScreenRegion]: readonly string[] };
  */
 export function renderRegions(scene: Scene, state: GameState): ScreenRegions {
   return {
-    header: [`Day ${scene.day} · ${scene.phase} · ${pad2(scene.hour)}:00 · turn ${scene.turn}`],
+    header: [`Day ${scene.day} · ${scene.phase} · ${weatherLabel(state.world.weather)} · ${pad2(scene.hour)}:00 · turn ${scene.turn}`],
     status: [...describeStatus(state)],
     story: [scene.narration.trim().length > 0 ? scene.narration.trim() : "The world is quiet."],
     prompt: ["What do you do?"],

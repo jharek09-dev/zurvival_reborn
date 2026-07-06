@@ -40,6 +40,10 @@ import { driftRegions } from "./regionDrift.js";
 import { tickZombies } from "./zombies.js";
 import { tickHordes } from "./hordes.js";
 import { tickWeather } from "./weather.js";
+import { tickRoutes } from "./routes.js";
+import { recordInto } from "./history.js";
+import { tickTimeOfDay } from "./timeOfDay.js";
+import { tickDirector } from "./director.js";
 
 /**
  * Everything a layer may read that is not already in `GameState`: the `hours` this tick spans (drives
@@ -63,8 +67,6 @@ export interface SimLayer {
   readonly tick: (state: GameState, ctx: SimContext) => GameState;
 }
 
-/** A layer that does nothing — the body of a world layer not yet implemented. */
-const identityLayer = (id: SimLayerId): SimLayer => ({ id, tick: (state) => state });
 
 /**
  * Regions layer: off-screen threat/density drift (T24), then the T17 loot contest — every region
@@ -76,8 +78,8 @@ const regionsLayer: SimLayer = {
 };
 
 /**
- * The six layers in execution order. Five are structured no-ops at T23; `regions` is live (the T17
- * contest). T24–T27 swap the relevant no-ops for real systems; the order and the six ids stay fixed.
+ * The six layers in execution order — all live as of M2 Part 2 (the last two, timeOfDay and director,
+ * landed in T28/T30). The canonical order and the six ids stay fixed; only the bodies changed.
  */
 const zombiesLayer: SimLayer = {
   id: "zombies",
@@ -89,18 +91,36 @@ const weatherLayer: SimLayer = {
   tick: (state, ctx) => tickWeather(state, ctx.hours),
 };
 
+/**
+ * Time-of-day layer: relax `world.globalThreat` toward the current phase's danger target (T28) — the
+ * diurnal tide that rises after dark and ebbs by day. Pure; touches only `world`.
+ */
+const timeOfDayLayer: SimLayer = {
+  id: "timeOfDay",
+  tick: (state, ctx) => tickTimeOfDay(state, ctx.hours),
+};
+
 const hordesLayer: SimLayer = {
   id: "hordes",
   tick: (state, ctx) => tickHordes(state, ctx.hours, ctx.graph),
+};
+
+/**
+ * Director layer: a bounded pacing controller that nudges the current region's danger dials within
+ * legal bounds (T30) — escalating a calm run, relieving an overwhelmed one, never impossible.
+ */
+const directorLayer: SimLayer = {
+  id: "director",
+  tick: (state, ctx) => tickDirector(state, ctx.hours),
 };
 
 export const WORLD_SIM_LAYERS: readonly SimLayer[] = [
   zombiesLayer,
   regionsLayer,
   weatherLayer,
-  identityLayer("timeOfDay"),
+  timeOfDayLayer,
   hordesLayer,
-  identityLayer("director"),
+  directorLayer,
 ];
 
 /** Look up a layer by id (throws on an unknown id — a programming error, never runtime data). */
@@ -137,5 +157,9 @@ export function advanceWorld(state: GameState, hours: number, graph?: RegionGrap
   if (h === 0) return state;
   const nodes = decayAllNoise(state.nodes, h);
   const decayed = nodes === state.nodes ? state : { ...state, nodes };
-  return tickWorld(decayed, graph === undefined ? { hours: h } : { hours: h, graph });
+  const world = tickWorld(decayed, graph === undefined ? { hours: h } : { hours: h, graph });
+  // Routes drift off-screen too — a storm blocks a road whether or not the player is there (T29).
+  const ticked = tickRoutes(world, h);
+  // Off-screen fast-forwards leave a trace in the Living History too (T31).
+  return recordInto(state, ticked);
 }

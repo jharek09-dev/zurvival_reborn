@@ -7,6 +7,25 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Milestone
 
+- **M2 — Reactive world is COMPLETE (T23–T32); the living world is now visible in play.** Part 2 filled the
+  last two world-sim layers and made the whole reactive world perceivable. **Time-of-day danger (T28)** gives the
+  phase one owner (`sim/timeOfDay.ts`): darkness conceals a stealth mover (the T15 detection term, now named), night
+  searches carry farther (extra deposit through the T14 noise override), and a diurnal `globalThreat` tide rises after
+  dark and ebbs by day. **Route conditions (T29)** give every edge a weather-driven `wear` (`GameState.routes`,
+  `SAVE_SCHEMA_VERSION 3→4`) that reads as clear/costly/flooded/blocked and changes move cost and availability, rising
+  fast under a storm and receding slowly. **The Apocalypse Director (T30)** is a bounded bang-bang pacing controller
+  that nudges the current region's danger by a clamped ±1 — escalating a calm run (so an unwatched district *festers*,
+  not calms), relieving an overwhelmed one — and **can never produce an impossible state**; disable it with a flag and
+  the pacing metrics move while every dial stays legal. **Living History (T31)** records notable events (weather turns,
+  nightfall, horde moves, route changes, cleared fights, run end) append-only into `GameState.history`. **Telemetry
+  (T32, `telemetry/pacing.ts`)** captures the PRD §4 pacing/pressure proxies — off by default, deterministic — and
+  proves the director's Definition of Done. A light **scene-surfacing pass** puts the weather, the danger tide, an
+  approaching horde, a screamer's shriek, and each route's condition into the narration and header, so the M2 *"the
+  slice feels alive"* gate can finally be judged (addresses the Part-1 QA finding H1). Over a seeded Rivermouth run the
+  world reproduced byte-for-byte, round-tripped losslessly across the v4 bump, recorded its own history, and still
+  moved a real system **every resolved turn (0 no-op turns)**. Engine 239 + harness 39 + content-loader 9 green; schema
+  gate green over 5 content types; one schema bump this block. See `docs/QA_REVIEW_M2_PART2.md`.
+
 - **M2 — Reactive world is UNDERWAY; the six-layer world simulation is live and Part 1 (T23–T27) is done.**
   The world now moves whether or not the player acts. A new world-sim substrate (`worldSim.ts`) holds six
   independently-tickable layers — zombies, regions, weather, time-of-day, hordes, director — behind a uniform pure
