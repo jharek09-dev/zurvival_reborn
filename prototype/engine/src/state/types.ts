@@ -15,7 +15,7 @@
  */
 
 /** Bump on any breaking change to this shape; checked on load (DESIGN §9). */
-export const SAVE_SCHEMA_VERSION = 1;
+export const SAVE_SCHEMA_VERSION = 2;
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -233,6 +233,11 @@ export interface NodeState {
   /** Noise deposited this turn (stage 6), consumed by hordes next turn (stage 9). */
   readonly noise: number;
   /**
+   * Walkers loitering here — the seed of an avoidable encounter (FR-CBT-01, task T15). Node
+   * memory: killing one lowers the count and the rest persist across turns; 0 on a quiet node.
+   */
+  readonly walkers: number;
+  /**
    * Fog of war: true once the node is on the player's map — known to exist and routable to
    * (FR-MAP-02). Scouting reveals a node and its neighbors. Distinct from *visited*
    * (`lastVisit !== null`): a discovered node may never have been entered.
@@ -320,6 +325,28 @@ export interface RngState {
 }
 
 // ---------------------------------------------------------------------------
+// combat (GDD IX)
+// ---------------------------------------------------------------------------
+
+/**
+ * An active, avoidable combat encounter (M1 task T15 · FR-CBT-01/02 · GDD IX). `null` outside a
+ * fight. Turn-based: it persists across turns while the exchange plays out — each strike, shot, or
+ * retreat is one resolved turn. The player is never forced into it; a stealth path always exists.
+ */
+export interface CombatState {
+  /** Node the fight is at (equals `player.location` while engaged). */
+  readonly node: NodeId;
+  /** Content id of the enemy kind (e.g. "enemy.walker"). */
+  readonly enemy: ContentId;
+  /** Enemy hit points remaining (int); 0 ⇒ the enemy is down and the fight clears. */
+  readonly hp: number;
+  /** Enemy hit points at the encounter's start (scene phrasing / telemetry). */
+  readonly maxHp: number;
+  /** The enemy is alerted and striking back (after your first blow, or a detected stealth start). */
+  readonly alerted: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // GameState
 // ---------------------------------------------------------------------------
 
@@ -333,6 +360,7 @@ export interface GameState {
   readonly actors: { readonly [actorId: ActorId]: Survivor };
   readonly groups: { readonly [groupId: GroupId]: SurvivorGroup };
   readonly hordes: readonly Horde[];
+  readonly combat: CombatState | null;
   readonly items: { readonly [itemId: ItemInstanceId]: ItemInstance };
   readonly story: Story;
   readonly history: readonly HistoryEvent[];

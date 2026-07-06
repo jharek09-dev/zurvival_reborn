@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/enemy.schema.json",
+  "title": "Enemy",
+  "description": "A combat adversary type (FR-CBT-02). Static definition only: a live fight's remaining hit points and alert state live in GameState.combat, seeded from this definition when an encounter begins. M1 ships the lone walker; hordes and variety arrive in M2.",
+  "type": "object",
+  "required": ["id", "name", "description", "maxHp"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "Optional editor hint pointing at this schema." },
+    "id": { "type": "string", "pattern": "^enemy\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$", "description": "Stable content id of the form enemy.<slug>." },
+    "name": { "type": "string", "minLength": 1, "description": "Player-facing name (ICU MessageFormat string)." },
+    "description": { "type": "string", "minLength": 1, "description": "How the enemy reads in a combat Scene (ICU MessageFormat string)." },
+    "maxHp": { "type": "integer", "minimum": 1, "maximum": 100, "description": "Hit points a fresh encounter with this enemy starts at." },
+    "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
+  }
+}

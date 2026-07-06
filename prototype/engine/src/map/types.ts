@@ -43,6 +43,10 @@ export interface NodeDef {
   readonly start?: boolean;
   /** True if the node can be claimed as a safehouse (FR-MAP-06). */
   readonly claimable?: boolean;
+  /** Walkers loitering at run start — seeds an avoidable encounter here (FR-CBT-01, T15). */
+  readonly walkers?: number;
+  /** Location kind — selects the loot plausibility table for searches here (FR-ECO-02, T17). */
+  readonly kind?: string;
 }
 
 /**

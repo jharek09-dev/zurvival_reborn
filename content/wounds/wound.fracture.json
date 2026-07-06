@@ -1,0 +1,10 @@
+{
+  "$schema": "../schemas/wound.schema.json",
+  "id": "wound.fracture",
+  "name": "Fractured Arm",
+  "description": "Bone gave under the blow. The arm hangs wrong and will not bear weight.",
+  "severity": 55,
+  "effect": "weaken",
+  "treatedBy": ["item.splint"],
+  "notes": "The heavy wound: a long treatment timeline, a real capability loss until set."
+}

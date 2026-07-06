@@ -1,0 +1,10 @@
+{
+  "$schema": "../schemas/wound.schema.json",
+  "id": "wound.laceration",
+  "name": "Deep Laceration",
+  "description": "A long, deep cut that won't stop weeping. It needs pressure and a clean dressing, not time.",
+  "severity": 30,
+  "effect": "bleed",
+  "treatedBy": ["item.bandage", "item.suture-kit"],
+  "notes": "The common melee wound. Bleeds until dressed; closes only with care."
+}

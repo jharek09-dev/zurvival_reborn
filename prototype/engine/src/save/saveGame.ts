@@ -57,8 +57,28 @@ export class SaveError extends Error {
  */
 export type SaveMigration = (save: SaveFile) => SaveFile;
 
+/**
+ * v1 → v2 (task T15): the combat layer arrived. v1 states have no `combat` slice and their nodes
+ * have no `walkers` count; a forward-only rung adds both at their quiet defaults (`combat: null`,
+ * every node `walkers: 0`) and stamps `meta.version` to 2. Pure and total — one N→N+1 rung, per the
+ * ADR-0003 / T7 ladder discipline.
+ */
+function migrateV1toV2(state: GameState): GameState {
+  const src = state as unknown as { readonly nodes: Record<string, Record<string, unknown>> };
+  const nodes: Record<string, unknown> = {};
+  for (const [id, node] of Object.entries(src.nodes)) {
+    nodes[id] = "walkers" in node ? node : { ...node, walkers: 0 };
+  }
+  return {
+    ...state,
+    meta: { ...state.meta, version: 2 },
+    nodes: nodes as GameState["nodes"],
+    combat: state.combat ?? null,
+  };
+}
+
 const MIGRATIONS: { readonly [fromVersion: number]: SaveMigration } = {
-  // 1: (save) => ({ ...save, saveSchemaVersion: 2, state: /* upgrade */ save.state }),
+  1: (save) => ({ ...save, saveSchemaVersion: 2, state: migrateV1toV2(save.state) }),
 };
 
 /** Two-digit zero-pad for the summary clock (pure, allocation-light). */

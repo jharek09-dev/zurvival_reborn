@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/wound.schema.json",
+  "title": "Wound",
+  "description": "A named injury type — the vocabulary of harm (FR-INJ-01). Static definition only: a live wound (its treatment progress, the day it was inflicted, its body site) lives in GameState.player.condition.wounds, created from this definition when damage lands. Health is treated, not auto-regenerated (FR-INJ-04): a wound leaves the body only when its care reaches completion, never on its own with time.",
+  "type": "object",
+  "required": ["id", "name", "description", "severity", "effect"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "Optional editor hint pointing at this schema." },
+    "id": {
+      "type": "string",
+      "pattern": "^wound\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+      "description": "Stable content id of the form wound.<slug>, e.g. \"wound.laceration\"."
+    },
+    "name": { "type": "string", "minLength": 1, "description": "Player-facing name (ICU MessageFormat string)." },
+    "description": { "type": "string", "minLength": 1, "description": "How the wound reads in the Scene (ICU MessageFormat string)." },
+    "severity": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Baseline severity (0-100) a fresh wound of this type carries. Treatment reduces the untreated remainder; time alone never does (FR-INJ-04)."
+    },
+    "effect": {
+      "type": "string",
+      "enum": ["bleed", "slow", "weaken", "infect-risk"],
+      "description": "The gameplay handle this wound exerts while untreated (FR-INJ-01): bleed (ongoing cost), slow (time/stamina tax), weaken (reduced capability), infect-risk (feeds the FR-INJ-05 infection track, M-later)."
+    },
+    "treatedBy": {
+      "type": "array",
+      "description": "Item content ids whose use advances this wound's treatment. Empty/absent means only time-plus-care generic first aid applies.",
+      "items": { "type": "string", "pattern": "^item\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$" },
+      "uniqueItems": true
+    },
+    "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
+  }
+}

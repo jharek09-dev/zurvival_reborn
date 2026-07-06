@@ -4,6 +4,10 @@
   "regionId": "region.rivermouth",
   "name": "Collapsed Overpass",
   "description": "A section of raised highway sheared onto the street below. You can pick a path over the rubble, slowly, in the open — or turn back.",
-  "adjacent": ["node.rivermouth.transit-plaza", "node.rivermouth.marina"],
+  "kind": "generic",
+  "adjacent": [
+    "node.rivermouth.transit-plaza",
+    "node.rivermouth.marina"
+  ],
   "notes": "Traversal choke to the marina; slow and exposed, the quiet-but-costly route."
 }

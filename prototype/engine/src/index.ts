@@ -57,6 +57,76 @@ export {
   type RunStart,
 } from "./map/index.js";
 
+// Noise deposit model — loud actions leave sound in node memory (T14, DESIGN §5/§6 · FR-SIM-06)
+export {
+  NOISE_MOVE,
+  NOISE_SEARCH,
+  NOISE_REST,
+  NOISE_DECAY_PER_HOUR,
+  clampNoise,
+  noiseOf,
+  decayAllNoise,
+  depositNoiseAt,
+  updateNodeNoise,
+} from "./sim/noise.js";
+
+// Named wounds — treated, not regenerated (T16, DESIGN §6 · FR-INJ-01/04)
+export {
+  inflictWound,
+  woundPlayer,
+  treatWound,
+  woundRemainder,
+  woundBurden,
+  isWounded,
+  worstWound,
+  type WoundDef,
+} from "./sim/wounds.js";
+
+// Avoidable combat, loud firearms, stealth path (T15, DESIGN §6 · FR-CBT-01/02/04/05)
+export {
+  hasLoadedFirearm,
+  encounterChoices,
+  combatChoices,
+  resolveCombatAction,
+  isCombatAction,
+  combatNarration,
+  detectChance,
+  STRIKE_COST,
+  FIRE_COST,
+  SLIP_COST,
+  RETREAT_COST,
+  MELEE_NOISE,
+  FIRE_NOISE,
+  SLIP_NOISE,
+  WALKER_ENEMY,
+  WALKER_MAX_HP,
+} from "./combat/combat.js";
+
+// Weight-limited inventory — the pack that forces a leave-behind (T18, DESIGN §6 · FR-PLR-03)
+export {
+  CARRY_CAPACITY,
+  DEFAULT_ITEM_WEIGHT,
+  ITEM_WEIGHTS,
+  itemWeight,
+  inventoryWeight,
+  remainingCapacity,
+  fits,
+  addItemBounded,
+  dropItem,
+  type AddResult,
+} from "./sim/inventory.js";
+
+// Finite, contested, depleting loot economy (T17, DESIGN §6 · FR-ECO-01/02/03)
+export {
+  LOOT_TABLES,
+  LOOT_CONTEST_DIVISOR,
+  lootTableFor,
+  searchYieldCap,
+  resolveSearchLoot,
+  contestRegion,
+  updateRegionContest,
+} from "./sim/loot.js";
+
 // Core action loop — move/search/rest, time cost, scene (T12, DESIGN §5/§10)
 export { phaseOf, advanceClock } from "./time/clock.js";
 export {
@@ -69,6 +139,7 @@ export {
   MOVE_COST,
   SEARCH_COST,
   REST_COST,
+  DROP_COST,
   SEARCH_GAIN,
   REST_RECOVERY,
 } from "./actions/coreActions.js";

@@ -42,6 +42,7 @@ export const TRACKED_SYSTEMS = [
   "actors",
   "groups",
   "hordes",
+  "combat",
   "items",
   "story",
   "history",
