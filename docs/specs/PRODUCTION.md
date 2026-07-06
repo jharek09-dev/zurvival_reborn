@@ -1,8 +1,8 @@
 # Zurvival Reborn — Production Plan
 
 **Version:** 1.0 · **Status:** Pre-production · **Owner:** Jharek
-**Reads with:** [`GDD.md`](GDD.md) (what & why) · [`PRD.md`](PRD.md) (what to build & when) · [`../DESIGN.md`](../DESIGN.md) (how it's built)
-**Companion tracker:** [`scope-control-tracker.xlsx`](scope-control-tracker.xlsx) · **Visual:** [`../design/diagrams/roadmap.svg`](../design/diagrams/roadmap.svg)
+**Reads with:** [`GDD.md`](GDD.md) (what & why) · [`PRD.md`](PRD.md) (what to build & when) · [`../DESIGN.md`](../../DESIGN.md) (how it's built)
+**Companion tracker:** [`scope-control-tracker.xlsx`](../plans/scope-control-tracker.xlsx) · **Visual:** [`../design/diagrams/roadmap.svg`](../../design/diagrams/roadmap.svg)
 
 ---
 
@@ -456,7 +456,7 @@ scheduled, not hoped for.
 ## 11. Tracking & health
 
 Light-touch for a solo dev — enough signal to steer, not a reporting burden. Tracked in
-[`scope-control-tracker.xlsx`](scope-control-tracker.xlsx):
+[`scope-control-tracker.xlsx`](../plans/scope-control-tracker.xlsx):
 
 - **Backlog** — every FR/NFR as a work item, mapped to milestone, MoSCoW, the principle it serves,
   effort band, AI-assist flag, and status. Traces back to the PRD by ID.

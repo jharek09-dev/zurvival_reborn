@@ -1,7 +1,7 @@
 # Zurvival Reborn — Localization Plan
 
 **Version:** 1.0 · **Status:** Pre-production · **Owner:** Jharek
-**Reads with:** [`GDD.md`](GDD.md) (what & why) · [`PRD.md`](PRD.md) (what to build & when) · [`../DESIGN.md`](../DESIGN.md) (how) · [`../design/colorway.md`](../design/colorway.md) · [`../design/tokens.css`](../design/tokens.css)
+**Reads with:** [`GDD.md`](GDD.md) (what & why) · [`PRD.md`](PRD.md) (what to build & when) · [`../DESIGN.md`](../../DESIGN.md) (how) · [`../design/colorway.md`](../../design/colorway.md) · [`../design/tokens.css`](../../design/tokens.css)
 
 ---
 

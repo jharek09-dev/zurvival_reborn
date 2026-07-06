@@ -1,7 +1,7 @@
 # Zurvival Reborn — QA & Test Plan
 
 **Version:** 1.0 · **Status:** Pre-production (draft for review) · **Owner:** Jharek
-**Reads with:** [`docs/GDD.md`](GDD.md) (what & why) · [`docs/PRD.md`](PRD.md) (what to build & when) · [`DESIGN.md`](../DESIGN.md) (how) · [`docs/PRODUCTION.md`](PRODUCTION.md) (milestones & Definition of Done)
+**Reads with:** [`docs/specs/GDD.md`](../specs/GDD.md) (what & why) · [`docs/specs/PRD.md`](../specs/PRD.md) (what to build & when) · [`DESIGN.md`](../../DESIGN.md) (how) · [`docs/specs/PRODUCTION.md`](../specs/PRODUCTION.md) (milestones & Definition of Done)
 
 ---
 
@@ -9,7 +9,7 @@
 
 The PRD says *what we build and how we'll know it works*; the Technical Design says *how the
 software is shaped*. This document says **how we prove it works, keep it working, and decide
-what to fix first.** It turns the one-paragraph testing strategy in [`DESIGN.md`](../DESIGN.md)
+what to fix first.** It turns the one-paragraph testing strategy in [`DESIGN.md`](../../DESIGN.md)
 §11 into a working QA plan: a test taxonomy, concrete test cases traced to requirement IDs, a
 regression strategy, and a bug-triage framework.
 
@@ -953,11 +953,11 @@ its milestone is itself a **PRI-0 coverage defect** — filed like any other bug
 
 | This doc references | For |
 | --- | --- |
-| [`docs/GDD.md`](GDD.md) | The six principles (Part II) as the acceptance lens; system semantics. |
-| [`docs/PRD.md`](PRD.md) | Requirement IDs (FR-/NFR-), success metrics §4, risks §13, milestones §11. |
-| [`DESIGN.md`](../DESIGN.md) | State model §4, pipeline §5, subsystems §6, determinism/RNG/saves §9, engine↔client contract §10, testing strategy §11 (which this doc expands). |
-| [`docs/PRODUCTION.md`](PRODUCTION.md) | Milestone ladder §3, fun gates §4, Definition of Done §5, scope control §6, cadence §8. |
-| [`CONTRIBUTING.md`](../CONTRIBUTING.md) | The five-question test every content entry must pass. |
+| [`docs/specs/GDD.md`](../specs/GDD.md) | The six principles (Part II) as the acceptance lens; system semantics. |
+| [`docs/specs/PRD.md`](../specs/PRD.md) | Requirement IDs (FR-/NFR-), success metrics §4, risks §13, milestones §11. |
+| [`DESIGN.md`](../../DESIGN.md) | State model §4, pipeline §5, subsystems §6, determinism/RNG/saves §9, engine↔client contract §10, testing strategy §11 (which this doc expands). |
+| [`docs/specs/PRODUCTION.md`](../specs/PRODUCTION.md) | Milestone ladder §3, fun gates §4, Definition of Done §5, scope control §6, cadence §8. |
+| [`CONTRIBUTING.md`](../../CONTRIBUTING.md) | The five-question test every content entry must pass. |
 
 ### 14.B Glossary (QA-specific; complements DESIGN §15)
 

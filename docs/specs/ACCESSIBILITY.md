@@ -1,7 +1,7 @@
 # Zurvival Reborn — Accessibility Checklist
 
 **Version:** 1.0 · **Status:** Pre-production · **Owner:** Jharek
-**Reads with:** [`GDD.md`](GDD.md) (Part XVII UI/UX, XVIII Audio) · [`PRD.md`](PRD.md) (NFR-ACC-01…04) · [`../DESIGN.md`](../DESIGN.md) (§10 Scene contract) · [`../design/colorway.md`](../design/colorway.md) · [`../design/tokens.css`](../design/tokens.css) · [`LOCALIZATION.md`](LOCALIZATION.md)
+**Reads with:** [`GDD.md`](GDD.md) (Part XVII UI/UX, XVIII Audio) · [`PRD.md`](PRD.md) (NFR-ACC-01…04) · [`../DESIGN.md`](../../DESIGN.md) (§10 Scene contract) · [`../design/colorway.md`](../../design/colorway.md) · [`../design/tokens.css`](../../design/tokens.css) · [`LOCALIZATION.md`](LOCALIZATION.md)
 
 ---
 

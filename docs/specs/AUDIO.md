@@ -1,8 +1,8 @@
 # Zurvival Reborn — Audio Bible
 
 **Version:** 1.0 · **Status:** Pre-production · **Owner:** Jharek
-**Reads with:** [`docs/GDD.md`](GDD.md) Part XVIII (the audio vision) · [`docs/PRD.md`](PRD.md) (requirements) · [`DESIGN.md`](../DESIGN.md) §10 (the engine↔client contract)
-**Companion:** [`assets/audio/Zurvival_Audio_Cue_Sheet.xlsx`](../assets/audio/) — the asset manifest of record.
+**Reads with:** [`docs/specs/GDD.md`](GDD.md) Part XVIII (the audio vision) · [`docs/specs/PRD.md`](PRD.md) (requirements) · [`DESIGN.md`](../../DESIGN.md) §10 (the engine↔client contract)
+**Companion:** [`assets/audio/Zurvival_Audio_Cue_Sheet.xlsx`](../../assets/audio/) — the asset manifest of record.
 
 ---
 
