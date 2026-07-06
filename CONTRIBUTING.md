@@ -18,8 +18,8 @@ If a thing creates no decision and no memory, it does not belong in the game.
 
 ## Working with the documents
 
-- `docs/GDD.md` and `docs/PRD.md` are the **source of truth**. Edit the Markdown.
-- The `.docx` copies in `docs/` are **generated exports** for sharing. Do not hand-edit
+- `docs/specs/GDD.md` and `docs/specs/PRD.md` are the **source of truth**. Edit the Markdown.
+- The `.docx` copies in `docs/specs/` are **generated exports** for sharing. Do not hand-edit
   them; regenerate from the Markdown when the source changes.
 - Keep prose clear and concrete. Prefer a specific example over an abstract description.
 

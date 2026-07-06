@@ -1,7 +1,7 @@
 # Zurvival Reborn — Technical Design
 
 **Version:** 1.0 · **Status:** Pre-production · **Owner:** Jharek
-**Reads with:** [`docs/GDD.md`](docs/GDD.md) (what & why) · [`docs/PRD.md`](docs/PRD.md) (what to build & when)
+**Reads with:** [`docs/specs/GDD.md`](docs/specs/GDD.md) (what & why) · [`docs/specs/PRD.md`](docs/specs/PRD.md) (what to build & when)
 
 ---
 
@@ -250,8 +250,8 @@ loot rolls, director biases). This keeps a chat-bot client as viable as a rich w
 
 | Path | Holds | This doc |
 | --- | --- | --- |
-| `docs/GDD.md` | creative & systemic vision | source for §4–§7 semantics |
-| `docs/PRD.md` | prioritized requirements | traceability for every constraint |
+| `docs/specs/GDD.md` | creative & systemic vision | source for §4–§7 semantics |
+| `docs/specs/PRD.md` | prioritized requirements | traceability for every constraint |
 | `content/` | schema-validated game data | §7, §8 |
 | `content/schemas/` | validation schemas | §8, §9 |
 | `design/decisions/` | ADRs (open technical decisions) | §14 |
