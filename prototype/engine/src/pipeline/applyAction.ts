@@ -26,6 +26,8 @@ import { advanceClock } from "../time/clock.js";
 import { applyPlayerAction, assertLegal, sceneOf, tickNeeds } from "../actions/coreActions.js";
 import { updateNodeNoise } from "../sim/noise.js";
 import { runLayer, type SimContext } from "../sim/worldSim.js";
+import { tickRoutes } from "../sim/routes.js";
+import { recordHistory, appendHistory } from "../sim/history.js";
 import { diffSystems } from "../telemetry/turnAudit.js";
 import type { Action, Scene, SceneChoice, TurnResult } from "./contract.js";
 
@@ -37,6 +39,8 @@ export type { Action, Scene, SceneChoice, TurnResult } from "./contract.js";
 
 /** Everything a stage may read or replace as the turn flows through the pipeline. */
 interface TurnContext {
+  /** The turn's opening state — the baseline the Living History diffs against (T31). */
+  readonly before: GameState;
   readonly state: GameState;
   readonly action: Action;
   readonly scene: Scene;
@@ -93,10 +97,15 @@ const updateNode: StageFn = (ctx) => {
 /** Stage 7: the regions layer — off-screen threat/density drift (T24) then the loot contest (T17). */
 const updateRegion: StageFn = (ctx) => ({ ...ctx, state: runLayer(ctx.state, "regions", simCtx(ctx)) });
 
-/** Stage 8: the global layers — weather transitions (T27) then time-of-day danger (T28). */
+/**
+ * Stage 8: the global layers — weather transitions (T27), then time-of-day danger (T28), then route
+ * conditions (T29) drift from the resulting weather/roads. Routes are a stage-8 world effect, not a
+ * seventh sim layer, so `tickWorld` still equals folding exactly the six layers.
+ */
 const updateWorld: StageFn = (ctx) => {
   const c = simCtx(ctx);
-  return { ...ctx, state: runLayer(runLayer(ctx.state, "weather", c), "timeOfDay", c) };
+  const world = runLayer(runLayer(ctx.state, "weather", c), "timeOfDay", c);
+  return { ...ctx, state: tickRoutes(world, c.hours) };
 };
 
 /** Stage 9: migrating hordes re-path to fresh noise and step over the graph (T26). */
@@ -107,6 +116,16 @@ const tickDirector: StageFn = (ctx) => ({ ...ctx, state: runLayer(ctx.state, "di
 
 /** Stage 14: project the resolved state into the Scene the client will render. */
 const generateScene: StageFn = (ctx) => ({ ...ctx, scene: sceneOf(ctx.state, ctx.graph) });
+
+/**
+ * Stage 13: Living History — append the notable events this turn produced (weather, nightfall, horde
+ * moves, route turns, a cleared fight, the run ending), diffed against the turn's opening state (T31).
+ * Selective by design, so a quiet turn writes nothing and the FR-CORE-04 audit stays honest.
+ */
+const evaluateStory: StageFn = (ctx) => {
+  const events = recordHistory(ctx.before, ctx.state);
+  return events.length === 0 ? ctx : { ...ctx, state: appendHistory(ctx.state, events) };
+};
 
 /**
  * The 14 stages in their fixed, invariant order (DESIGN §5). Named for traceability and so tests
@@ -125,7 +144,7 @@ export const PIPELINE_STAGES: readonly { readonly name: string; readonly run: St
   { name: "moveGroups", run: identity },
   { name: "tickDirector", run: tickDirector },
   { name: "resolveQueue", run: identity },
-  { name: "evaluateStory", run: identity },
+  { name: "evaluateStory", run: evaluateStory },
   { name: "generateScene", run: generateScene },
 ];
 
@@ -142,8 +161,8 @@ const EMPTY_SCENE: Scene = { turn: 0, day: 0, hour: 0, phase: "dawn", narration:
 export function applyAction(state: GameState, action: Action, graph?: RegionGraph): TurnResult {
   let ctx: TurnContext =
     graph === undefined
-      ? { state, action, scene: EMPTY_SCENE }
-      : { state, action, scene: EMPTY_SCENE, graph };
+      ? { before: state, state, action, scene: EMPTY_SCENE }
+      : { before: state, state, action, scene: EMPTY_SCENE, graph };
   for (const stage of PIPELINE_STAGES) {
     ctx = stage.run(ctx);
   }

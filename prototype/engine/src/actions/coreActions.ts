@@ -21,6 +21,10 @@ import { neighborsOf } from "../map/regionGraph.js";
 import { discoverAround } from "../map/fogOfWar.js";
 import { resolveSearchLoot } from "../sim/loot.js";
 import { dropItem, inventoryWeight, itemName, CARRY_CAPACITY, PACK_HEAVY } from "../sim/inventory.js";
+import { NOISE_SEARCH } from "../sim/noise.js";
+import { phaseSearchNoise } from "../sim/timeOfDay.js";
+import { routeWear, extraCostOf, isBlocked, conditionOf } from "../sim/routes.js";
+import { ZOMBIE_SCREAMER } from "../sim/zombies.js";
 import {
   updateCondition,
   eat as eatFood,
@@ -88,25 +92,33 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
 
   for (const to of [...neighborsOf(graph, here)].sort()) {
     const neighbor = state.nodes[to];
-    if (neighbor !== undefined && neighbor.discovered) {
-      const name = graph.nodes[to]?.name ?? to;
-      choices.push({
-        id: `move:${to}`,
-        label: `Travel to ${name}`,
-        timeCost: MOVE_COST,
-        action: { type: "move", choiceId: `move:${to}`, timeCost: MOVE_COST, params: { to } },
-      });
-    }
+    if (neighbor === undefined || !neighbor.discovered) continue;
+    // Route conditions (T29 · FR-MAP-04): a blocked route is not offered this turn; a rough or flooded
+    // one costs extra hours. A clear/absent route is the free M1 move.
+    const wear = routeWear(state, here, to);
+    if (isBlocked(wear)) continue;
+    const cost = MOVE_COST + extraCostOf(wear);
+    const name = graph.nodes[to]?.name ?? to;
+    const cond = conditionOf(wear);
+    const suffix = cond === "costly" ? " — the road is rough" : cond === "flooded" ? " — the way is flooded" : "";
+    choices.push({
+      id: `move:${to}`,
+      label: `Travel to ${name}${suffix}`,
+      timeCost: cost,
+      action: { type: "move", choiceId: `move:${to}`, timeCost: cost, params: { to } },
+    });
   }
 
   if (node.searchPct < 100) {
     const name = graph.nodes[here]?.name ?? here;
-    choices.push({
-      id: "search",
-      label: `Search ${name}`,
-      timeCost: SEARCH_COST,
-      action: { type: "search", choiceId: "search", timeCost: SEARCH_COST },
-    });
+    // A search in the dark is louder (T28): after dusk it deposits extra noise, so the dead are
+    // likelier to hear you rummaging. Daytime keeps the T14 default deposit (no override, unchanged).
+    const nightNoise = phaseSearchNoise(state.meta.phase);
+    const searchAction: Action =
+      nightNoise > 0
+        ? { type: "search", choiceId: "search", timeCost: SEARCH_COST, params: { noise: NOISE_SEARCH + nightNoise } }
+        : { type: "search", choiceId: "search", timeCost: SEARCH_COST };
+    choices.push({ id: "search", label: `Search ${name}`, timeCost: SEARCH_COST, action: searchAction });
   }
 
   // Survival actions (T22): spend a scavenged item to buy a need back down / treat a wound. Offered
@@ -238,6 +250,69 @@ export function tickNeeds(state: GameState, action: Action): GameState {
 
 const pad2 = (n: number): string => (n < 10 ? `0${n}` : `${n}`);
 
+// --- world surfacing (T31/T28/T26 made perceivable — addresses QA H1 / PL-M2-01) --------------
+
+/** A one-line read of the sky for the current weather + phase — the atmosphere line. */
+function weatherProse(weather: string, phase: string): string {
+  switch (weather) {
+    case "weather.rain": return "Rain sheets down, drumming on the ruins.";
+    case "weather.storm": return "A storm hammers the district — wind, water, and dark.";
+    case "weather.fog": return "Fog swallows the street a few yards out.";
+    case "weather.snow": return "Snow falls, muffling the world to a hush.";
+    case "weather.wind": return "A hard wind scours the empty streets.";
+    case "weather.cloudy": return "Low cloud sits grey over the rooftops.";
+    default: return phase === "night" ? "The night is clear and cold." : "The sky is washed and clear.";
+  }
+}
+
+/** Atmosphere: the sky, plus a read on the city-wide tide (T28) when danger is up. */
+function atmosphereLine(state: GameState): string {
+  const sky = weatherProse(state.world.weather, state.meta.phase);
+  const tide = state.world.globalThreat;
+  const edge = tide >= 55 ? " A charged, dangerous quiet hangs over everything." : tide >= 35 ? " The streets feel restless, watchful." : "";
+  return `${sky}${edge}`;
+}
+
+/**
+ * The single sharpest world-danger lead to open on when there is no active fight: an approaching horde
+ * (T26), then a roused/screaming node here or next door (T25), then a district whose threat has
+ * mounted (T24/T30). Null when the world nearby is quiet. Level-based (the Living History carries the
+ * turn-to-turn deltas); this is the felt read.
+ */
+function worldLead(state: GameState, graph: RegionGraph): string | null {
+  const here = state.player.location;
+  const neighbours = new Set(neighborsOf(graph, here));
+
+  // 1. A horde bearing down — at, next to, or headed for this node.
+  if (state.hordes.some((h) => h.pos === here || neighbours.has(h.pos) || h.dest === here)) {
+    return "You hear them before you see them — a horde on the move, and it is coming this way.";
+  }
+
+  // 2. A roused or screaming node here or one step away.
+  const rousedProse = (nodeId: NodeId): string | null => {
+    const n = state.nodes[nodeId];
+    if (n === undefined) return null;
+    const roused = n.zombieState === "investigating" || n.zombieState === "chasing";
+    if (roused && n.zombieTypes.includes(ZOMBIE_SCREAMER)) {
+      return "A shriek goes up close by — a screamer — and every dead thing that heard it is turning toward the sound.";
+    }
+    if (n.zombieState === "chasing") return "Something nearby has your scent; you can hear it moving with purpose.";
+    if (n.zombieState === "investigating") return "Close by, the dead have stirred — shapes drifting toward a sound.";
+    return null;
+  };
+  for (const id of [here, ...[...neighbours].sort()]) {
+    const line = rousedProse(id);
+    if (line !== null) return line;
+  }
+
+  // 3. A district that has turned.
+  const region = state.regions[state.nodes[here]?.regionId ?? ""];
+  if (region !== undefined && region.threat >= 60) {
+    return "This district has turned — the danger here is mounting by the hour.";
+  }
+  return null;
+}
+
 /**
  * Render the Scene for a state (stage 14, and the client's source for the *first* scene before any
  * action). With a graph and the player on a real node it answers the Four Questions; a fight or a
@@ -267,7 +342,11 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   // count is the client's to render (T18/T19). Only the qualitative "full" belongs in narration.
   const pack = inventoryWeight(state.player.inventory) >= CARRY_CAPACITY ? " Your pack is full." : "";
   const setting = `${where}${searched}${pack} (Day ${day}, ${phase} ${pad2(hour)}:00 — at ${name}.)`;
-  const narration = threat ? `${threat} ${setting}` : setting;
+  // Surface the reactive world (QA H1 / PL-M2-01): a fight or the sharpest world danger leads, then the
+  // atmosphere line, then the place itself. Screen-reader-safe — everything critical is in words.
+  const lead = threat ?? worldLead(state, graph);
+  const atmosphere = atmosphereLine(state);
+  const narration = [lead, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
 
   return { turn, day, hour, phase, location: here, narration, choices: availableActions(state, graph) };
 }

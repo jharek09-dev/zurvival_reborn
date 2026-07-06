@@ -1,5 +1,5 @@
 {
- "updated": "2026-07-05 (M2 Part 1 landed — T23-T27 done. Six-layer world-sim substrate (worldSim.ts) with an off-screen advanceWorld; off-screen regional threat/density drift; the zombie state machine + Screamer/Stalker types (SAVE_SCHEMA_VERSION 2->3, new content/zombies/); migrating hordes that re-path to a logged gunshot; and weather that couples stealth/power/roads. The world now moves every turn with 0 no-op turns. Engine 196 + harness 39 + content-loader 9 green; schema gate green over enemies+nodes+regions+wounds+zombies (5 types, 15 entries). Remaining M2: T28-T32. QA review of Part 1 written (docs/QA_REVIEW_M2_PART1.md): no code defects — all systems correct/tested/deterministic; findings are coupling/perception (H1 world invisible in Scene; M1 zombie types not consumed by combat; M2 drift de-escalates the opening) tracked in parkingLot PL-M2-01..04.)",
+ "updated": "2026-07-05 (M2 Part 2 landed — T28-T32 done + the world made perceivable. timeOfDay + director layers fill the last two worldSim no-ops; routes gain weather-driven conditions (SAVE_SCHEMA_VERSION 3->4, one additive migrateV3toV4 rung); Living History records notable events into the existing history slice; a pacing telemetry baseline instruments the world and proves the director's pacing DoD. A light Scene-surfacing pass (weather/tide atmosphere line, approaching-horde + roused/screamer leads, route conditions + cost on move choices, weather in the header) makes the reactive world visible — addresses QA H1 / PL-M2-01. Director escalation counters off-screen de-escalation — addresses PL-M2-03. Engine 239 + harness 39 + content-loader 9 green; schema gate green over enemies+nodes+regions+wounds+zombies (5 types, 15 entries); determinism + save-lossless (v4) + 0 no-op turns verified end-to-end over Rivermouth. Only one schema bump this block. Remaining M2 follow-ups: PL-M2-02 (zombie types -> combat), PL-M2-04 (weather noiseFactor, hour-by-hour fast-forward, season-gate). QA review: docs/QA_REVIEW_M2_PART2.md.)",
  "phase": "M2 Reactive world — make the world move whether or not the player is watching: off-screen region drift, migrating hordes that re-path to noise, zombie types, weather, time-of-day danger, the Apocalypse Director, and telemetry instrumentation for later balance. Entry: M1 done and past the Loop-Feel Check.",
  "currentMilestone": "M2",
  "milestones": [
@@ -247,36 +247,36 @@
    "id": "T28",
    "title": "Time-of-day danger",
    "milestone": "M2",
-   "status": "todo",
-   "note": "FR-SIM-04: phase-of-day raises or lowers danger (night = higher detection/threat, harder searches). Ties into stealth detection and horde activity already reading phase."
+   "status": "done",
+   "note": "Done 2026-07-05: engine/src/sim/timeOfDay.ts fills the worldSim timeOfDay layer. One phase-danger owner: phaseConcealment (T15 detectChance sources it, behaviour-preserving), phaseSearchNoise (night searches deposit extra noise via the T14 params.noise override — noiseOf untouched), and a diurnal globalThreat tide (night 55 .. midday 15) the layer relaxes toward. No schema bump. 10 tests."
   },
   {
    "id": "T29",
    "title": "Route conditions",
    "milestone": "M2",
-   "status": "todo",
-   "note": "FR-MAP-04: routes between nodes gain conditions (blocked/flooded/costly) that change move cost and availability and can shift with weather/world state."
+   "status": "done",
+   "note": "Done 2026-07-05: engine/src/sim/routes.ts + new GameState.routes (SAVE_SCHEMA_VERSION 3->4, migrateV3toV4 seeds routes:{}). Undirected routes keyed by sorted node pair carry 0-100 wear -> clear / costly(+1h) / flooded(+2h) / blocked(not offered). Wear rises fast under weather movementDelta + low roads + fire and recovers slowly (hysteresis). Ticked as a stage-8 world effect after weather and in advanceWorld; availableActions consumes it (cost + availability + label). 11 tests + 1 migration test."
   },
   {
    "id": "T30",
    "title": "Apocalypse Director — pacing bias without impossible states",
    "milestone": "M2",
-   "status": "todo",
-   "note": "FR-SIM-10: a director biases pacing (spacing of pressure and relief) by nudging the sim layers within legal bounds. DoD: disabling the director changes pacing metrics but never produces an impossible state; determinism preserved."
+   "status": "done",
+   "note": "Done 2026-07-05: engine/src/sim/director.ts fills the worldSim director layer. Bounded bang-bang pacing controller: reads pressure (globalThreat blended with region threat) + player distress and nudges the current region density/threat by a clamped +-1 — escalate when calm (answers PL-M2-03), relief when overwhelmed, hold between. Never leaves 0-100 (property-tested), deterministic, gated by world.flags['director.disabled']. DoD proven via T32: director on vs off moves pacing metrics, both stay legal. 8 tests."
   },
   {
    "id": "T31",
    "title": "Living History — append-only world log",
    "milestone": "M2",
-   "status": "todo",
-   "note": "FR-SIM-11: an append-only Living History log records notable off-screen and on-screen world events (drift, horde moves, weather turns) for later story/telemetry use. Never mutated retroactively; save-lossless."
+   "status": "done",
+   "note": "Done 2026-07-05: engine/src/sim/history.ts records into the existing GameState.history (no schema bump). One diff-based observer emits notable events (weather turn, nightfall, horde move, route condition change, cleared fight, run end), append-only, stamped with the resolved clock. Selective so it never makes the FR-CORE-04 audit vacuous. Wired at pipeline stage 13 (evaluateStory, threading the turn's before-snapshot) and in advanceWorld. 9 tests."
   },
   {
    "id": "T32",
    "title": "Telemetry instrumentation baseline",
    "milestone": "M2",
-   "status": "todo",
-   "note": "PRD §4 proxies: instrument the M2 systems with the pacing/pressure telemetry proxies so later balance passes (M5) have a baseline. Off by default in shipping builds; deterministic capture over a seeded run."
+   "status": "done",
+   "note": "Done 2026-07-05: engine/src/telemetry/pacing.ts. samplePacing(state) is a pure client-driven snapshot of the PRD-4 proxies (pressure, tide, region threat/density, walker/horde load, blocked routes, distress, director on); summarizePacing folds a run into pacing metrics (mean/peak pressure, high/calm turns, oscillations, longest calm streak). Off by default — nothing in the pipeline captures. Deterministic over a seeded run; proves the T30 DoD. 4 tests."
   }
  ],
  "adrs": [
@@ -384,7 +384,7 @@
   {
    "id": "PL-M2-01",
    "from": "QA_REVIEW_M2_PART1 H1",
-   "note": "Surface the reactive world in the Scene (weather, rising threat/density, an approaching horde, a roused/screaming node) — required before the M2 'feels alive' fun-gate can be judged. Highest-value next M2 step."
+   "note": "[ADDRESSED in M2 Part 2 — scene-surfacing pass] Surface the reactive world in the Scene (weather, rising threat/density, an approaching horde, a roused/screaming node) — required before the M2 'feels alive' fun-gate can be judged. Highest-value next M2 step."
   },
   {
    "id": "PL-M2-02",
@@ -394,12 +394,27 @@
   {
    "id": "PL-M2-03",
    "from": "QA_REVIEW_M2_PART1 M2",
-   "note": "Off-screen drift de-escalates the opening region (threat 35->7 over 7 idle days), against the 'land pressure by turn 3' exit note. Add an escalation bias (natural home: the T30 Director), keeping T24 as the neutral substrate."
+   "note": "[ADDRESSED in M2 Part 2 — T30 director escalation bias, T24 the neutral substrate] Off-screen drift de-escalates the opening region (threat 35->7 over 7 idle days), against the 'land pressure by turn 3' exit note. Add an escalation bias (natural home: the T30 Director), keeping T24 as the neutral substrate."
   },
   {
    "id": "PL-M2-04",
    "from": "QA_REVIEW_M2_PART1 L1-L3",
    "note": "Loop advanceWorld hour-by-hour for off-screen fast-forward (step-based layers don't scale with hours); season-gate weather; wire weather noiseFactor into the T14 noise model."
+  },
+  {
+   "id": "PL-M2-05",
+   "from": "M2 Part 2 T29",
+   "note": "Combat slip/retreat still ignore route conditions (they use SLIP_COST, not the route wear) — deliberate so a fight can never strand the player behind a blocked road. Revisit if fleeing should also cost/deny by route."
+  },
+  {
+   "id": "PL-M2-06",
+   "from": "M2 Part 2 T31",
+   "note": "Living History is append-only and unbounded — a very long run grows the save. Add a rolling window / summarisation (a client concern per DESIGN, or an engine cap) before long-session soak; faithful to 'never rewritten' today."
+  },
+  {
+   "id": "PL-M2-07",
+   "from": "M2 Part 2 T28/T30",
+   "note": "Per-turn world cost now also scans every route (T29) and diffs before/after for history (T31), on top of the Part-1 O(nodes+regions+hordes). Fine at Rivermouth scale; watch against the phone budget as the map/horde count grows (the known heavy path)."
   }
  ],
  "loopFeelCheck": {

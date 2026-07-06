@@ -63,6 +63,7 @@ export function createInitialState(opts: InitialStateOptions): GameState {
     },
     regions: {},
     nodes: {},
+    routes: {},
     actors: {},
     groups: {},
     hordes: [],

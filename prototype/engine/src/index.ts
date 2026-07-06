@@ -37,6 +37,14 @@ export {
   type TurnAudit,
 } from "./telemetry/turnAudit.js";
 
+// Pacing / pressure telemetry baseline — client-driven proxies + metrics for M5 balance (T32 · PRD §4)
+export {
+  samplePacing,
+  summarizePacing,
+  type PacingSample,
+  type PacingSummary,
+} from "./telemetry/pacing.js";
+
 // Save / load — versioned serialized GameState (T7, DESIGN §9)
 export {
   saveGame,
@@ -235,6 +243,55 @@ export {
   WEATHER_CLOUDY,
   type WeatherEffect,
 } from "./sim/weather.js";
+
+// Time-of-day danger — phase raises/lowers danger: concealment, search noise, the threat tide (T28 · FR-SIM-04)
+export {
+  tickTimeOfDay,
+  phaseConcealment,
+  phaseSearchNoise,
+  phaseThreatTarget,
+  PHASE_CONCEALMENT,
+  PHASE_SEARCH_NOISE,
+  PHASE_THREAT_TARGET,
+  GLOBAL_THREAT_HOURS_PER_STEP,
+} from "./sim/timeOfDay.js";
+
+// Route conditions — edges gain weather-driven passability that changes move cost + availability (T29 · FR-MAP-04)
+export {
+  tickRoutes,
+  seedRoutes,
+  routeKey,
+  routeWear,
+  routeCondition,
+  conditionOf,
+  extraCostOf,
+  isBlocked,
+  targetWear,
+  ROUTE_BLOCKED_AT,
+  ROUTE_FLOODED_AT,
+  ROUTE_COSTLY_AT,
+  type RouteCondition,
+} from "./sim/routes.js";
+
+// The Apocalypse Director — bounded pacing bias, never an impossible state (T30 · FR-SIM-10)
+export {
+  tickDirector,
+  directorEnabled,
+  playerDistressed,
+  pressureRead,
+  directorBeat,
+  DIRECTOR_LOW_BAND,
+  DIRECTOR_HIGH_BAND,
+  DIRECTOR_STEP,
+  type DirectorBeat,
+} from "./sim/director.js";
+
+// Living History — append-only log of notable world events (T31 · FR-SIM-11)
+export {
+  recordHistory,
+  appendHistory,
+  recordInto,
+} from "./sim/history.js";
 
 // Core action loop — move/search/rest, time cost, scene (T12, DESIGN §5/§10)
 export { phaseOf, advanceClock } from "./time/clock.js";
