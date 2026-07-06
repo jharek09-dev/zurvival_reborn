@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Zurvival Reborn — Wireframe Kit (Ashfall & Ember)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Literata:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 :root{
   /* ——— ASHFALL & EMBER · core tokens (single source of truth) ——— */
@@ -23,8 +26,9 @@
   --hope:#5FB3A1;        /* clean water — relief, safe, success */
   --info:#5C7A94;        /* steel — radio, map, night, info */
   --warning:#E0A33B;     /* amber — caution */
+  --font-serif:'Literata',Georgia,'Times New Roman',serif;
   --font-sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
-  --font-mono:ui-monospace,'JetBrains Mono','SFMono-Regular',Menlo,Consolas,monospace;
+  --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
   --r-sm:8px; --r-md:12px; --r-lg:18px; --r-phone:26px;
 }
 *{box-sizing:border-box}
@@ -101,8 +105,8 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
 .st.crit .fil{background:var(--danger)}
 .st.warn .fil{background:var(--warning)}
 .symp{font-family:var(--font-mono);font-size:8px;letter-spacing:.1em;padding:4px 7px;border-radius:6px;border:1px solid var(--infection);color:var(--infection);background:rgba(147,166,62,.12);align-self:center}
-/* story */
-.story{padding:16px;font-size:13.5px;line-height:1.6;color:var(--text);flex:0 0 auto}
+/* story — the star: Literata serif per art-bible §3 */
+.story{padding:16px;font-family:var(--font-serif);font-size:14.5px;line-height:1.62;color:var(--text);flex:0 0 auto}
 .story .who{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:9px}
 .story .hot{color:var(--accent);font-weight:600}
 .story .dgr{color:var(--danger);font-weight:600}
@@ -119,6 +123,10 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
 .choice.ghost .t{color:var(--muted)}
 .choice.dgr{border-left-color:var(--danger)}.choice.dgr .m{color:var(--danger)}
 .choice.hope{border-left-color:var(--hope)}.choice.hope .m{color:var(--hope)}
+/* choice states (art-bible §8) */
+.choice.pressed{background:var(--surface-3);border-left-color:var(--accent-press)}
+.choice.focus{outline:2px solid var(--accent);outline-offset:2px}
+.choice.lock{opacity:.55}.choice.lock .t{color:var(--muted)}.choice.lock .m{color:var(--muted)}
 /* bottom nav */
 .nav{display:flex;justify-content:space-around;align-items:center;padding:10px 8px 14px;border-top:1px solid var(--line)}
 .nav .i{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:7.5px;letter-spacing:.06em;font-family:var(--font-mono)}
@@ -139,6 +147,7 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
 .pill.hp{color:var(--hope);border-color:var(--hope)}
 .pill.dg{color:var(--danger);border-color:var(--danger)}
 .pill.info{color:var(--info);border-color:var(--info)}
+.pill.warn{color:var(--warning);border-color:var(--warning)}
 /* component library */
 .lib{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
 .libcard{border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-1);padding:16px}
@@ -152,14 +161,14 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
 </head>
 <body>
 <div class="doc">
-<h2 class="sr-only">Zurvival Reborn wireframe kit using the Ashfall and Ember colorway: cover and palette, design principles, component library, type scale, and annotated mobile screens for exploration, combat, inventory, companions, shelter, world map, codex, and the quiet death screen.</h2>
+<h2 class="sr-only">Zurvival Reborn wireframe kit using the Ashfall and Ember colorway: cover and palette, design principles, component library, type scale, and annotated mobile screens SCR-01 through SCR-12 — exploration, combat, inventory, companions, shelter, world map, codex, the quiet death screen, radio, workshop, survivor encounter, and the night power-out state.</h2>
 
 <!-- ===== COVER ===== -->
 <div class="cover">
   <div class="kick">ZURVIVAL REBORN · WIREFRAME KIT</div>
   <h1>Ashfall <span class="em">&amp;</span> Ember</h1>
-  <div class="lede">The core visual system for a chat-driven survival roguelite. A desaturated, warm-charcoal world where saturated color is rationed — spent only to <b>communicate</b>: ember for action, blood for danger, bile for infection, clean-water teal for relief.</div>
-  <div class="meta">MOBILE-FIRST · STORY-FIRST · ONE DECISION AT A TIME · v0.1 · maps to GDD Part XVII</div>
+  <div class="lede">The core visual system for a chat-driven survival roguelite. A desaturated, warm-charcoal world where saturated color is rationed — spent only to <b>communicate</b>: ember for action, blood for danger, bile for infection, clean-water teal for relief. Story prose is set in <b>Literata</b> — the serif is the star; the UI sans and the mono machine-voice serve it.</div>
+  <div class="meta">MOBILE-FIRST · STORY-FIRST · ONE DECISION AT A TIME · v0.2 · maps to GDD Part XVII · screens SCR-01–SCR-12</div>
 </div>
 
 <!-- ===== PALETTE ===== -->
@@ -206,6 +215,16 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
       </div>
     </div>
     <div class="libcard">
+      <div class="lh">Choice row — states</div>
+      <div class="stack">
+        <div class="choice"><span class="t">Default</span><span class="m q">10m</span></div>
+        <div class="choice pressed"><span class="t">Pressed</span><span class="m">EDGE DARKENS</span></div>
+        <div class="choice focus"><span class="t">Focused</span><span class="m q">2PX EMBER HALO</span></div>
+        <div class="choice lock"><span class="t">“Hold the line with me”</span><span class="m">NEEDS TRUST 3</span></div>
+      </div>
+      <div style="margin-top:10px;font-size:10.5px;color:var(--muted);line-height:1.5">Locked rows state their gate in words (never a mystery grey). Pressed = <code style="font-family:var(--font-mono)">--surface-3</code> + <code style="font-family:var(--font-mono)">--accent-press</code> edge. Focus ring is the 2px ember halo — keyboard &amp; switch access.</div>
+    </div>
+    <div class="libcard">
       <div class="lh">Status &amp; vitals</div>
       <div class="stack">
         <div class="st crit"><div class="l"><span>HEALTH</span><span>24%</span></div><div class="trk"><div class="fil" style="width:24%"></div></div></div>
@@ -250,23 +269,26 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
 
 <!-- ===== TYPE SCALE ===== -->
 <div class="section">
-  <div class="sh"><span class="n">04</span><h2>Type &amp; Space</h2><span class="d">Inter for prose · monospace for system voice</span></div>
-  <div class="type-row"><div class="spec">Inter · 38 / 700</div><div style="font-size:30px;font-weight:700;letter-spacing:-.02em">Day six. It won’t rain forever.</div></div>
-  <div class="type-row"><div class="spec">Inter · 21 / 700</div><div style="font-size:19px;font-weight:700">Section &amp; screen titles</div></div>
-  <div class="type-row"><div class="spec">Inter · 14 / 400 · 1.6</div><div style="font-size:14px;color:var(--text)">Body / story copy — the star of every screen. Large, well-spaced, never crowded.</div></div>
-  <div class="type-row"><div class="spec">Inter · 13 / 600</div><div style="font-size:13px;font-weight:600">Choice labels — the one thing you tap.</div></div>
-  <div class="type-row"><div class="spec">Mono · 10 · .14em</div><div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;color:var(--muted)">SYSTEM VOICE · TIME · NOISE · LABELS</div></div>
-  <div style="margin-top:14px;color:var(--text-2);font-size:12.5px">Spacing scale: <b>4 · 8 · 12 · 16 · 24 · 32</b>. Radii: 8 (controls) · 12 (cards) · 18 (sheets) · 26 (device). Touch targets ≥ 44px. One-hand reach: primary actions live in the lower third.</div>
+  <div class="sh"><span class="n">04</span><h2>Type &amp; Space</h2><span class="d">Literata for prose · Inter for UI · JetBrains Mono for the machine</span></div>
+  <div style="margin-bottom:14px;font-size:12.5px;color:var(--text-2)"><b>The register rule (art-bible §3.1):</b> serif = the world speaking to you · sans = you choosing · mono = the machine measuring. Sizes below are the phone baseline; every one is a token in <code style="font-family:var(--font-mono);color:var(--text-2)">tokens.css</code> (<code style="font-family:var(--font-mono);color:var(--text-2)">--type-display … --type-micro</code>). Reading measure caps at ~64ch.</div>
+  <div class="type-row"><div class="spec">Literata · 32/1.15 · 600</div><div style="font-family:var(--font-serif);font-size:32px;font-weight:600;line-height:1.15">Day six. It won’t rain forever.</div></div>
+  <div class="type-row"><div class="spec">Literata · 24/1.2 · 600</div><div style="font-family:var(--font-serif);font-size:24px;font-weight:600">Scene &amp; chapter titles</div></div>
+  <div class="type-row"><div class="spec">Literata · 19/1.62 · 400</div><div style="font-family:var(--font-serif);font-size:19px;line-height:1.62;max-width:64ch">Story prose — the star of every screen. Set for an hour of comfortable reading; ragged right, paragraph spacing, never justified.</div></div>
+  <div class="type-row"><div class="spec">Inter · 17/1.35 · 500</div><div style="font-size:17px;font-weight:500">Choice labels — the one thing you tap.</div></div>
+  <div class="type-row"><div class="spec">Inter · 15/1.5 · 400</div><div style="font-size:15px">Secondary UI copy, menus, drill-downs.</div></div>
+  <div class="type-row"><div class="spec">Mono · 13 · +.02em</div><div style="font-family:var(--font-mono);font-size:13px;letter-spacing:.02em;color:var(--muted)">COSTS · TAGS · TIMESTAMPS · RADIO</div></div>
+  <div class="type-row"><div class="spec">Mono · 12</div><div style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">captions &amp; the smallest labels</div></div>
+  <div style="margin-top:14px;color:var(--text-2);font-size:12.5px">Spacing scale: <b>4 · 8 · 12 · 16 · 24 · 32</b>. Radii: 8 (controls) · 12 (cards) · 18 (sheets) · 26 (device). Touch targets ≥ 44px. One-hand reach: primary actions live in the lower third. Phone mockups below render prose at a scaled-down size; the family, ratio, and register rules are exact.</div>
 </div>
 
 <!-- ===== SCREENS ===== -->
 <div class="section">
-  <div class="sh"><span class="n">05</span><h2>The Screens</h2><span class="d">annotated · numbered pins map to the notes</span></div>
+  <div class="sh"><span class="n">05</span><h2>The Screens</h2><span class="d">annotated · numbered pins map to the notes · IDs SCR-01+ are stable references</span></div>
 
-  <!-- Screen 1: Exploration -->
+  <!-- SCR-01: Exploration -->
   <div class="screen">
     <div>
-      <div class="cap"><div class="t">1 · Primary — Exploration</div><div class="s">The home screen. 90% of the game lives here.</div></div>
+      <div class="cap"><div class="t">SCR-01 · Primary — Exploration</div><div class="s">The home screen. 90% of the game lives here.</div></div>
       <div class="phone">
         <div class="notch"></div>
         <div class="hbar"><span>DAY 6 · 02:14</span><span>LATE NIGHT · RAIN</span></div>
@@ -303,7 +325,7 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
         <li><b>Header — system voice.</b> <span>Day, time, phase, weather in mono. This is the world talking, not the story. Never competes with the prose.</span></li>
         <li><b>Location strip.</b> <span>Answers “where am I?” Region muted, node bright. Tapping opens the map.</span></li>
         <li><b>Status — critical only.</b> <span>HP red at 24% (blood token). Infection is <em>not</em> a bar — it shows as the <span style="color:var(--infection)">FEVERISH</span> tag and, deeper in, by degrading this very screen.</span></li>
-        <li><b>Story window — the star.</b> <span>Largest type, most breathing room. Ember marks an interactable noun (<span style="color:var(--accent)">locked cabinet</span>); blood marks a threat (<span style="color:var(--danger)">stockroom</span>).</span></li>
+        <li><b>Story window — the star, in Literata.</b> <span>The serif carries the “survival novel” register. Ember marks an interactable noun (<span style="color:var(--accent)">locked cabinet</span>); blood marks a threat (<span style="color:var(--danger)">stockroom</span>).</span></li>
         <li><b>Micro-choices.</b> <span>Cheap, tactile taps in steel/info. They rarely swing a run alone but compound — the door you didn’t close.</span></li>
         <li><b>Choice rows.</b> <span>Known costs shown in mono (LOUD · 10m); outcome always hidden. The 3px ember left-edge = “this is interactive.” Ghost row = low-commitment exit.</span></li>
         <li><b>Bottom nav — depth on demand.</b> <span>Map · Pack · People · Radio · Journal. One tap away, never crowding the decision.</span></li>
@@ -311,10 +333,10 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
     </div>
   </div>
 
-  <!-- Screen 2: Combat -->
+  <!-- SCR-02: Combat -->
   <div class="screen">
     <div>
-      <div class="cap"><div class="t">2 · Combat — a bad exchange</div><div class="s">Turn-based, last-resort, always costly. The screen tightens.</div></div>
+      <div class="cap"><div class="t">SCR-02 · Combat — a bad exchange</div><div class="s">Turn-based, last-resort, always costly. The screen tightens.</div></div>
       <div class="phone">
         <div class="notch"></div>
         <div class="hbar"><span>DAY 6 · 02:15</span><span style="color:var(--danger)">● CONTACT</span></div>
@@ -356,10 +378,10 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
 </div>
 
 <div class="section">
-  <!-- Screen 3: Inventory -->
+  <!-- SCR-03: Inventory -->
   <div class="screen">
     <div>
-      <div class="cap"><div class="t">3 · Pack — Inventory</div><div class="s">Weight-bound. Every pickup is “what do I leave behind?”</div></div>
+      <div class="cap"><div class="t">SCR-03 · Pack — Inventory</div><div class="s">Weight-bound. Every pickup is “what do I leave behind?”</div></div>
       <div class="phone">
         <div class="notch"></div>
         <div class="hbar"><span>PACK</span><span>14.2 / 20.0 KG</span></div>
@@ -413,10 +435,10 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
     </div>
   </div>
 
-  <!-- Screen 4: Companions -->
+  <!-- SCR-04: Companions -->
   <div class="screen">
     <div>
-      <div class="cap"><div class="t">4 · People — Companions</div><div class="s">Handcrafted survivors. Trust is per-person and earned.</div></div>
+      <div class="cap"><div class="t">SCR-04 · People — Companions</div><div class="s">Handcrafted survivors. Trust is per-person and earned.</div></div>
       <div class="phone">
         <div class="notch"></div>
         <div class="hbar"><span>PEOPLE</span><span>3 WITH YOU · 5 AT HOME</span></div>
@@ -430,7 +452,7 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
           <div style="display:flex;gap:7px;flex-wrap:wrap">
             <span class="pill acc">FOLLOW</span><span class="pill">HOLD</span><span class="pill">SCAVENGE</span><span class="pill">GUARD HOME</span>
           </div>
-          <div style="margin-top:11px;font-size:12px;color:var(--text-2);line-height:1.55">“My dad kept spare batteries in the <span style="color:var(--accent)">freezer</span> — habit I never broke.”</div>
+          <div style="margin-top:11px;font-family:var(--font-serif);font-size:12.5px;color:var(--text-2);line-height:1.55">“My dad kept spare batteries in the <span style="color:var(--accent)">freezer</span> — habit I never broke.”</div>
           <div style="margin-top:8px;font-size:10.5px;color:var(--muted)">↳ a hint, not a quest. Somewhere out there, a freezer.</div>
         </div>
         <div class="row">
@@ -453,7 +475,7 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
       <ol>
         <li><b>Trust is per-relationship.</b> <span>Each person shows their own trust (teal when high, plain when guarded) — no single global reputation bar.</span></li>
         <li><b>Orders gate on trust.</b> <span>Marcus (trust 4) takes FOLLOW; a wary Dana might refuse the dangerous order. Active order in ember.</span></li>
-        <li><b>Conversation is a mechanic.</b> <span>Marcus’s offhand memory is a real, actionable loot hint (ember “freezer”). Listening pays.</span></li>
+        <li><b>Conversation is a mechanic.</b> <span>Marcus’s offhand memory — spoken, so it’s serif — is a real, actionable loot hint (ember “freezer”). Listening pays.</span></li>
         <li><b>Their state is legible at a glance.</b> <span>Eli’s bile-green “SICK” tag reads the infection story instantly; his initial glyph carries the color too.</span></li>
         <li><b>Everyone is a mouth and a risk.</b> <span>Three with you, five at home — the header keeps the cost of the community present.</span></li>
       </ol>
@@ -462,10 +484,10 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
 </div>
 
 <div class="section">
-  <!-- Screen 5: Shelter -->
+  <!-- SCR-05: Shelter -->
   <div class="screen">
     <div>
-      <div class="cap"><div class="t">5 · Home — The Shelter</div><div class="s">The one place that feels safe — and the thing you fear losing.</div></div>
+      <div class="cap"><div class="t">SCR-05 · Home — The Shelter</div><div class="s">The one place that feels safe — and the thing you fear losing.</div></div>
       <div class="phone">
         <div class="notch"></div>
         <div class="hbar"><span>THE OVERLOOK</span><span>DAY 6 · DUSK</span></div>
@@ -505,10 +527,10 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
     </div>
   </div>
 
-  <!-- Screen 6: Map / Journal -->
+  <!-- SCR-06: Map / Journal -->
   <div class="screen">
     <div>
-      <div class="cap"><div class="t">6 · Map — The Living Journal</div><div class="s">Nodes with memory. Fog of war. Your own handwriting.</div></div>
+      <div class="cap"><div class="t">SCR-06 · Map — The Living Journal</div><div class="s">Nodes with memory. Fog of war. Your own handwriting.</div></div>
       <div class="phone">
         <div class="notch"></div>
         <div class="hbar"><span>CITY MAP</span><span>FOG · 41% KNOWN</span></div>
@@ -549,8 +571,8 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
           </g>
           <!-- region labels -->
           <text x="245" y="30" fill="#D84334" font-family="monospace" font-size="8" text-anchor="end" opacity="0.9">DOWNTOWN · HIGH</text>
-          <!-- handwritten note pins -->
-          <g font-family="'Bradley Hand','Segoe Script',cursive" font-size="11" fill="#EDE7DB">
+          <!-- handwritten note pins — Literata italic per art-bible §9 -->
+          <g font-family="Literata,Georgia,serif" font-style="italic" font-size="10.5" fill="#EDE7DB">
             <path d="M172 205 h60 v20 h-60 z" fill="#1E2024" stroke="#F2803A" stroke-width="1"/>
             <text x="177" y="219" fill="#EDE7DB">lost Marcus here?</text>
             <path d="M18 300 h74 v20 h-74 z" fill="#1E2024" stroke="#5C7A94" stroke-width="1"/>
@@ -570,7 +592,7 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
         <li><b>Regions carry threat.</b> <span>Downtown glows faint blood-red at “HIGH.” The wash and label read the region’s evolving danger before you travel.</span></li>
         <li><b>Home and here.</b> <span>Teal marks the safe Overlook; the pulsing ember “YOU” is the current node. Color instantly separates safe from active.</span></li>
         <li><b>Nodes remember.</b> <span>The pharmacy stays outlined blood-red because of what happened there — the map holds the memory, not just the geography.</span></li>
-        <li><b>Your handwriting.</b> <span>Player notes pinned in a script face — “lost Marcus here?”, “good water ↓.” By the end, the map is a personal archive.</span></li>
+        <li><b>Your handwriting.</b> <span>Player notes pinned in Literata italic — “lost Marcus here?”, “good water ↓” — the bible’s handwritten register (§9), not a novelty script face. By the end, the map is a personal archive.</span></li>
         <li><b>Travel has a price.</b> <span>Every route shows time and noise up front — a Survival-Triangle trade, never a free move.</span></li>
       </ol>
     </div>
@@ -578,10 +600,10 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
 </div>
 
 <div class="section">
-  <!-- Screen 7: Codex / Journal -->
+  <!-- SCR-07: Codex / Journal -->
   <div class="screen">
     <div>
-      <div class="cap"><div class="t">7 · Journal — Lore, Radio &amp; Memorial</div><div class="s">The story you uncover, and the people you couldn’t keep.</div></div>
+      <div class="cap"><div class="t">SCR-07 · Journal — Lore, Radio &amp; Memorial</div><div class="s">The story you uncover, and the people you couldn’t keep.</div></div>
       <div class="phone">
         <div class="notch"></div>
         <div class="hbar"><span>JOURNAL</span><span>DAY 6</span></div>
@@ -590,7 +612,7 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
         </div>
         <div class="row">
           <div class="ico"><svg viewBox="0 0 22 22"><rect x="4" y="3" width="14" height="16" rx="2" fill="none" stroke="#EDE7DB" stroke-width="1.4"/><path d="M7 7h8M7 10h8M7 13h5" stroke="#8B8981" stroke-width="1.4"/></svg></div>
-          <div class="main"><div class="a">“They told us the bridge would hold.”</div><div class="b">Note · found at the checkpoint</div></div>
+          <div class="main"><div class="a" style="font-family:var(--font-serif)">“They told us the bridge would hold.”</div><div class="b">Note · found at the checkpoint</div></div>
         </div>
         <div class="row">
           <div class="ico"><svg viewBox="0 0 22 22"><rect x="3" y="7" width="16" height="11" rx="1.6" fill="none" stroke="#5C7A94" stroke-width="1.4"/><circle cx="14" cy="12.5" r="2.6" fill="none" stroke="#5C7A94" stroke-width="1.4"/></svg></div>
@@ -622,15 +644,15 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
     </div>
   </div>
 
-  <!-- Screen 8: Quiet Screen -->
+  <!-- SCR-08: Quiet Screen -->
   <div class="screen">
     <div>
-      <div class="cap"><div class="t">8 · The Quiet Screen</div><div class="s">On loss, the UI strips back. Death is a scene, not a card.</div></div>
+      <div class="cap"><div class="t">SCR-08 · The Quiet Screen</div><div class="s">On loss, the UI strips back. Death is a scene, not a card.</div></div>
       <div class="phone" style="justify-content:center">
         <div class="notch"></div>
         <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:30px 26px;gap:22px">
           <div style="font-family:var(--font-mono);font-size:9.5px;letter-spacing:.2em;color:#4a4a47">DAY 6 · 02:19</div>
-          <div style="font-size:16px;line-height:1.7;color:var(--text)">You held the door so Marcus could reach the stairs.<br><br>You do not hear it close behind him.</div>
+          <div style="font-family:var(--font-serif);font-size:16px;line-height:1.7;color:var(--text)">You held the door so Marcus could reach the stairs.<br><br>You do not hear it close behind him.</div>
           <div style="width:34px;height:1px;background:var(--accent);opacity:.7"></div>
           <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;color:var(--muted)">SIX DAYS · NINE SAVED · ONE LAST STAND</div>
         </div>
@@ -642,10 +664,197 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
     <div class="notes">
       <div class="grp">Restraint as design</div>
       <ol>
-        <li><b>Everything falls away.</b> <span>No stats, no nav, no choices but one. Whitespace and a single ember hairline give the moment room to land.</span></li>
+        <li><b>Everything falls away.</b> <span>No stats, no nav, no choices but one. Whitespace and a single ember hairline give the moment room to land. The line is serif `--type-display` — the world’s voice, one last time.</span></li>
         <li><b>A death you can name.</b> <span>The last line states the decision that killed you — “you held the door.” The Last Stand made it a scene.</span></li>
         <li><b>No “You Died.”</b> <span>The one action leads to an epilogue and run summary — the story continues past the character.</span></li>
         <li><b>Same device for grief mid-run.</b> <span>After any major loss, the game can go this quiet for a beat, then return.</span></li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <!-- SCR-09: Radio -->
+  <div class="screen">
+    <div>
+      <div class="cap"><div class="t">SCR-09 · Radio — the world speaking quietly</div><div class="s">Everything here is Steel. Signals age, decay, and go silent.</div></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hbar"><span>RADIO</span><span style="color:var(--info)">CH 7 · LIVE</span></div>
+        <div style="padding:12px 16px 10px;border-bottom:1px solid var(--line)">
+          <svg viewBox="0 0 290 40" style="width:100%;display:block">
+            <line x1="0" y1="26" x2="290" y2="26" stroke="#2C2E34" stroke-width="1"/>
+            <g stroke="#3A3D45" stroke-width="1">
+              <line x1="20" y1="22" x2="20" y2="30"/><line x1="60" y1="22" x2="60" y2="30"/><line x1="100" y1="22" x2="100" y2="30"/>
+              <line x1="180" y1="22" x2="180" y2="30"/><line x1="220" y1="22" x2="220" y2="30"/><line x1="260" y1="22" x2="260" y2="30"/>
+            </g>
+            <polyline points="110,26 118,18 126,30 134,14 142,32 150,10 158,30 166,20 172,26" fill="none" stroke="#5C7A94" stroke-width="1.4"/>
+            <rect x="139" y="4" width="2" height="34" fill="#5C7A94"/>
+            <text x="145" y="12" fill="#5C7A94" font-family="monospace" font-size="8" text-anchor="start">CH 7</text>
+          </svg>
+        </div>
+        <div class="story" style="font-family:var(--font-mono);font-size:11px;line-height:1.7;color:var(--info)">
+          <div class="who" style="color:var(--info)">▮▯▮ · MILITARY · CHANNEL 7</div>
+          “…perimeter at the stadium holds. Evacuation staging at gate C. If you can hear this <span style="color:var(--muted)">[static]</span> do not approach after dark. Repeating…”
+        </div>
+        <div class="micro"><span style="color:var(--muted)">Recorded loop · first heard Day 3 · unchanged since</span></div>
+        <div class="row">
+          <div class="ico"><svg viewBox="0 0 22 22"><path d="M3 14c2-6 5-6 8-3s6 3 8-3" fill="none" stroke="#5C7A94" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+          <div class="main"><div class="a" style="color:var(--info)">Numbers station · CH 12</div><div class="b">A woman counting, then silence. Nightly.</div></div>
+          <div class="end"><span class="pill info">FAINT</span></div>
+        </div>
+        <div class="row" style="opacity:.6">
+          <div class="ico"><svg viewBox="0 0 22 22"><path d="M4 11h14" stroke="#8B8981" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+          <div class="main"><div class="a" style="color:var(--muted)">CH 3 — “Anyone…?”</div><div class="b">Went quiet Day 5, mid-sentence</div></div>
+          <div class="end"><span class="pill">DEAD AIR</span></div>
+        </div>
+        <div class="choices" style="margin-top:auto">
+          <div class="choice"><span class="t">Keep listening</span><span class="m q">15m</span></div>
+          <div class="choice dgr"><span class="t">Broadcast — reveal yourself</span><span class="m">NOISE ++ · WHO HEARS?</span></div>
+          <div class="choice ghost"><span class="t">Turn it off</span><span class="m q">›</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="grp">One hue, one voice</div>
+      <ol>
+        <li><b>Steel owns this screen.</b> <span>Radio is the one context where `--info` leads — tuner, waveform, broadcast text. It reads as a signal, not a voice (art-bible §10).</span></li>
+        <li><b>Broadcasts are mono, reduced contrast.</b> <span>Machine register, with a tuning glyph prefix. Static gaps render as muted `[static]` — the plain-text floor keeps them legible.</span></li>
+        <li><b>Signals age.</b> <span>The evac loop is honest about being three days old. A lost signal decays to a muted, flat DEAD AIR row — it stays listed; the silence is content.</span></li>
+        <li><b>Transmitting is a first-class risk.</b> <span>Broadcasting is a blood-edged choice with an unknown audience. The cost chip says what’s known; who hears is hidden.</span></li>
+        <li><b>One anomaly is reserved.</b> <span>The “signal that shouldn’t exist” (GDD XIII) will break this screen’s rules exactly once. Nothing else ever does.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- SCR-10: Workshop -->
+  <div class="screen">
+    <div>
+      <div class="cap"><div class="t">SCR-10 · Workshop — Crafting &amp; Repair</div><div class="s">Text-first recipes. Time is the real price; repair beats replace.</div></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hbar"><span>WORKSHOP · THE OVERLOOK</span><span>COMPONENTS · 7</span></div>
+        <div style="display:flex;gap:7px;padding:11px 16px;flex-wrap:wrap;border-bottom:1px solid var(--line)">
+          <span class="pill acc">BUILD</span><span class="pill">REPAIR</span><span class="pill">MEDICAL</span><span class="pill">TRAPS</span>
+        </div>
+        <div class="row">
+          <div class="ico"><svg viewBox="0 0 22 22"><rect x="4" y="9" width="14" height="4" rx="1" fill="none" stroke="#EDE7DB" stroke-width="1.4"/><path d="M7 9V6m4 3V6m4 3V6" stroke="#EDE7DB" stroke-width="1.4"/></svg></div>
+          <div class="main"><div class="a">Reinforced plank</div><div class="b">Boards the east window · +integrity</div></div>
+          <div class="end">2 SCRAP · 30m</div>
+        </div>
+        <div class="row">
+          <div class="ico"><svg viewBox="0 0 22 22"><path d="M11 3c-3 4-5 6-5 9a5 5 0 0 0 10 0c0-3-2-5-5-9Z" fill="none" stroke="#5FB3A1" stroke-width="1.4" stroke-linejoin="round"/></svg></div>
+          <div class="main"><div class="a">Water filter <span class="pill hp" style="margin-left:4px">SAFE WATER</span></div><div class="b">Clean water at home · +morale</div></div>
+          <div class="end">1 CHARCOAL · 1 CLOTH · 45m</div>
+        </div>
+        <div class="row" style="opacity:.6">
+          <div class="ico"><svg viewBox="0 0 22 22"><path d="M9 3h4v5l3 8a3 3 0 0 1-3 4H9a3 3 0 0 1-3-4l3-8V3Z" fill="none" stroke="#D84334" stroke-width="1.4" stroke-linejoin="round"/></svg></div>
+          <div class="main"><div class="a" style="color:var(--muted)">Molotov</div><div class="b">Area fire · very loud · <span style="color:var(--warning)">needs: fuel ×1</span></div></div>
+          <div class="end"><span class="pill warn">MISSING PART</span></div>
+        </div>
+        <div class="row">
+          <div class="ico"><svg viewBox="0 0 22 22"><path d="M6 9V7a5 5 0 0 1 10 0v2m-11 0h12v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2Z" fill="none" stroke="#F2803A" stroke-width="1.4"/></svg></div>
+          <div class="main"><div class="a" style="color:var(--accent)">Repair: Firefighter’s axe</div><div class="b">The edge is going · third repair — its story grows</div></div>
+          <div class="end">1 SCRAP · 20m</div>
+        </div>
+        <div class="choices" style="margin-top:auto">
+          <div class="choice"><span class="t">Craft reinforced plank</span><span class="m">30m · QUIET</span></div>
+          <div class="choice ghost"><span class="t">Back</span><span class="m q">›</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="grp">Making, not menus</div>
+      <ol>
+        <li><b>Recipes are honest text rows.</b> <span>Name, what it does in the world (“boards the east window”), and the full known cost in mono. No crafting grid, no rarity colors.</span></li>
+        <li><b>Missing parts are stated, never mysterious.</b> <span>The Molotov row says exactly what it needs (`needs: fuel ×1`, amber) — a scavenging goal, not a greyed-out taunt.</span></li>
+        <li><b>Time is the real price.</b> <span>Every craft costs hours the day doesn’t give back. The cost chip carries it like any other choice.</span></li>
+        <li><b>Repair over replace.</b> <span>Repairing the axe is an ember action — each repair adds a line to the artifact’s provenance instead of consuming it. Growth is a better axe, not a level.</span></li>
+        <li><b>No celebration.</b> <span>A finished craft is a quiet line in the report, not confetti (anti-references, art-bible §2).</span></li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <!-- SCR-11: Encounter / Trade -->
+  <div class="screen">
+    <div>
+      <div class="cap"><div class="t">SCR-11 · Encounter — Stranger &amp; Trade</div><div class="s">A person, not a shop. Every offer is also a message.</div></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="hbar"><span>DAY 7 · 11:40</span><span style="color:var(--warning)">● STANDOFF</span></div>
+        <div class="loc">Fire Station <span class="rg">— forecourt, open ground</span></div>
+        <div class="status">
+          <div class="st"><div class="l"><span>HP</span><span>41</span></div><div class="trk"><div class="fil" style="width:41%"></div></div></div>
+          <span class="pill warn">STRANGER · WARY</span>
+          <span class="pill">ARMED</span>
+        </div>
+        <div class="story">
+          <div class="who">RENA · HOLDING DISTANCE</div>
+          She keeps the rifle low but her thumb never leaves the safety. “We watched the <span class="dgr">checkpoint</span> go down. If you’re heading for the <span class="hot">stadium</span>, I’ll trade you the truth about it — for food.”
+        </div>
+        <div class="micro"><span style="color:var(--muted)">She glances at your pack. She’s counting cans.</span></div>
+        <div class="choices">
+          <div class="choice hope"><span class="t">Offer 2 cans — show good faith</span><span class="m">−2 FOOD</span></div>
+          <div class="choice"><span class="t">Ask about the checkpoint first</span><span class="m q">TALK</span></div>
+          <div class="choice dgr"><span class="t">Draw your weapon</span><span class="m">THREAT · NO WAY BACK</span></div>
+          <div class="choice ghost"><span class="t">Back away slowly</span><span class="m q">›</span></div>
+        </div>
+        <div class="nav">
+          <div class="i on"><svg viewBox="0 0 22 22"><circle cx="7" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3 18c0-2.5 1.8-4 4-4s4 1.5 4 4m0 0c0-2.5 1.8-4 4-4s4 1.5 4 4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>TALK</div>
+          <div class="i"><svg viewBox="0 0 22 22"><path d="M7 8V6a3 3 0 0 1 6 0v2m-8 0h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>PACK</div>
+          <div class="i"><svg viewBox="0 0 22 22"><path d="M11 3l7 4v5c0 4-3 6-7 7-4-1-7-3-7-7V7l7-4Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>GUARD</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="grp">Trade is dialogue with stakes</div>
+      <ol>
+        <li><b>The registers do the work.</b> <span>Her name in muted mono above; her speech in the serif, quotation-led (art-bible §3.5). You always know who is speaking.</span></li>
+        <li><b>Nouns are taught, not tutorialized.</b> <span>The <span style="color:var(--danger)">checkpoint</span> is a threat; the <span style="color:var(--accent)">stadium</span> is actionable. Two words carry the whole situation.</span></li>
+        <li><b>Offers show their real cost.</b> <span>−2 FOOD is the known price; whether her “truth” is worth it is hidden. Information is a tradeable resource.</span></li>
+        <li><b>Violence is available, priced, and honest.</b> <span>“Draw your weapon” is blood-edged with NO WAY BACK — the one cost chip that warns about the future instead of a resource.</span></li>
+        <li><b>Trust moves after, never promised before.</b> <span>No “+1 trust” preview on any option. The relationship shift is narrated in the aftermath, like everything else.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- SCR-12: Night / power-out -->
+  <div class="screen">
+    <div>
+      <div class="cap"><div class="t">SCR-12 · Night — Power Out</div><div class="s">The same screen, one step dimmer. State is shown by subtraction.</div></div>
+      <div class="phone" style="background:#0A0B0C">
+        <div class="notch"></div>
+        <div class="hbar" style="color:#5b5b57"><span>DAY 7 · 23:58</span><span>GRID DOWN</span></div>
+        <div class="loc" style="color:#8B8981">The Overlook <span class="rg" style="color:#5b5b57">— common room, one candle</span></div>
+        <div class="status" style="border-bottom:1px solid #232529">
+          <div class="st"><div class="l"><span>HP</span><span>41</span></div><div class="trk"><div class="fil" style="width:41%;background:#B7B3A9"></div></div></div>
+          <div class="st crit"><div class="l"><span>REST</span><span>18</span></div><div class="trk"><div class="fil" style="width:18%"></div></div></div>
+        </div>
+        <div class="story" style="color:var(--text-2)">
+          <div class="who" style="color:#5b5b57">The Overlook · candlelight</div>
+          The generator coughed out an hour ago. Someone is snoring; someone else is pretending to. Out past the barricade, the dark has a <span class="hot">sound</span> to it tonight.
+        </div>
+        <div class="choices">
+          <div class="choice"><span class="t">Sleep in shifts</span><span class="m q">REST · SAFER</span></div>
+          <div class="choice"><span class="t">Keep watch alone</span><span class="m">FATIGUE · YOU’LL PAY TOMORROW</span></div>
+        </div>
+        <div class="nav" style="border-top:1px solid #232529">
+          <div class="i"><svg viewBox="0 0 22 22"><path d="M9 2 3 4v14l6-2 6 2 6-2V2l-6 2-6-2Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M9 2v14M15 4v14" stroke="currentColor" stroke-width="1.4"/></svg>MAP</div>
+          <div class="i"><svg viewBox="0 0 22 22"><path d="M7 8V6a3 3 0 0 1 6 0v2m-8 0h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>PACK</div>
+          <div class="i"><svg viewBox="0 0 22 22"><circle cx="7" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3 18c0-2.5 1.8-4 4-4s4 1.5 4 4m0 0c0-2.5 1.8-4 4-4s4 1.5 4 4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>PEOPLE</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="grp">Tone by subtraction</div>
+      <ol>
+        <li><b>Same tokens, reduced intensity.</b> <span>The base drops a step, hairlines darken, prose falls to `--text-2`. This is not a “night skin” — it’s the identical system dimmed (art-bible §12).</span></li>
+        <li><b>The header loses its color.</b> <span>GRID DOWN renders in near-muted mono. The interface tells the world’s story: no power, no glow.</span></li>
+        <li><b>Options thin.</b> <span>Two choices, no ghost exit — night doesn’t offer easy outs. The director quiets the screen as tension rises.</span></li>
+        <li><b>One ember still reads.</b> <span>A single interactive noun (<span style="color:var(--accent)">sound</span>) carries the whole screen — proof the rationing works: when everything steps back, one warm word is deafening.</span></li>
+        <li><b>Flicker is capped.</b> <span>The candle may flicker the surface once in a while; capped, and disabled entirely under reduced-flicker (art-bible §13).</span></li>
       </ol>
     </div>
   </div>
@@ -656,17 +865,17 @@ h1,h2,h3{margin:0;letter-spacing:-.02em;font-weight:700}
   <div class="sh"><span class="n">06</span><h2>States, Motion &amp; Access</h2><span class="d">how the system flexes</span></div>
   <div class="princ">
     <div class="pcard"><h3>Feverish / infected</h3><p>As infection advances, story text desaturates, letter-spacing drifts, and a word may be “wrong.” The bile tag is the only overt tell — the rest is felt.</p></div>
-    <div class="pcard" style="border-left-color:var(--info)"><h3>Power out</h3><p>When the grid fails, the whole UI dims a step, the header loses color, and night screens go darker. The interface tells the world’s story too.</p></div>
+    <div class="pcard" style="border-left-color:var(--info)"><h3>Power out</h3><p>When the grid fails, the whole UI dims a step, the header loses color, and night screens go darker. The interface tells the world’s story too. (Rendered live: SCR-12.)</p></div>
     <div class="pcard" style="border-left-color:var(--hope)"><h3>Motion</h3><p>Minimal and diegetic. Story text arrives with weight; a failing light flickers; nothing bounces. Transitions are cross-fades, not slides.</p></div>
-    <div class="pcard" style="border-left-color:var(--warning)"><h3>Focus &amp; touch</h3><p>Focus ring is a 2px ember halo. Targets ≥ 44px, primary actions in the lower third for one-hand reach.</p></div>
+    <div class="pcard" style="border-left-color:var(--warning)"><h3>Focus &amp; touch</h3><p>Focus ring is a 2px ember halo (see the states card, §03). Targets ≥ 44px, primary actions in the lower third for one-hand reach.</p></div>
     <div class="pcard"><h3>Accessibility</h3><p>Color is never the sole signal — every hue pairs with a label or icon. Scales to 200% text, ships a high-contrast mode, and reads cleanly to a screen reader (it’s mostly text).</p></div>
     <div class="pcard" style="border-left-color:var(--info)"><h3>One system, many clients</h3><p>These tokens and components are the source of truth for web, native, and a future chat-bot client. Same palette everywhere.</p></div>
   </div>
 </div>
 
 <div class="foot">
-  <span>Zurvival Reborn · Wireframe Kit · <span class="em">Ashfall &amp; Ember</span> v0.1</span>
-  <span>Tokens: <code style="font-family:var(--font-mono);color:var(--text-2)">design/tokens.css</code> · Spec: <code style="font-family:var(--font-mono);color:var(--text-2)">design/colorway.md</code> · Maps to GDD Part XVII</span>
+  <span>Zurvival Reborn · Wireframe Kit · <span class="em">Ashfall &amp; Ember</span> v0.2 · SCR-01–SCR-12</span>
+  <span>Tokens: <code style="font-family:var(--font-mono);color:var(--text-2)">design/tokens.css</code> · Spec: <code style="font-family:var(--font-mono);color:var(--text-2)">design/colorway.md</code> · <code style="font-family:var(--font-mono);color:var(--text-2)">design/art-bible.md</code> · Maps to GDD Part XVII</span>
 </div>
 
 </div>

@@ -1,4 +1,4 @@
-# Art Bible — "Ashfall & Ember" (v0.1)
+# Art Bible — "Ashfall & Ember" (v0.2)
 
 The canonical visual and asset specification for Zurvival Reborn. Where
 [`colorway.md`](colorway.md) governs **color** and [`tokens.css`](tokens.css) is the machine
@@ -6,8 +6,8 @@ source of truth, this document governs **everything else you can see** — typog
 layout, iconography, illustration, motion, emotional states — and the **rules for making,
 naming, and shipping every art asset**.
 
-**Version:** 0.1 · **Status:** Pre-production · **Owner:** Jharek
-**Reads with:** [`docs/GDD.md`](../docs/GDD.md) Part XVII (UI/UX) & XVIII (Audio) · [`colorway.md`](colorway.md) · [`tokens.css`](tokens.css) · [`wireframes.html`](wireframes.html)
+**Version:** 0.2 · **Status:** Pre-production · **Owner:** Jharek
+**Reads with:** [`docs/specs/GDD.md`](../docs/specs/GDD.md) Part XVII (UI/UX) & XVIII (Audio) · [`colorway.md`](colorway.md) · [`tokens.css`](tokens.css) · [`wireframes.html`](wireframes.html)
 
 > **The one rule.** Zurvival Reborn is a game made of words. Every visual decision either
 > serves the reading or gets out of its way. Type is the art; color is a language; illustration
@@ -25,7 +25,7 @@ Precedence, when two documents seem to disagree:
 1. [`tokens.css`](tokens.css) — the literal values (color, spacing, radius, type).
 2. [`colorway.md`](colorway.md) — the meaning and rules for color.
 3. **This document** — everything else visual, and all asset governance.
-4. [`docs/GDD.md`](../docs/GDD.md) Part XVII–XVIII — the design intent this expands.
+4. [`docs/specs/GDD.md`](../docs/specs/GDD.md) Part XVII–XVIII — the design intent this expands.
 
 If this bible needs a value that isn't in `tokens.css`, the value is defined here **and added
 to `tokens.css` in the same change** — the two never drift. Never hard-code a value that a
@@ -204,6 +204,10 @@ The type system bends to tell the body's story (colorway.md §"States & degradat
 4. Colored words are rare, always nouns, always paired with a second cue.
 5. Every size is a token. If you need a new size, add it to `tokens.css`.
 6. Reader text-scaling to 200% must never break a layout (§13).
+7. **Localization tolerance:** every layout survives **+35% text expansion** (German-length
+   strings). Choice labels may wrap to two lines (the row grows; the ≥44px target holds); cost
+   chips and tag pills never wrap — shorten the words, not the chip. Localized tags keep the
+   word+color pairing; color is never asked to carry a meaning the translated word dropped.
 
 ---
 
@@ -270,6 +274,27 @@ crowding the main view. One decision at a time.
 3. Everything aligns to the spacing scale and radius tokens.
 4. Let quiet screens be quiet — mostly `--bg`, one ember hairline (§12).
 
+### Screen registry — SCR IDs
+
+Every canonical screen has a stable ID, rendered and annotated in
+[`wireframes.html`](wireframes.html). Use the ID when the GDD, content, or an ADR needs to
+reference a screen — never "the inventory screen".
+
+| ID | Screen | The one-line contract |
+| --- | --- | --- |
+| SCR-01 | Exploration (primary) | 90% of play; story window + choices; one decision at a time. |
+| SCR-02 | Combat | Same anatomy, frame reddens; escape always first-class. |
+| SCR-03 | Pack (inventory) | Weight-bound list; artifacts carry provenance; no XP. |
+| SCR-04 | People (companions) | Per-person trust; orders gate on it; conversation is a mechanic. |
+| SCR-05 | Home (shelter) | Rooms evolve; the Daily Report speaks for absence. |
+| SCR-06 | Map (living journal) | Fog of war; nodes remember; notes in the handwritten register. |
+| SCR-07 | Journal (lore/memorial) | Fragments accumulate; the memorial names the how. |
+| SCR-08 | Quiet Screen | Loss strips the UI to one serif line and one way forward. |
+| SCR-09 | Radio | Steel monopoly; signals age and decay; broadcasting is a priced risk. |
+| SCR-10 | Workshop (craft/repair) | Honest text recipes; time is the price; repair over replace. |
+| SCR-11 | Encounter (stranger/trade) | Dialogue registers; offers show real costs; trust moves after. |
+| SCR-12 | Night / power-out | The same tokens one step dimmer; tone by subtraction. |
+
 ---
 
 ## 6. Iconography
@@ -290,6 +315,23 @@ appears repeatedly.
   corporate glyphs.
 - **Sizes:** 16 (inline/meta), 20 (choices/footer), 24 (headers). Never scale a 24 icon below 16;
   draw the small size if needed.
+
+### 6.1 The canonical icon set — v1 inventory
+
+The v1 set is **26 concepts**. Files are `icon-<concept>.svg` (§15.2). Anything not on this
+list is a **word** until it appears often enough to earn a glyph (§6 rule 4).
+
+| Group | Concepts |
+| --- | --- |
+| Navigation (footer) | `map` · `pack` · `people` · `radio` · `journal` |
+| Combat verbs | `fight` · `guard` · `flee` |
+| Costs & senses | `noise` (footprint) · `time` (clock) · `weight` |
+| Resources | `food` (can) · `water` (droplet) · `fuel` · `scrap` · `medical` (cross) · `fire` |
+| World & state | `pin` (location) · `home` (shelter) · `night` (moon) · `day` (sun) · `rain` · `power` (bolt) |
+| Story | `note` (pencil) · `signal` (waveform) · `memorial` (candle) · `lock` |
+
+Active/selected state is the **filled** variant of the same glyph (one drawing, two fills) —
+never a different icon or a color-only change.
 
 ### Icon rules
 
@@ -359,6 +401,27 @@ art — the image remembers, like the node does (§2, pillar 4).
 5. Every illustration is optional to the *information* — the game is fully playable and
    understandable with all art replaced by its alt text (§13, chat-bot client).
 
+### 7.6 The duotone recipe — reproducible template
+
+Every non-trivial illustration ships with this sidecar (in `art/source/`, named
+`<asset>.recipe.md`, or as a note inside the layered file) so any hand can reproduce the house
+look (§15.4):
+
+```
+asset:        region-downtown.webp
+shadow ink:   #0E0F10 (--bg) · multiply · 100%
+midtone:      warm charcoal ramp #17181B → #26282E
+highlight:    #EDE7DB (--text, Bone) · screen · ≤ 90%
+accent ink:   ONE of the seven hues — e.g. #F2803A (--accent),
+              applied to: <the thing it marks, and what that means>
+grain:        static film grain · 3–5% opacity · luminosity blend
+contrast cap: regions under text stay dark enough to hold AA for that text (§13)
+alt text:     "<what this image tells the player>"
+```
+
+Rules: exactly **one** accent ink per image; grain is the only texture; the recipe records the
+accent's *meaning* (what it marks), not just its hex — the meaning is the license to use it.
+
 ---
 
 ## 8. Component visual language
@@ -379,6 +442,14 @@ The recurring pieces, all built from tokens. See them rendered in
   fields (infection/stress/morale are prose, per GDD Part VI).
 - **Header:** slim, mono meta — `DAY 07 · 03:14 · Downtown · rain`. Hairline under. Loses color
   on power-out.
+- **Empty, loading & error states:** never illustrated (§7.2). One line of type in the game's
+  voice — `--type-body`, `--muted`, in-world where the fiction allows:
+  - Empty pack — *"Nothing but lint and a receipt."*
+  - Empty memorial — *"No one yet. Keep it that way."*
+  - No radio signals — *"Static on every channel."*
+  - Loading, brief — `…` · loading, long — *"The city holds its breath."* (mono, muted)
+  - Error — plain and honest, mono in `--warning`: *"This page is missing. It shouldn't be."*
+    with a single RETRY action. Never a mascot, never an apology paragraph.
 
 Rule: a new component is assembled from existing tokens and these patterns before any new visual
 primitive is invented. If it needs something genuinely new, it's added to `tokens.css` and noted
@@ -552,7 +623,7 @@ screen).
   export (`region-downtown.<psd/afphoto/svg>`). "Source next to export where size allows"
   (assets/README.md).
 - Prefer **non-destructive** layered files; document the duotone recipe (which hue as accent ink)
-  in the file or a sidecar note so it's reproducible.
+  in the file or a sidecar note so it's reproducible (§7.6).
 
 ### 15.5 Optimization & budgets
 
@@ -605,7 +676,7 @@ No asset ships until it passes. This is the visual analog of the content **five-
 
 1. **Does it serve the reading?** (Or does it compete with the prose? — §2)
 2. **Is every color earning its meaning?** (No decorative hue — §4)
-3. **Is it native to the palette and the duotone house style?** (§4, §7.5)
+3. **Is it native to the palette and the duotone house style?** (§4, §7.5–7.6)
 4. **Does it degrade to the plain-text floor?** (Works with no color/icon/art — §13)
 5. **Is it accessible?** (Contrast, alt text, reduced-motion, color-not-alone — §13)
 
@@ -614,7 +685,7 @@ No asset ships until it passes. This is the visual analog of the content **five-
 - [ ] Built from tokens; no hard-coded hex, spacing, radius, or off-scale size.
 - [ ] Correct folder, kebab-case name matching its content id (§15.1–15.2).
 - [ ] Correct format, sRGB, SVGO/optimized, within budget (§15.3–15.5).
-- [ ] Source file saved; duotone recipe reproducible (§15.4).
+- [ ] Source file saved; duotone recipe reproducible (§7.6, §15.4).
 - [ ] Alt text + any state text-equivalent written (§15.8).
 - [ ] Right-to-ship / license / provenance recorded (§15.7).
 - [ ] Reads correctly at 200% and in high-contrast; motion has a static equivalent (§13).
