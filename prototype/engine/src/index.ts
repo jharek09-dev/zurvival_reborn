@@ -15,6 +15,18 @@ export {
   type TurnResult,
 } from "./pipeline/applyAction.js";
 
+// World simulation — six independently-tickable layers, advanceable off-screen (T23, DESIGN §4/§5 · FR-SIM-01)
+export {
+  WORLD_SIM_LAYERS,
+  getLayer,
+  runLayer,
+  tickWorld,
+  advanceWorld,
+  type SimContext,
+  type SimLayer,
+  type SimLayerId,
+} from "./sim/worldSim.js";
+
 // Per-turn change telemetry — the FR-CORE-04 no-no-op-turn audit (T13, DESIGN §11)
 export {
   TRACKED_SYSTEMS,
@@ -164,6 +176,65 @@ export {
   contestRegion,
   updateRegionContest,
 } from "./sim/loot.js";
+
+// Off-screen regional drift — threat/density evolve with the player absent (T24, DESIGN §4 · FR-SIM-03)
+export {
+  driftRegions,
+  driftRegion,
+  equilibriumDensity,
+  threatTarget,
+  DENSITY_HOURS_PER_STEP,
+  THREAT_HOURS_PER_STEP,
+  DRIFT_JITTER,
+} from "./sim/regionDrift.js";
+
+// Zombie state machine + first distinct types (T25, DESIGN §6 · FR-CBT-06/07)
+export {
+  tickZombies,
+  nextZombieState,
+  desiredRung,
+  stimulusAt,
+  ZOMBIE_BEHAVIOUR,
+  ZOMBIE_WALKER,
+  ZOMBIE_SCREAMER,
+  ZOMBIE_STALKER,
+  WANDER_AT,
+  INVESTIGATE_AT,
+  CHASE_AT,
+  SCREAM_NOISE,
+  STALKER_NIGHT_BONUS,
+  type ZombieBehaviour,
+} from "./sim/zombies.js";
+
+// Migrating hordes that re-path to noise (T26, DESIGN §5 · FR-SIM-07/FR-CBT-08)
+export {
+  tickHordes,
+  seedStarterHordes,
+  loudestAudible,
+  STARTER_HORDE_SIZE,
+  HORDE_SPEED,
+  HORDE_AWARENESS,
+  HORDE_HOURS_PER_STEP,
+  REPATH_NOISE,
+} from "./sim/hordes.js";
+
+// Weather with multi-system effects (T27, DESIGN §6 · FR-SIM-05)
+export {
+  tickWeather,
+  weatherEffect,
+  weatherDetectionDelta,
+  weatherNoiseFactor,
+  WEATHER_EFFECTS,
+  WEATHER_TRANSITIONS,
+  WEATHER_CLEAR,
+  WEATHER_RAIN,
+  WEATHER_STORM,
+  WEATHER_FOG,
+  WEATHER_SNOW,
+  WEATHER_WIND,
+  WEATHER_CLOUDY,
+  type WeatherEffect,
+} from "./sim/weather.js";
 
 // Core action loop — move/search/rest, time cost, scene (T12, DESIGN §5/§10)
 export { phaseOf, advanceClock } from "./time/clock.js";

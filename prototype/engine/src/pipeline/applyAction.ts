@@ -25,7 +25,7 @@ import type { RegionGraph } from "../map/types.js";
 import { advanceClock } from "../time/clock.js";
 import { applyPlayerAction, assertLegal, sceneOf, tickNeeds } from "../actions/coreActions.js";
 import { updateNodeNoise } from "../sim/noise.js";
-import { updateRegionContest } from "../sim/loot.js";
+import { runLayer, type SimContext } from "../sim/worldSim.js";
 import { diffSystems } from "../telemetry/turnAudit.js";
 import type { Action, Scene, SceneChoice, TurnResult } from "./contract.js";
 
@@ -78,14 +78,32 @@ const resolvePlayerAction: StageFn = (ctx) =>
 /** Stage 4: drift the player's needs by the hours spent (rest recovers fatigue). */
 const updatePlayer: StageFn = (ctx) => ({ ...ctx, state: tickNeeds(ctx.state, ctx.action) });
 
-/** Stage 6: decay every node's noise by the hours spent, then deposit this action's noise (T14). */
-const updateNode: StageFn = (ctx) => ({ ...ctx, state: updateNodeNoise(ctx.state, ctx.action) });
+/** Build the world-sim context for a turn: the hours the action spent, plus the transient graph. */
+const simCtx = (ctx: TurnContext): SimContext => {
+  const hours = Math.max(0, Math.trunc(ctx.action.timeCost ?? 0));
+  return ctx.graph === undefined ? { hours } : { hours, graph: ctx.graph };
+};
 
-/** Stage 7: rivals thin every region's finite loot as the turn's hours pass (T17, FR-ECO-01). */
-const updateRegion: StageFn = (ctx) => ({
-  ...ctx,
-  state: updateRegionContest(ctx.state, Math.max(0, Math.trunc(ctx.action.timeCost ?? 0))),
-});
+/** Stage 6: decay/deposit node noise (T14), then tick the node-local zombie state machine (T25). */
+const updateNode: StageFn = (ctx) => {
+  const withNoise = updateNodeNoise(ctx.state, ctx.action);
+  return { ...ctx, state: runLayer(withNoise, "zombies", simCtx(ctx)) };
+};
+
+/** Stage 7: the regions layer — off-screen threat/density drift (T24) then the loot contest (T17). */
+const updateRegion: StageFn = (ctx) => ({ ...ctx, state: runLayer(ctx.state, "regions", simCtx(ctx)) });
+
+/** Stage 8: the global layers — weather transitions (T27) then time-of-day danger (T28). */
+const updateWorld: StageFn = (ctx) => {
+  const c = simCtx(ctx);
+  return { ...ctx, state: runLayer(runLayer(ctx.state, "weather", c), "timeOfDay", c) };
+};
+
+/** Stage 9: migrating hordes re-path to fresh noise and step over the graph (T26). */
+const moveHordes: StageFn = (ctx) => ({ ...ctx, state: runLayer(ctx.state, "hordes", simCtx(ctx)) });
+
+/** Stage 11: the Apocalypse Director biases pacing without ever forcing an impossible state (T30). */
+const tickDirector: StageFn = (ctx) => ({ ...ctx, state: runLayer(ctx.state, "director", simCtx(ctx)) });
 
 /** Stage 14: project the resolved state into the Scene the client will render. */
 const generateScene: StageFn = (ctx) => ({ ...ctx, scene: sceneOf(ctx.state, ctx.graph) });
@@ -102,10 +120,10 @@ export const PIPELINE_STAGES: readonly { readonly name: string; readonly run: St
   { name: "updateCompanions", run: identity },
   { name: "updateNode", run: updateNode },
   { name: "updateRegion", run: updateRegion },
-  { name: "updateWorld", run: identity },
-  { name: "moveHordes", run: identity },
+  { name: "updateWorld", run: updateWorld },
+  { name: "moveHordes", run: moveHordes },
   { name: "moveGroups", run: identity },
-  { name: "tickDirector", run: identity },
+  { name: "tickDirector", run: tickDirector },
   { name: "resolveQueue", run: identity },
   { name: "evaluateStory", run: identity },
   { name: "generateScene", run: generateScene },

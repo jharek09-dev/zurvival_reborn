@@ -15,7 +15,7 @@
  */
 
 /** Bump on any breaking change to this shape; checked on load (DESIGN §9). */
-export const SAVE_SCHEMA_VERSION = 2;
+export const SAVE_SCHEMA_VERSION = 3;
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -44,6 +44,18 @@ export type Flags = { readonly [flag: string]: boolean };
 
 /** Day phase; time cost per action moves through these (GDD IV). */
 export type Phase = "dawn" | "morning" | "midday" | "evening" | "night";
+
+/**
+ * A node's aggregate zombie behavioural state — the FR-CBT-06 senses-driven machine (T25). One
+ * state per node (not per corpse) keeps the sim phone-cheap while still giving a legible read.
+ */
+export type ZombieState =
+  | "dormant"
+  | "wandering"
+  | "investigating"
+  | "chasing"
+  | "feeding"
+  | "hibernating";
 
 // ---------------------------------------------------------------------------
 // meta
@@ -237,6 +249,16 @@ export interface NodeState {
    * memory: killing one lowers the count and the rest persist across turns; 0 on a quiet node.
    */
   readonly walkers: number;
+  /**
+   * Aggregate behavioural state of the dead loitering here — the FR-CBT-06 machine (T25). Ticked by
+   * the zombies sim layer from senses (this node's noise, the player's presence/scent, the phase).
+   */
+  readonly zombieState: ZombieState;
+  /**
+   * Content ids of the distinct zombie *types* present here (FR-CBT-07) — e.g. "zombie.screamer",
+   * "zombie.stalker". Empty for a plain node of walkers. Seeded from `NodeDef.zombieTypes`.
+   */
+  readonly zombieTypes: readonly ContentId[];
   /**
    * Fog of war: true once the node is on the player's map — known to exist and routable to
    * (FR-MAP-02). Scouting reveals a node and its neighbors. Distinct from *visited*

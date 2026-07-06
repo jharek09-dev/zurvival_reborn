@@ -15,6 +15,7 @@ import { createInitialState, type InitialStateOptions } from "../state/createIni
 import type { GameState, NodeState, RegionId, RegionState } from "../state/types.js";
 import { buildRegionGraph } from "./regionGraph.js";
 import { discoverAround } from "./fogOfWar.js";
+import { seedStarterHordes } from "../sim/hordes.js";
 import type { NodeDef, RegionDef, RegionGraph } from "./types.js";
 
 /** Clamp to a 0–100 integer; content baselines are already ints, this guards bad data. */
@@ -68,6 +69,9 @@ export function seedNodeState(nodeDefs: readonly NodeDef[]): { readonly [id: str
       lastVisit: null,
       noise: 0,
       walkers: Math.max(0, Math.trunc(def.walkers ?? 0)),
+      // Zombie behavioural state starts dormant; the machine (T25) rouses it from senses.
+      zombieState: "dormant",
+      zombieTypes: def.zombieTypes ? [...def.zombieTypes] : [],
       discovered: false,
     };
   }
@@ -105,5 +109,5 @@ export function startRun(
   // Reveal the start node and everything one step out.
   nodes = discoverAround(nodes, graph, graph.startNodeId);
 
-  return { state: { ...base, regions, nodes }, graph };
+  return { state: { ...base, regions, nodes, hordes: seedStarterHordes(graph) }, graph };
 }

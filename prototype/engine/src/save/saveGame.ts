@@ -77,8 +77,28 @@ function migrateV1toV2(state: GameState): GameState {
   };
 }
 
+/**
+ * v2 -> v3 (task T25): the zombie state machine arrived. v2 nodes have no behavioural state and no
+ * type list; a forward-only rung adds both at their quiet defaults (`zombieState: "dormant"`, every
+ * node `zombieTypes: []`) and stamps `meta.version` to 3. Pure and total — one N->N+1 rung.
+ */
+function migrateV2toV3(state: GameState): GameState {
+  const src = state as unknown as { readonly nodes: Record<string, Record<string, unknown>> };
+  const nodes: Record<string, unknown> = {};
+  for (const [id, node] of Object.entries(src.nodes)) {
+    const withState = "zombieState" in node ? node : { ...node, zombieState: "dormant" };
+    nodes[id] = "zombieTypes" in withState ? withState : { ...withState, zombieTypes: [] };
+  }
+  return {
+    ...state,
+    meta: { ...state.meta, version: 3 },
+    nodes: nodes as GameState["nodes"],
+  };
+}
+
 const MIGRATIONS: { readonly [fromVersion: number]: SaveMigration } = {
   1: (save) => ({ ...save, saveSchemaVersion: 2, state: migrateV1toV2(save.state) }),
+  2: (save) => ({ ...save, saveSchemaVersion: 3, state: migrateV2toV3(save.state) }),
 };
 
 /** Two-digit zero-pad for the summary clock (pure, allocation-light). */

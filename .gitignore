@@ -7,6 +7,7 @@ Desktop.ini
 .vscode/
 *.swp
 *.swo
+*.bak
 
 # ─── Documents: build artifacts (keep .md source, ignore locks/temp) ─
 ~$*.docx

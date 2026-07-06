@@ -3,12 +3,15 @@
   "id": "node.rivermouth.clinic",
   "regionId": "region.rivermouth",
   "name": "Shuttered Clinic",
-  "description": "A neighborhood clinic, doors chained from the inside. Medical supplies if you can get in — and the reason the doors were chained, if you can't leave.",
+  "description": "A neighborhood clinic, doors chained from the inside. Medical supplies if you can get in \u2014 and the reason the doors were chained, if you can't leave.",
   "kind": "medical",
   "walkers": 2,
   "adjacent": [
     "node.rivermouth.corner-store",
     "node.rivermouth.police-post"
   ],
-  "notes": "Medical loot vs. danger; the risk/reward node of the ring."
+  "notes": "Medical loot vs. danger; the risk/reward node of the ring.",
+  "zombieTypes": [
+    "zombie.screamer"
+  ]
 }
