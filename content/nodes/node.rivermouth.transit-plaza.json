@@ -4,7 +4,11 @@
   "regionId": "region.rivermouth",
   "name": "Transit Plaza",
   "description": "A cracked bus concourse open to the sky. Dead departure boards, a jackknifed coach, and two streets leading off into the haze.",
-  "adjacent": ["node.rivermouth.corner-store", "node.rivermouth.overpass"],
+  "kind": "generic",
+  "adjacent": [
+    "node.rivermouth.corner-store",
+    "node.rivermouth.overpass"
+  ],
   "start": true,
   "notes": "Run start. Open, low-cover, deliberately central so the first choice is which way to scout."
 }

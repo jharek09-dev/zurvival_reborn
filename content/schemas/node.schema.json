@@ -4,7 +4,13 @@
   "title": "Node",
   "description": "A single location within a region — the unit of the fog-of-war node graph (FR-MAP-01). Static definition only: live per-node memory (searchPct, damage, corpses, noise, fog-of-war discovery, ...) lives in GameState.nodes, seeded from this definition at run start. Routes are the undirected edges of the graph; the engine's map integrity check requires them to be symmetric and the whole region to be connected from its single start node.",
   "type": "object",
-  "required": ["id", "regionId", "name", "description", "adjacent"],
+  "required": [
+    "id",
+    "regionId",
+    "name",
+    "description",
+    "adjacent"
+  ],
   "additionalProperties": false,
   "properties": {
     "$schema": {
@@ -51,6 +57,18 @@
     "notes": {
       "type": "string",
       "description": "Author commentary. JSON has no comments (ADR-0002); use this field."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "generic",
+        "store",
+        "medical",
+        "police",
+        "residential",
+        "industrial"
+      ],
+      "description": "Location kind — selects the loot plausibility table for searches here (FR-ECO-02, T17). Defaults to generic when absent."
     }
   }
 }

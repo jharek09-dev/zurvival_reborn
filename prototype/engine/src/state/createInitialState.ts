@@ -66,5 +66,6 @@ export function createInitialState(opts: InitialStateOptions): GameState {
     history: [],
     queue: [],
     rng: { streams: {} },
+    combat: null,
   };
 }

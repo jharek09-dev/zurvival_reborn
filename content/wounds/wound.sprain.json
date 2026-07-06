@@ -1,0 +1,10 @@
+{
+  "$schema": "../schemas/wound.schema.json",
+  "id": "wound.sprain",
+  "name": "Twisted Ankle",
+  "description": "A joint wrenched the wrong way. Every step costs, and it does not walk itself off.",
+  "severity": 25,
+  "effect": "slow",
+  "treatedBy": ["item.splint"],
+  "notes": "Traversal tax; the wound that punishes the exposed, slow routes."
+}

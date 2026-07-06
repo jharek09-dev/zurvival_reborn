@@ -4,6 +4,10 @@
   "regionId": "region.rivermouth",
   "name": "Police Post",
   "description": "A community police substation, its armory door buckled but holding. Firearms behind it — loud tools that solve one problem and announce you to every other.",
-  "adjacent": ["node.rivermouth.clinic", "node.rivermouth.marina"],
+  "kind": "police",
+  "adjacent": [
+    "node.rivermouth.clinic",
+    "node.rivermouth.marina"
+  ],
   "notes": "Firearm source that sets up the loud/quiet tension (FR-CBT/FR-SIM-06) explored in T14/T15."
 }

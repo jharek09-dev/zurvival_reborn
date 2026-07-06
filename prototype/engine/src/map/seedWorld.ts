@@ -67,6 +67,7 @@ export function seedNodeState(nodeDefs: readonly NodeDef[]): { readonly [id: str
       playerNotes: [],
       lastVisit: null,
       noise: 0,
+      walkers: Math.max(0, Math.trunc(def.walkers ?? 0)),
       discovered: false,
     };
   }

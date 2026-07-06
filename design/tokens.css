@@ -46,4 +46,36 @@
 
   /* ---- Type scale (phone baseline; web may scale up one step, never change ratios) ---- */
   /* Apply as `font: var(--type-story);`. Meta/micro also take letter-spacing: .02em. art-bible §3.2 */
-  --type-display:  600 32px/1.15 var(--font-serif); /* title cards
+  --type-display:  600 32px/1.15 var(--font-serif); /* title cards, chapter breaks, Quiet Screen */
+  --type-title:    600 24px/1.20 var(--font-serif); /* scene / section titles */
+  --type-story:    400 19px/1.62 var(--font-serif); /* BODY PROSE — the star */
+  --type-story-lg: 400 21px/1.62 var(--font-serif); /* reader "large text"; key emotional beats */
+  --type-choice:   500 17px/1.35 var(--font-sans);  /* choice labels */
+  --type-body:     400 15px/1.50 var(--font-sans);  /* secondary UI copy, menus, drill-downs */
+  --type-meta:     500 13px/1.40 var(--font-mono);  /* costs, tags, timestamps, stat readouts */
+  --type-micro:    500 12px/1.35 var(--font-mono);  /* captions, footnotes, smallest labels */
+  --measure: 64ch; /* max reading line length — cap the story window to protect the reading trance */
+
+  /* ---- Radius ---- */
+  --r-sm: 8px;   /* controls, choice rows */
+  --r-md: 12px;  /* cards */
+  --r-lg: 18px;  /* sheets, modals */
+  --r-phone: 26px;
+
+  /* ---- Spacing scale (4-based) ---- */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+
+  /* ---- Elevation ---- */
+  --shadow-card: 0 8px 26px rgba(0,0,0,.5);
+  --focus-ring: 0 0 0 2px var(--accent);
+
+  /* ---- Ergonomics ---- */
+  --tap-min: 44px; /* minimum touch target */
+}
+
+/* Optional high-contrast override (accessibility). Toggle on <html data-contrast="high">. */
+[data-contrast="high"] {
+  --text:  #FFFDF7;
+  --muted:  #A6A49B;
+  --line:   #3A3D45;
+}

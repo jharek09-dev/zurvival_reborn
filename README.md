@@ -67,4 +67,17 @@ Zurvival Reborn/
 │   └── schemas/       Data schemas / validation for the above
 ├── design/          Supporting design notes
 │   ├── diagrams/       Flowcharts, system maps
-│   
+│   └── decisions/      Architecture Decision Records (ADRs)
+├── assets/          Placeholder for audio and art references
+└── prototype/       Reserved for future engine code (no stack chosen yet)
+```
+
+## Project status
+
+**Pre-production — design phase.** The design documentation is the deliverable; the content
+folders are scaffolded but not yet populated. The first build target is a narrow **vertical
+slice** (one region, a handful of locations, the core turn loop) described in the PRD.
+
+## License
+
+See [LICENSE](LICENSE). All rights reserved pending a final licensing decision.

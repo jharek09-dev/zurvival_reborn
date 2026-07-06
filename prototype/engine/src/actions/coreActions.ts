@@ -1,16 +1,17 @@
 /**
- * The core action loop — move / search / rest (M1 task T12 · FR-CORE-01,02,03,05,07 · FR-MAP-03).
+ * The core action loop — move / search / rest, plus the T15 combat/stealth branch
+ * (M1 tasks T12, T15 · FR-CORE-01,02,03,05,07 · FR-MAP-03 · FR-CBT-01/02/04/05).
  *
- * This is the real body of the pipeline's player-facing stages: it decides which actions a node
- * offers (`availableActions`), rejects an action that wasn't offered (`assertLegal` — enforces
- * the "no direct choice→scene edge", FR-CORE-01), applies the chosen action's world effect
- * (`applyPlayerAction`), drifts the player's needs by the hours spent (`tickNeeds`), and renders
- * the next Scene answering the Four Questions (`sceneOf`, FR-CORE-05).
+ * This is the real body of the pipeline's player-facing stages. `availableActions` decides which
+ * choices a node offers; `assertLegal` rejects an unoffered one (FR-CORE-01); `applyPlayerAction`
+ * applies the chosen effect; `tickNeeds` drifts needs by the hours spent; `sceneOf` renders the
+ * next Scene (FR-CORE-05). Since T15 the offered set is context-sensitive: an active fight offers
+ * combat choices, a contested node (walkers present) offers the avoidable encounter — fight, fire,
+ * or a stealth slip-away — and an otherwise-quiet node offers the explore loop.
  *
- * Costs: moving a route, searching a node, and resting each spend hours (FR-CORE-03), so time
- * always advances and every resolved action changes at least one system (needs always drift;
- * moving changes location + node memory + fog; searching changes node memory; resting recovers
- * fatigue). Pure and deterministic — no RNG here (loot/encounter rolls arrive in later tasks).
+ * Costs: every offered action spends hours (FR-CORE-03) so time always advances and every resolved
+ * action changes at least one system. Move/search/rest are pure and RNG-free; the combat branch
+ * threads named RNG streams and lives in `../combat/combat.ts`.
  */
 
 import type { GameState, NodeId } from "../state/types.js";
@@ -18,11 +19,22 @@ import type { Action, Scene, SceneChoice } from "../pipeline/contract.js";
 import type { RegionGraph } from "../map/types.js";
 import { neighborsOf } from "../map/regionGraph.js";
 import { discoverAround } from "../map/fogOfWar.js";
+import { resolveSearchLoot } from "../sim/loot.js";
+import { dropItem, inventoryWeight, CARRY_CAPACITY } from "../sim/inventory.js";
+import {
+  combatChoices,
+  combatNarration,
+  encounterChoices,
+  isCombatAction,
+  resolveCombatAction,
+} from "../combat/combat.js";
 
 /** Time cost, in in-game hours, of each core action (FR-CORE-03). */
 export const MOVE_COST = 2;
 export const SEARCH_COST = 3;
 export const REST_COST = 6;
+/** Managing the pack costs no in-game time (T18). */
+export const DROP_COST = 0;
 
 /** How much a single search advances a node's searchPct (3 searches exhaust a node). */
 export const SEARCH_GAIN = 34;
@@ -40,15 +52,21 @@ export class IllegalActionError extends Error {
 const clampPct = (n: number): number => Math.max(0, Math.min(100, Math.trunc(n)));
 
 /**
- * The actions the player may take from their current node, in a stable order (moves first, by
- * target id, then search, then rest). Moves are offered only to *discovered* neighbors — you can
- * travel to somewhere you know exists (FR-MAP-02/03). Empty when the player is not on a real node
- * (e.g. the pre-content skeleton), which is what keeps an empty run's Scene empty.
+ * The actions the player may take from their current state, in a stable order. Context-sensitive:
+ *   1. an active fight (`state.combat !== null`) offers only combat choices;
+ *   2. a contested node (`walkers > 0`) offers the avoidable encounter (fight / fire / slip away);
+ *   3. otherwise the explore loop — moves to discovered neighbours (FR-MAP-02/03), then search,
+ *      then rest.
+ * Empty when the player is not on a real node (the pre-content skeleton), keeping an empty run's
+ * Scene empty.
  */
 export function availableActions(state: GameState, graph: RegionGraph): readonly SceneChoice[] {
   const here = state.player.location;
   const node = state.nodes[here];
   if (node === undefined) return [];
+
+  if (state.combat !== null) return combatChoices(state, graph);
+  if (node.walkers > 0) return encounterChoices(state, graph);
 
   const choices: SceneChoice[] = [];
 
@@ -82,10 +100,21 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
     action: { type: "rest", choiceId: "rest", timeCost: REST_COST },
   });
 
+  // Drop a carried item to reclaim weight (T18 · FR-PLR-03) — the leave-behind lever. One choice per
+  // non-unique stack, stable-ordered by type; costs no time. Absent on an empty pack.
+  for (const type of [...new Set(node ? state.player.inventory.filter((e) => e.itemId === undefined).map((e) => e.type) : [])].sort()) {
+    choices.push({
+      id: `drop:${type}`,
+      label: `Drop ${type}`,
+      timeCost: DROP_COST,
+      action: { type: "drop", choiceId: `drop:${type}`, timeCost: DROP_COST, params: { item: type } },
+    });
+  }
+
   return choices;
 }
 
-/** Reject an action the current node did not offer (stage 1, FR-CORE-01). */
+/** Reject an action the current situation did not offer (stage 1, FR-CORE-01). */
 export function assertLegal(state: GameState, graph: RegionGraph, action: Action): void {
   const offered = availableActions(state, graph);
   if (!offered.some((c) => c.id === action.choiceId)) {
@@ -115,17 +144,30 @@ function applySearch(state: GameState): GameState {
 }
 
 /**
- * Apply the chosen action's world effect (stage 3). Rest has no world effect — its recovery is a
- * player-needs change handled by {@link tickNeeds}. Unknown/`wait` actions are inert.
+ * Apply the chosen action's world effect (stage 3). Combat/stealth actions delegate to the combat
+ * module; move/search apply their effect; rest and unknown/`wait` actions are inert here (rest's
+ * recovery is a needs change handled by {@link tickNeeds}).
  */
 export function applyPlayerAction(state: GameState, graph: RegionGraph, action: Action): GameState {
+  if (isCombatAction(action)) return resolveCombatAction(state, graph, action);
   switch (action.type) {
     case "move": {
       const to = action.params?.["to"];
       return typeof to === "string" ? applyMove(state, graph, to) : state;
     }
-    case "search":
-      return applySearch(state);
+    case "search": {
+      const searched = applySearch(state);
+      const kind = graph.nodes[state.player.location]?.kind;
+      return resolveSearchLoot(searched, state.player.location, kind);
+    }
+    case "drop": {
+      const item = action.params?.["item"];
+      if (typeof item !== "string") return state;
+      const inventory = dropItem(state.player.inventory, item);
+      return inventory === state.player.inventory
+        ? state
+        : { ...state, player: { ...state.player, inventory } };
+    }
     default:
       return state;
   }
@@ -158,9 +200,9 @@ export function tickNeeds(state: GameState, action: Action): GameState {
 const pad2 = (n: number): string => (n < 10 ? `0${n}` : `${n}`);
 
 /**
- * Render the Scene for a state (stage 14, and the client's source for the *first* scene before
- * any action). With a graph and the player on a real node it answers the Four Questions; without
- * one it is the empty skeleton Scene (preserving the M0 contract). Pure — a projection of state.
+ * Render the Scene for a state (stage 14, and the client's source for the *first* scene before any
+ * action). With a graph and the player on a real node it answers the Four Questions; a fight or a
+ * threat leads the narration. Without a graph it is the empty skeleton Scene (M0 contract). Pure.
  */
 export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   const { turn, day, hour, phase } = state.meta;
@@ -172,10 +214,15 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   }
 
   const name = graph.nodes[here]?.name ?? here;
+  const threat = combatNarration(state);
   const where = graph.nodes[here]?.description ?? "";
   const searched =
     node.searchPct >= 100 ? " It has been searched clean." : node.searchPct > 0 ? " You have searched here before." : "";
-  const narration = `${where}${searched} (Day ${day}, ${phase} ${pad2(hour)}:00 — at ${name}.)`;
+  const carried = inventoryWeight(state.player.inventory);
+  const pack =
+    carried >= CARRY_CAPACITY ? " Your pack is full." : carried > 0 ? ` Your pack is heavy (${carried}/${CARRY_CAPACITY}).` : "";
+  const setting = `${where}${searched}${pack} (Day ${day}, ${phase} ${pad2(hour)}:00 — at ${name}.)`;
+  const narration = threat ? `${threat} ${setting}` : setting;
 
   return { turn, day, hour, phase, location: here, narration, choices: availableActions(state, graph) };
 }

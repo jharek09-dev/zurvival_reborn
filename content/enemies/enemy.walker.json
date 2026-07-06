@@ -1,0 +1,8 @@
+{
+  "$schema": "../schemas/enemies.schema.json",
+  "id": "enemy.walker",
+  "name": "Walker",
+  "description": "A single reanimated dead. Slow, tireless, and loud once it has your scent — the baseline threat you learn to read, avoid, or put down.",
+  "maxHp": 3,
+  "notes": "M1's only enemy. Melee drops it in 2-3 blows; a firearm one-shots it but announces you to the district (FR-CBT-04)."
+}

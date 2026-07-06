@@ -9,9 +9,11 @@
  * As of T12 the player-facing stages are real: stage 1 validates the action against the choices
  * the current node actually offers (FR-CORE-01), stage 2 spends its time cost and advances the
  * shared clock (FR-CORE-03), stage 3 applies the move/search/rest effect, stage 4 drifts the
- * player's needs, and stage 14 renders the next Scene. The remaining world stages (5–13) are
- * still identity no-ops; each becomes a real system by swapping its `run`, and the wiring never
- * changes. A zero-cost `wait` with no graph passes through inertly — the M0 empty-turn contract.
+ * player's needs, and stage 14 renders the next Scene. T14 turns stage 6 (updateNode) real: it
+ * decays every node's noise and deposits the acting action's noise into node memory (FR-SIM-06).
+ * The remaining world stages are still identity no-ops; each becomes a real system by swapping its
+ * `run`, and the wiring never changes. A zero-cost `wait` with no graph passes through inertly —
+ * the M0 empty-turn contract.
  *
  * Purity: stages never mutate their input and never read a clock or global RNG (ADR-0001). The
  * region `graph` is transient content the client rebuilds on load; it is threaded through the
@@ -22,13 +24,12 @@ import type { GameState } from "../state/types.js";
 import type { RegionGraph } from "../map/types.js";
 import { advanceClock } from "../time/clock.js";
 import { applyPlayerAction, assertLegal, sceneOf, tickNeeds } from "../actions/coreActions.js";
+import { updateNodeNoise } from "../sim/noise.js";
+import { updateRegionContest } from "../sim/loot.js";
 import { diffSystems } from "../telemetry/turnAudit.js";
 import type { Action, Scene, SceneChoice, TurnResult } from "./contract.js";
 
 export type { Action, Scene, SceneChoice, TurnResult } from "./contract.js";
-
-/** Action kinds whose legality is checked against the offered choices in stage 1. */
-const VALIDATED_TYPES = new Set(["move", "search", "rest"]);
 
 // ---------------------------------------------------------------------------
 // Pipeline internals
@@ -46,12 +47,16 @@ interface TurnContext {
 /** A pipeline stage: a pure transform of the turn context. */
 type StageFn = (ctx: TurnContext) => TurnContext;
 
-/** No-op transform — the body of a world stage not yet implemented (stages 5–13). */
+/** No-op transform — the body of a world stage not yet implemented. */
 const identity: StageFn = (ctx) => ctx;
 
-/** Stage 1: reject an action the current node did not offer (FR-CORE-01). Skipped without a graph. */
+/**
+ * Stage 1: reject an action the current situation did not offer (FR-CORE-01). Any action answering a
+ * Scene choice carries a `choiceId` and is validated; a bare `wait` (no choiceId) passes through, so
+ * the M0 empty-turn contract holds. Skipped entirely without a graph (the pre-content skeleton).
+ */
 const validate: StageFn = (ctx) => {
-  if (ctx.graph !== undefined && VALIDATED_TYPES.has(ctx.action.type)) {
+  if (ctx.graph !== undefined && ctx.action.choiceId !== undefined) {
     assertLegal(ctx.state, ctx.graph, ctx.action);
   }
   return ctx;
@@ -73,12 +78,21 @@ const resolvePlayerAction: StageFn = (ctx) =>
 /** Stage 4: drift the player's needs by the hours spent (rest recovers fatigue). */
 const updatePlayer: StageFn = (ctx) => ({ ...ctx, state: tickNeeds(ctx.state, ctx.action) });
 
+/** Stage 6: decay every node's noise by the hours spent, then deposit this action's noise (T14). */
+const updateNode: StageFn = (ctx) => ({ ...ctx, state: updateNodeNoise(ctx.state, ctx.action) });
+
+/** Stage 7: rivals thin every region's finite loot as the turn's hours pass (T17, FR-ECO-01). */
+const updateRegion: StageFn = (ctx) => ({
+  ...ctx,
+  state: updateRegionContest(ctx.state, Math.max(0, Math.trunc(ctx.action.timeCost ?? 0))),
+});
+
 /** Stage 14: project the resolved state into the Scene the client will render. */
 const generateScene: StageFn = (ctx) => ({ ...ctx, scene: sceneOf(ctx.state, ctx.graph) });
 
 /**
  * The 14 stages in their fixed, invariant order (DESIGN §5). Named for traceability and so tests
- * can assert the order never drifts. Stages 5–13 remain `identity` until their systems land.
+ * can assert the order never drifts. Unimplemented world stages remain `identity` until they land.
  */
 export const PIPELINE_STAGES: readonly { readonly name: string; readonly run: StageFn }[] = [
   { name: "validate", run: validate },
@@ -86,8 +100,8 @@ export const PIPELINE_STAGES: readonly { readonly name: string; readonly run: St
   { name: "resolvePlayerAction", run: resolvePlayerAction },
   { name: "updatePlayer", run: updatePlayer },
   { name: "updateCompanions", run: identity },
-  { name: "updateNode", run: identity },
-  { name: "updateRegion", run: identity },
+  { name: "updateNode", run: updateNode },
+  { name: "updateRegion", run: updateRegion },
   { name: "updateWorld", run: identity },
   { name: "moveHordes", run: identity },
   { name: "moveGroups", run: identity },

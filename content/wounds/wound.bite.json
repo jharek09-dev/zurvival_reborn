@@ -1,0 +1,10 @@
+{
+  "$schema": "../schemas/wound.schema.json",
+  "id": "wound.bite",
+  "name": "Bite Wound",
+  "description": "Teeth broke the skin. The wound itself is the least of it — it is what a bite means that keeps you awake.",
+  "severity": 40,
+  "effect": "infect-risk",
+  "treatedBy": ["item.antiseptic", "item.antibiotics"],
+  "notes": "The dread wound. Feeds the FR-INJ-05 infection track when that lands; for now the highest-severity source of care pressure."
+}

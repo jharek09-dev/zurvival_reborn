@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-05 (M1: T13 done — per-turn change telemetry proves FR-CORE-04, no no-op turns; a 100-turn audit over Rivermouth is green; engine 79 + harness 11 tests green)",
+  "updated": "2026-07-05 (M1 part 2 complete — T14 noise, T16 wounds, T15 combat/firearms/stealth, T17 loot economy all done; engine 122 + harness 17 tests green, content schema gate green over enemies+nodes+regions+wounds)",
   "phase": "M1 Core loop playable — Vertical Slice part 1. Prove the moment-to-moment choosing is satisfying: real move/search/fight-or-avoid/rest loop over a 5–8 node region with fog-of-war, noise, named wounds, a finite loot economy and a story-first single-decision UI. Ends at the Loop-Feel Check.",
   "currentMilestone": "M1",
   "milestones": [
@@ -149,29 +149,29 @@
       "id": "T14",
       "title": "Noise deposit model",
       "milestone": "M1",
-      "status": "todo",
-      "note": "FR-SIM-06: loud actions (search, firearms, movement) deposit noise into node memory that feeds encounter pressure; the quiet path must be legibly quieter."
+      "status": "done",
+      "note": "Done 2026-07-05: prototype/engine/src/sim/noise.ts + pipeline stage 6 (updateNode) made real. Each turn decays every node's noise by hours*NOISE_DECAY_PER_HOUR (5/h, floored 0) then deposits the action's noise at the player's current node (their location is already the move destination by stage 6) — decay-before-deposit keeps a fresh sound at full strength for the next turn's read (DESIGN §5 gunshot-this-turn/horde-next-turn; consumer is M2). noiseOf ranks volume: rest/wait 0, move 8, search 25, with an integer params.noise override (the T15 firearm hook). Noise lives in existing NodeState.noise (0-100 int). Pure/deterministic/dependency-free/integer; a silent zero-cost wait returns state untouched (M0 empty-turn contract preserved). DoD proven: the quiet path is legibly quieter (a rummaging run leaves the district materially noisier than a resting one). 14 engine tests + 2 harness integration runs over shipped Rivermouth (loud/quiet A/B autosave-lossless; 30-turn run every resolved turn passes the T13 audit). engine 92 + harness 13 green. Unblocks T15 (firearms deposit region-scale noise; stealth detection reads node noise)."
     },
     {
       "id": "T15",
       "title": "Avoidable turn-based combat + loud firearms + stealth path",
       "milestone": "M1",
-      "status": "todo",
-      "note": "FR-CBT-01,02,04,05: turn-based combat the player can decline; firearms are loud and deposit noise; a full stealth path exists through every combat scenario (DoD)."
+      "status": "done",
+      "note": "Done 2026-07-05: prototype/engine/src/combat/combat.ts + content/enemies/enemy.walker.json + content/schemas/enemies.schema.json. Walkers loiter at a node (new NodeState.walkers, node memory); a contested node offers an avoidable encounter: Fight (melee 1-2 dmg + noise, alerted walker may inflict a named T16 wound), Fire (only if a loaded firearm carried; one-shots a walker, spends a round, dumps FIRE_NOISE 75 >> MELEE_NOISE 15 via the T14 params.noise override, FR-CBT-04), and Slip away to any discovered neighbour (FR-CBT-05 DoD: detection roll over node.noise+phase decides clean escape vs a parting wound, but you always escape — stealth-only survivor crosses the region without ever fighting). A started fight is GameState.combat (nullable), carried across turns so each Strike/Fire/Retreat is one turn-based exchange (FR-CBT-02); a kill clears combat and decrements node.walkers. Every option debits a real resource (FR-CBT-01: time/noise/ammo/wound-risk). All rolls from named RNG streams (combat, stealth) — a seed reproduces a fight. State-shape change: SAVE_SCHEMA_VERSION 1->2 + one forward-only migration rung (old saves gain combat:null + every node walkers:0); combat added to TRACKED_SYSTEMS; stage-1 validation now keys on choiceId so combat actions are validated (bare wait still inert). 12 engine tests + 3 harness integration runs over a hand-built district. engine 112 + harness 16 green; content gate green over enemies+nodes+regions+wounds. Implemented after T16 (combat consumes wounds). Unblocks T17 (loot on a searched/contested node) and T19 (Scene narrates the fight)."
     },
     {
       "id": "T16",
       "title": "Named wounds — treated, not regenerated",
       "milestone": "M1",
-      "status": "todo",
-      "note": "FR-INJ-01,04: injuries are discrete named wounds that persist and must be treated with items/time; no passive HP regen."
+      "status": "done",
+      "note": "Done 2026-07-05: prototype/engine/src/sim/wounds.ts + content/wounds/ (laceration/sprain/bite/fracture) + content/schemas/wound.schema.json (schema-gate validated, Ajv2020 strict). Damage is a discrete named Wound in player.condition.wounds carrying the type id (never a copy), site, severity, accumulated treated, inflictedDay; persists across turns and saves. FR-INJ-04 invariant enforced: inflictWound appends (wounds accumulate, never merge); ONLY treatWound (spending care) advances treated; a wound leaves the body solely when treated>=severity; time/rest/movement never lower a wound. woundBurden (summed untreated remainder) is the handle T15 combat / needs / T19 UI read. Pure/deterministic/dependency-free/integer. 13 engine tests incl. two anti-regen proofs (loop play never lowers a wound; fast-check property the wound multiset never shrinks over no-treatment play). engine 100 green; schema gate green over nodes+regions+wounds. Unblocks T15 (an enemy blow inflicts a named wound). Implemented before T15 in dependency order (combat consumes wounds)."
     },
     {
       "id": "T17",
       "title": "Finite, contested, depleting loot economy",
       "milestone": "M1",
-      "status": "todo",
-      "note": "FR-ECO-01,02,03: loot is finite per node, depletes as it is taken, and is contested by the world so scarcity is real."
+      "status": "done",
+      "note": "Done 2026-07-05: prototype/engine/src/sim/loot.ts + node `kind` field (content/nodes + node.schema.json). Loot is a finite stock: RegionState.loot (0-100). Searching draws from it and DEBITS it (FR-ECO-01) via a partial, diminishing yield (searchYieldCap — capped by region thinness and node searchPct, FR-ECO-03); the item is drawn from a plausibility table keyed to node kind (medical/store/police/generic/..., FR-ECO-02). Pipeline stage 7 (updateRegion) thins every region each turn by trunc(hours*survivorActivity/50) — rivals contest the same stock (FR-ECO-01), so an unsearched node can be poorer on return. Loot only falls, clamped at 0: a run can never pull more than the region held; a depleted region yields nothing but time+noise. Deterministic (named loot RNG stream), pure/dependency-free/integer. 6 shipped Rivermouth nodes gained a kind. 10 engine tests + 1 harness integration run over shipped Rivermouth (scavenging fills the pack while the stock only falls, lossless, zero audit violations). engine 122 + harness 17 green; content gate green. Feeds T18 (weight forces leave-behind) and T19 (Scene narrates the find)."
     },
     {
       "id": "T18",
