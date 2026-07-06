@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import {
+  SAVE_SCHEMA_VERSION,
   applyAction,
   availableActions,
   detectChance,
@@ -189,7 +190,7 @@ describe("save migrates v1 -> v2 (T15 · ADR-0003 ladder)", () => {
     const v1blob = JSON.stringify({ format: "zurvival-save", saveSchemaVersion: 1, summary: "v1 save", state: v1state });
 
     const loaded = loadGame(v1blob);
-    expect(loaded.meta.version).toBe(2);
+    expect(loaded.meta.version).toBe(SAVE_SCHEMA_VERSION); // ladder now chains v1->v2->v3
     expect(loaded.combat).toBeNull();
     for (const n of Object.values(loaded.nodes)) expect(n.walkers).toBe(0);
   });

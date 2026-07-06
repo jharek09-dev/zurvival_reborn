@@ -10,5 +10,8 @@
     "node.rivermouth.police-post"
   ],
   "claimable": true,
-  "notes": "The claimable safehouse (FR-MAP-06): one approach, good sightlines. A claim can later be lost."
+  "notes": "The claimable safehouse (FR-MAP-06): one approach, good sightlines. A claim can later be lost.",
+  "zombieTypes": [
+    "zombie.stalker"
+  ]
 }

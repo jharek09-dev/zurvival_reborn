@@ -47,6 +47,8 @@ export interface NodeDef {
   readonly walkers?: number;
   /** Location kind — selects the loot plausibility table for searches here (FR-ECO-02, T17). */
   readonly kind?: string;
+  /** Distinct zombie type content ids present at this node (FR-CBT-07, T25); default none. */
+  readonly zombieTypes?: readonly import("../state/types.js").ContentId[];
 }
 
 /**

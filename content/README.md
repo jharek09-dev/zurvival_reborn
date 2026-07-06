@@ -26,5 +26,4 @@ designer should be able to add a location or a survivor without touching the eng
 - **Every entry passes the five-question test** (see `CONTRIBUTING.md`). No filler.
 
 Format: **JSON, validated by JSON Schema** (one schema per type in `schemas/`, `$schema`
-reference in each file) — decided in ADR-0002 (`design/decisions/0002-content-data-format.md`).
-Use a `"notes"` field where you'd want a comment.
+reference in each file)

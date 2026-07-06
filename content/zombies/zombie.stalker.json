@@ -1,0 +1,9 @@
+{
+  "$schema": "../schemas/zombie.schema.json",
+  "id": "zombie.stalker",
+  "name": "Stalker",
+  "description": "Patient and unnervingly smart; it hunts the player specifically after dark and barely stirs by day.",
+  "rousesNeighbours": false,
+  "nightHunter": true,
+  "notes": "FR-CBT-07. At night, with the player at or next to its node, the T25 machine adds STALKER_NIGHT_BONUS so it drives to chasing from an otherwise-calm stimulus."
+}

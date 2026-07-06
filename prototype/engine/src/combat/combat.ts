@@ -31,6 +31,7 @@ import { neighborsOf } from "../map/regionGraph.js";
 import { discoverAround } from "../map/fogOfWar.js";
 import { drawFloat, drawInt, drawPick } from "../rng/streams.js";
 import { inflictNamedWound } from "../sim/wounds.js";
+import { weatherDetectionDelta } from "../sim/weather.js";
 
 // --- tuning constants -----------------------------------------------------------------------
 
@@ -137,10 +138,19 @@ export function combatChoices(state: GameState, graph: RegionGraph): readonly Sc
 
 const clampPct = (n: number): number => Math.max(0, Math.min(100, Math.trunc(n)));
 
-/** Probability a stealth move is detected — louder node + brighter phase ⇒ easier to spot. */
-export function detectChance(noise: number, phase: GameState["meta"]["phase"]): number {
+/**
+ * Probability a stealth move is detected — louder node + brighter phase ⇒ easier to spot. Weather
+ * (T27) shifts it too: rain/fog/storm cut visibility (harder to spot), snow/wind help the walkers.
+ * `weather` is optional so M1 callers/tests keep their exact behaviour (clear = no modifier).
+ */
+export function detectChance(
+  noise: number,
+  phase: GameState["meta"]["phase"],
+  weather?: ContentId,
+): number {
   const phaseBonus = phase === "night" ? 0.15 : phase === "dawn" || phase === "evening" ? 0.05 : 0;
-  const p = 0.25 + noise * 0.005 - phaseBonus;
+  const weatherDelta = weather === undefined ? 0 : weatherDetectionDelta(weather) / 100;
+  const p = 0.25 + noise * 0.005 - phaseBonus + weatherDelta;
   return Math.max(0, Math.min(0.9, p));
 }
 
@@ -217,7 +227,7 @@ function relocate(state: GameState, graph: RegionGraph, to: NodeId): GameState {
 function resolveEscape(state: GameState, graph: RegionGraph, to: NodeId, clearCombat: boolean): GameState {
   const here = state.nodes[state.player.location];
   const roll = drawFloat(state.rng, state.meta.seed, "stealth");
-  const detected = roll.value < detectChance(here?.noise ?? 0, state.meta.phase);
+  const detected = roll.value < detectChance(here?.noise ?? 0, state.meta.phase, state.world.weather);
   let next: GameState = { ...state, rng: roll.rng };
   if (clearCombat) next = { ...next, combat: null };
   if (detected) {

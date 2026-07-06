@@ -1,396 +1,417 @@
 {
-  "updated": "2026-07-05 (M2 backlog seeded — 10 Reactive-World tasks T23–T32 defined from PRODUCTION.md M2 scope: six-layer off-screen sim, regional drift, zombie state machine + types, migrating hordes, weather, time-of-day danger, route conditions, Apocalypse Director, Living History log, telemetry baseline. M1 complete (Loop-Feel Check passed). Engine 146 + harness 39 + content-loader 9 green.)",
-  "phase": "M2 Reactive world — make the world move whether or not the player is watching: off-screen region drift, migrating hordes that re-path to noise, zombie types, weather, time-of-day danger, the Apocalypse Director, and telemetry instrumentation for later balance. Entry: M1 done and past the Loop-Feel Check.",
-  "currentMilestone": "M2",
-  "milestones": [
-    {
-      "id": "PRE",
-      "name": "Pre-production",
-      "theme": "GDD / PRD / DESIGN / Production Plan / art direction",
-      "effort": "-",
-      "status": "done"
-    },
-    {
-      "id": "M0",
-      "name": "Foundation",
-      "theme": "The skeleton runs",
-      "effort": "M",
-      "status": "done"
-    },
-    {
-      "id": "M1",
-      "name": "Core loop playable",
-      "theme": "The loop is satisfying",
-      "effort": "L",
-      "status": "done"
-    },
-    {
-      "id": "M2",
-      "name": "Reactive world",
-      "theme": "The world moves on its own",
-      "effort": "L",
-      "status": "active"
-    },
-    {
-      "id": "M3",
-      "name": "People, shelter & first story",
-      "theme": "A run becomes a story — Slice Fun Gate",
-      "effort": "XL",
-      "status": "pending"
-    },
-    {
-      "id": "M4",
-      "name": "Content-complete city",
-      "theme": "Breadth without repetition — MVP/beta",
-      "effort": "XL",
-      "status": "pending"
-    },
-    {
-      "id": "M5",
-      "name": "Release candidate",
-      "theme": "Balanced, accessible, hardened — v1.0",
-      "effort": "XL",
-      "status": "pending"
-    }
-  ],
-  "tasks": [
-    {
-      "id": "T1",
-      "title": "Accept ADR-0001 — engine language & runtime",
-      "milestone": "M0",
-      "status": "done",
-      "note": "Accepted 2026-07-05: TypeScript, pure dependency-free engine package, Node ≥22, Vitest + fast-check."
-    },
-    {
-      "id": "T2",
-      "title": "Accept ADR-0002 — content data format",
-      "milestone": "M0",
-      "status": "done",
-      "note": "Accepted 2026-07-05: JSON + JSON Schema (2020-12), one entity per file, Ajv in CI/loader only, ICU strings. Unblocks T6, T8."
-    },
-    {
-      "id": "T3",
-      "title": "Define GameState shape (single serializable state)",
-      "milestone": "M0",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/engine/src/state/ — full DESIGN §4 shape, readonly + integer + plain-JSON discipline, SAVE_SCHEMA_VERSION=1, 6 tests incl. property round-trip."
-    },
-    {
-      "id": "T4",
-      "title": "Turn pipeline shell — all 14 stages as no-ops",
-      "milestone": "M0",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/engine/src/pipeline/applyAction.ts — applyAction(state,action) runs the fixed 14 DESIGN §5 stages as pure no-op ctx transforms, returns {state,scene}; 7 tests incl. stage-order lock + property determinism."
-    },
-    {
-      "id": "T5",
-      "title": "Seeded RNG with named streams",
-      "milestone": "M0",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/engine/src/rng/ — sfc32+cyrb128, named streams serialized as plain-JSON uint32 arrays in GameState.rng; pure functional draw API (drawFloat/Int/Pick); 9 tests incl. determinism, stream independence, save round-trip."
-    },
-    {
-      "id": "T6",
-      "title": "Content loader + first schemas",
-      "milestone": "M0",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/content-loader/ (separate Ajv package, NOT in dependency-free engine) + content/schemas/region.schema.json + one throwaway region; loadContent validates & indexes by id, throws on malformed content; 9 tests. Unblocks T8."
-    },
-    {
-      "id": "T7",
-      "title": "Save/load lossless round-trip",
-      "milestone": "M0",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/engine/src/save/saveGame.ts — versioned SaveFile envelope (format+saveSchemaVersion+one-line summary+state), migration ladder hook (empty at v1), SaveError on corrupt/foreign/future blobs. saveGame/loadGame deep-equal round-trip incl. rng/history/queue; pure, clock-free, dependency-free. 10 tests (TC-DET-05/07)."
-    },
-    {
-      "id": "T8",
-      "title": "CI that fails on malformed content",
-      "milestone": "M0",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/content-loader/src/validateCli.ts schema gate (exit 0 on valid content/, exit 1 on malformed) + .github/workflows/ci.yml running typecheck+tests for engine/content-loader/harness, the harness empty-turn smoke run, and a negative test proving malformed content is rejected. FR-CNT-02: volume can never corrupt a run."
-    },
-    {
-      "id": "T9",
-      "title": "Terminal harness runs an empty turn",
-      "milestone": "M0",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/harness/ (@zurvival/harness) — first headless engine client. runEmptyTurn() creates a run, resolves one turn through the pipeline, renders the Scene, and asserts the two M0 exit proofs (byte-identical determinism + lossless save round-trip). Runnable via `npm start` (tsx); 5 tests. M0 exit criterion met."
-    },
-    {
-      "id": "T10",
-      "title": "Accept ADR-0003 — save storage & versioning",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Accepted 2026-07-05: design/decisions/0003-save-storage-versioning.md. Local-first, client-owned I/O of the T7 SaveFile string (harness/native → atomic file under OS app-data; web → IndexedDB, not localStorage); single rolling autosave slot per run written write-temp-then-atomic-rename with a retained .bak (zero-corruption target); saves export/import as text (bug repro, DESIGN §9); migration = T7 forward-only ladder, one integer SAVE_SCHEMA_VERSION bumped only on breaking state-shape change, one pure/total N→N+1 rung per bump; optional cloud sync deferred post-launch as additive transport. Unblocks T11+ real saves."
-    },
-    {
-      "id": "T11",
-      "title": "Region & node graph with fog-of-war + node memory",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Done 2026-07-05: node graph is content — new content/schemas/node.schema.json + content/nodes/ (6 Rivermouth nodes forming a ring) + content/regions/region.rivermouth.json (replaced throwaway test-downtown). Engine prototype/engine/src/map/: buildRegionGraph enforces cross-file integrity JSON Schema can't (symmetric routes, one start, fully connected, known region/node refs) throwing MapError; NodeState gains a `discovered` fog flag (visited = lastVisit!==null); fogOfWar.discoverAround reveals a node + its neighbors; seedWorld.startRun bootstraps a run — seeds regions/nodes from baselines, stands player on start (visited today), reveals fog around it. Pure/dependency-free/integer/plain-JSON, deterministic, save-round-trips. 21 engine tests (integrity failures, reveal, seed, property) + 3 harness integration tests over shipped content. FR-SIM-02, FR-MAP-01..03,06. Unblocks T12 (move/search/rest over the graph)."
-    },
-    {
-      "id": "T12",
-      "title": "Core action loop — move / search / rest with time cost",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Done 2026-07-05: pipeline stages 1-4 + 14 made real (stages 5-13 still identity). New src/time/clock.ts (phaseOf + advanceClock: hours→day/phase rollover, turn++) and src/actions/coreActions.ts (availableActions/assertLegal/applyPlayerAction/tickNeeds/sceneOf); Action/Scene/SceneChoice extracted to src/pipeline/contract.ts. applyAction(state,action,graph?) now threads the transient graph: validate rejects unoffered actions (IllegalActionError, FR-CORE-01), advanceTime spends each action's hours (move 2/search 3/rest 6) so time always advances (FR-CORE-03), resolvePlayerAction applies move (relocate+visit+fog reveal), search (searchPct+34), rest (fatigue-40); updatePlayer drifts hunger/thirst/fatigue by hours; generateScene renders the Four Questions (FR-CORE-05). wait stays inert (0-cost) so all M0 tests pass unchanged. Pure/deterministic/integer/plain-JSON; save-lossless after every turn (FR-CORE-07). 14 engine loop tests + 2 harness integration turns over shipped Rivermouth. Unblocks T13 (telemetry that every turn changes >=1 system), T14 (noise), T17 (loot yield on search)."
-    },
-    {
-      "id": "T13",
-      "title": "Every resolved turn changes ≥1 system (telemetry-audited)",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/engine/src/telemetry/turnAudit.ts — the FR-CORE-04 no-no-op-turn audit, by machine not by hand. jsonEqual (by-value plain-JSON deep-equal, honest where a pure stage re-allocates an identical slice) + diffSystems (which TRACKED_SYSTEMS changed) + auditTurn ({turn,resolved,changedSystems,ok}). TRACKED_SYSTEMS deliberately EXCLUDES meta: counting the always-advancing clock/turn would make the invariant vacuous — the audit asks whether a real system moved beyond time. applyAction now instruments every turn, returning changed[] on TurnResult (empty for an inert wait — no turn resolved). Pure/deterministic/dependency-free. 12 engine tests (jsonEqual, meta-exclusion, per-action change reporting, a fast-check property that every resolved turn over random play changes >=1 system, and a hand-built clock-only turn proving the audit reports ok:false) + a harness 100-turn telemetry audit over shipped Rivermouth (all 100 resolved turns changed >=1 system, zero violations). engine 79 + harness 11 green. Feeds T14 (noise as a per-turn node-memory change) and the T21 Loop-Feel gate."
-    },
-    {
-      "id": "T14",
-      "title": "Noise deposit model",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/engine/src/sim/noise.ts + pipeline stage 6 (updateNode) made real. Each turn decays every node's noise by hours*NOISE_DECAY_PER_HOUR (5/h, floored 0) then deposits the action's noise at the player's current node (their location is already the move destination by stage 6) — decay-before-deposit keeps a fresh sound at full strength for the next turn's read (DESIGN §5 gunshot-this-turn/horde-next-turn; consumer is M2). noiseOf ranks volume: rest/wait 0, move 8, search 25, with an integer params.noise override (the T15 firearm hook). Noise lives in existing NodeState.noise (0-100 int). Pure/deterministic/dependency-free/integer; a silent zero-cost wait returns state untouched (M0 empty-turn contract preserved). DoD proven: the quiet path is legibly quieter (a rummaging run leaves the district materially noisier than a resting one). 14 engine tests + 2 harness integration runs over shipped Rivermouth (loud/quiet A/B autosave-lossless; 30-turn run every resolved turn passes the T13 audit). engine 92 + harness 13 green. Unblocks T15 (firearms deposit region-scale noise; stealth detection reads node noise)."
-    },
-    {
-      "id": "T15",
-      "title": "Avoidable turn-based combat + loud firearms + stealth path",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/engine/src/combat/combat.ts + content/enemies/enemy.walker.json + content/schemas/enemies.schema.json. Walkers loiter at a node (new NodeState.walkers, node memory); a contested node offers an avoidable encounter: Fight (melee 1-2 dmg + noise, alerted walker may inflict a named T16 wound), Fire (only if a loaded firearm carried; one-shots a walker, spends a round, dumps FIRE_NOISE 75 >> MELEE_NOISE 15 via the T14 params.noise override, FR-CBT-04), and Slip away to any discovered neighbour (FR-CBT-05 DoD: detection roll over node.noise+phase decides clean escape vs a parting wound, but you always escape — stealth-only survivor crosses the region without ever fighting). A started fight is GameState.combat (nullable), carried across turns so each Strike/Fire/Retreat is one turn-based exchange (FR-CBT-02); a kill clears combat and decrements node.walkers. Every option debits a real resource (FR-CBT-01: time/noise/ammo/wound-risk). All rolls from named RNG streams (combat, stealth) — a seed reproduces a fight. State-shape change: SAVE_SCHEMA_VERSION 1->2 + one forward-only migration rung (old saves gain combat:null + every node walkers:0); combat added to TRACKED_SYSTEMS; stage-1 validation now keys on choiceId so combat actions are validated (bare wait still inert). 12 engine tests + 3 harness integration runs over a hand-built district. engine 112 + harness 16 green; content gate green over enemies+nodes+regions+wounds. Implemented after T16 (combat consumes wounds). Unblocks T17 (loot on a searched/contested node) and T19 (Scene narrates the fight)."
-    },
-    {
-      "id": "T16",
-      "title": "Named wounds — treated, not regenerated",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/engine/src/sim/wounds.ts + content/wounds/ (laceration/sprain/bite/fracture) + content/schemas/wound.schema.json (schema-gate validated, Ajv2020 strict). Damage is a discrete named Wound in player.condition.wounds carrying the type id (never a copy), site, severity, accumulated treated, inflictedDay; persists across turns and saves. FR-INJ-04 invariant enforced: inflictWound appends (wounds accumulate, never merge); ONLY treatWound (spending care) advances treated; a wound leaves the body solely when treated>=severity; time/rest/movement never lower a wound. woundBurden (summed untreated remainder) is the handle T15 combat / needs / T19 UI read. Pure/deterministic/dependency-free/integer. 13 engine tests incl. two anti-regen proofs (loop play never lowers a wound; fast-check property the wound multiset never shrinks over no-treatment play). engine 100 green; schema gate green over nodes+regions+wounds. Unblocks T15 (an enemy blow inflicts a named wound). Implemented before T15 in dependency order (combat consumes wounds)."
-    },
-    {
-      "id": "T17",
-      "title": "Finite, contested, depleting loot economy",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/engine/src/sim/loot.ts + node `kind` field (content/nodes + node.schema.json). Loot is a finite stock: RegionState.loot (0-100). Searching draws from it and DEBITS it (FR-ECO-01) via a partial, diminishing yield (searchYieldCap — capped by region thinness and node searchPct, FR-ECO-03); the item is drawn from a plausibility table keyed to node kind (medical/store/police/generic/..., FR-ECO-02). Pipeline stage 7 (updateRegion) thins every region each turn by trunc(hours*survivorActivity/50) — rivals contest the same stock (FR-ECO-01), so an unsearched node can be poorer on return. Loot only falls, clamped at 0: a run can never pull more than the region held; a depleted region yields nothing but time+noise. Deterministic (named loot RNG stream), pure/dependency-free/integer. 6 shipped Rivermouth nodes gained a kind. 10 engine tests + 1 harness integration run over shipped Rivermouth (scavenging fills the pack while the stock only falls, lossless, zero audit violations). engine 122 + harness 17 green; content gate green. Feeds T18 (weight forces leave-behind) and T19 (Scene narrates the find)."
-    },
-    {
-      "id": "T18",
-      "title": "Weight-limited inventory",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/engine/src/sim/inventory.ts (FR-PLR-03). Carrying is now finite: CARRY_CAPACITY=40 weight budget, per-item ITEM_WEIGHTS (consumables 1 / food+water 3 / bulky 6 / firearm 8; unknown 2), inventoryWeight/remainingCapacity/fits. addItemBounded pockets a find only if it fits (returns {inventory,carried}); dropItem reclaims one unit. Wired into T17 loot: resolveSearchLoot debits the region's finite loot ONLY for what was carried, so a full pack stops draining the well (FR-ECO<->FR-PLR closed). New drop action offered per carried stack in availableActions (0-hour, no clock advance); sceneOf reads the pack ('heavy X/40' / 'full'). Carry weight is DERIVED, not stored -> no SAVE_SCHEMA_VERSION bump, nothing to migrate. Pure/deterministic/dependency-free/integer. 11 engine tests incl. a fast-check property that no search sequence overfills the pack + a full-pack-doesn't-debit-loot proof. Engine 133 + harness 17 green. Feeds T19 (Scene narrates the find/leave-behind)."
-    },
-    {
-      "id": "T19",
-      "title": "Story-first single-decision UI",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/harness/src/play.ts (FR-UI-01/02/03/05). The M0 harness becomes the first real playable client. renderScene lays out header->status->story->choices->footer (FR-UI-01); only critical state, in words (needs as prose, pack as a count, wounds named, infection as symptoms NEVER a number, FR-UI-02); choices show known cost, hide outcome, no fake choices - unoffered submissions rejected (FR-UI-03); single top-to-bottom column (FR-UI-05). Pure playSession folds choice-ids into resolved turns; transcript renders a run as narrative so a test drives what a human sees. Client-only (engine untouched) except moving the pack count out of engine narration into the client status line. 6 harness tests. Feeds T20/T21."
-    },
-    {
-      "id": "T20",
-      "title": "Accessibility baseline",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/harness/src/play.ts + test/accessibility.test.ts (NFR-ACC-01/02). Accessibility from the FIRST UI, not an M5 retrofit. NFR-ACC-01: render emits zero ANSI codes - every critical fact in words (full-pack leave-behind, named wound, threat + the way out, each choice's cost); a plain-text transcript is enough to play. NFR-ACC-02: fixed SCREEN_REGION_ORDER (header/status/story/prompt/choices/footer) stable across explore/over-weight/wounded/combat turns; keyboard-only - parseCommand maps a typed number to its choice (S save, Q quit), playByInputs proves number keys play the same slice as the choice script; nothing reachable only by pointer/timing. 9 harness tests."
-    },
-    {
-      "id": "T21",
-      "title": "Lossless quit/resume at any turn boundary → Loop-Feel Check",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Done 2026-07-05 (build): prototype/harness/src/play.ts resume seam + src/playCli.ts + test/resume.test.ts. Lossless quit/resume at ANY turn boundary - saveState serializes the T7 SaveFile, resumeSession reconstructs from the string alone (graph rebuilt from content, never stored) and continues; proven byte-identical to an uninterrupted run at EVERY boundary across turn types incl. a mid-combat boundary (combat is in state). New keyboard-only interactive CLI (npm run play / --resume) over a pipe-safe read-render-resolve loop, client-owned save file (ADR-0003). A full M1 slice runs end to end over shipped Rivermouth exercising every Part 1-3 system, every turn passing the T13 audit and lossless each boundary. 4 harness tests. Engine 133 + harness 36 + content-loader 9 green; schema gate green; npm start smoke exit 0. REMAINING: the Loop-Feel Check (PRODUCTION §4 Stage-1) is the owner's human verdict on whether picking an action is interesting - it cannot be auto-passed. Record it in the Fun-Gate log; a pass opens M2."
-    },
-    {
-      "id": "T22",
-      "title": "Loop-feel tuning — survival pressure (needs/wounds/mortality)",
-      "milestone": "M1",
-      "status": "done",
-      "note": "Done 2026-07-05: prototype/engine/src/sim/survival.ts. Response to the Loop-Feel read that move/search/rest was frictionless. Needs drift meaningfully (thirst 2/hr, hunger 1/hr, fatigue 2/hr; rest recovers fatigue) and eat/drink spend scavenged food/water to relieve them (why the pack matters). Untreated wounds tire you; a bite drives infection (incubating->symptomatic->terminal) that kills; treat spends the right med (T16 treatWound) to halt it. runEndReason (derived, no schema bump) ends the run on maxed hunger/thirst or terminal infection; availableActions returns [] and sceneOf narrates the death. Starting kit (2 water,2 food) buffers the opening; eat/drink/treat gated to relevant turns (no clutter). Client shows the ending and stops. 12 engine + 3 harness tests. Engine 146 + harness 39 + content-loader 9 green; schema gate green. Strictly on the loop (no M2 world reactivity). Prepares the M1 Loop-Feel Check re-run."
-    },
-    {
-      "id": "T23",
-      "title": "Six simulation layers updatable independently",
-      "milestone": "M2",
-      "status": "todo",
-      "note": "FR-SIM-01: split the world sim into six independently-tickable layers (regions/nodes, hordes, zombies, weather, time-of-day, director) so off-screen updates run without the player acting. Foundation for all other M2 tasks; keep (state,action,seed) reproducible and save-lossless."
-    },
-    {
-      "id": "T24",
-      "title": "Off-screen regional drift — threat / density / loot",
-      "milestone": "M2",
-      "status": "todo",
-      "note": "FR-SIM-03: regional threat, walker density and loot stock drift day-over-day while the player is elsewhere. DoD: a region's threat measurably changes across days with the player absent; deterministic per seed; feeds the daily off-screen report."
-    },
-    {
-      "id": "T25",
-      "title": "Zombie state machine + first distinct types",
-      "milestone": "M2",
-      "status": "todo",
-      "note": "FR-CBT-06,07: a proper zombie state machine (idle/investigating/alerted/pursuing) plus the first two distinct types beyond the plain walker. Content-driven behaviour params; drives horde re-pathing and combat variety."
-    },
-    {
-      "id": "T26",
-      "title": "Migrating hordes that re-path to noise",
-      "milestone": "M2",
-      "status": "todo",
-      "note": "FR-SIM-07, FR-CBT-08: hordes migrate between nodes and re-path toward logged noise (gunshots, searches). DoD: a logged gunshot re-paths a nearby horde in the target share of cases; deterministic per seed."
-    },
-    {
-      "id": "T27",
-      "title": "Weather with multi-system effects",
-      "milestone": "M2",
-      "status": "todo",
-      "note": "FR-SIM-05: a weather layer whose state modifies multiple systems at once (movement time, noise carry, search yield, visibility/fog). Deterministic; surfaced in the Scene as prose, not a stat."
-    },
-    {
-      "id": "T28",
-      "title": "Time-of-day danger",
-      "milestone": "M2",
-      "status": "todo",
-      "note": "FR-SIM-04: phase-of-day raises or lowers danger (night = higher detection/threat, harder searches). Ties into stealth detection and horde activity already reading phase."
-    },
-    {
-      "id": "T29",
-      "title": "Route conditions",
-      "milestone": "M2",
-      "status": "todo",
-      "note": "FR-MAP-04: routes between nodes gain conditions (blocked/flooded/costly) that change move cost and availability and can shift with weather/world state."
-    },
-    {
-      "id": "T30",
-      "title": "Apocalypse Director — pacing bias without impossible states",
-      "milestone": "M2",
-      "status": "todo",
-      "note": "FR-SIM-10: a director biases pacing (spacing of pressure and relief) by nudging the sim layers within legal bounds. DoD: disabling the director changes pacing metrics but never produces an impossible state; determinism preserved."
-    },
-    {
-      "id": "T31",
-      "title": "Living History — append-only world log",
-      "milestone": "M2",
-      "status": "todo",
-      "note": "FR-SIM-11: an append-only Living History log records notable off-screen and on-screen world events (drift, horde moves, weather turns) for later story/telemetry use. Never mutated retroactively; save-lossless."
-    },
-    {
-      "id": "T32",
-      "title": "Telemetry instrumentation baseline",
-      "milestone": "M2",
-      "status": "todo",
-      "note": "PRD §4 proxies: instrument the M2 systems with the pacing/pressure telemetry proxies so later balance passes (M5) have a baseline. Off by default in shipping builds; deterministic capture over a seeded run."
-    }
-  ],
-  "adrs": [
-    {
-      "id": "ADR-0001",
-      "title": "Engine language & runtime",
-      "resolveBy": "M0",
-      "status": "accepted",
-      "blocks": "Unblocked: TypeScript accepted 2026-07-05"
-    },
-    {
-      "id": "ADR-0002",
-      "title": "Content data format",
-      "resolveBy": "M0",
-      "status": "accepted",
-      "blocks": "Unblocked: JSON + JSON Schema accepted 2026-07-05"
-    },
-    {
-      "id": "ADR-0003",
-      "title": "Save storage & versioning",
-      "resolveBy": "M1",
-      "status": "accepted",
-      "blocks": "Unblocked: local-first client-owned saves + T7 forward-only migration ladder accepted 2026-07-05; cloud sync deferred post-launch"
-    },
-    {
-      "id": "ADR-0004",
-      "title": "Platform ordering (native/Steam/bot)",
-      "resolveBy": "M4",
-      "status": "open",
-      "blocks": "Post-launch client work"
-    }
-  ],
-  "risks": [
-    {
-      "risk": "Undecided stack stalls delivery",
-      "retiredAt": "M0",
-      "status": "done",
-      "how": "ADR-0001 accepted — TypeScript. Risk retired."
-    },
-    {
-      "risk": "Systemic but not fun",
-      "retiredAt": "M3 Fun Gate",
-      "status": "open",
-      "how": "Prove the slice grips before any content pour"
-    },
-    {
-      "risk": "Impressive but static world",
-      "retiredAt": "M2",
-      "status": "open",
-      "how": "Off-screen evolution + director"
-    },
-    {
-      "risk": "Content volume / repetition",
-      "retiredAt": "M4",
-      "status": "open",
-      "how": "AI-at-volume behind review-capacity cap"
-    },
-    {
-      "risk": "Scope creep",
-      "retiredAt": "every boundary",
-      "status": "managed",
-      "how": "Cut filter + Won't-now register + parking lot"
-    },
-    {
-      "risk": "Balance fragility",
-      "retiredAt": "M5",
-      "status": "open",
-      "how": "Staged passes justified by telemetry"
-    },
-    {
-      "risk": "Save-schema churn",
-      "retiredAt": "M1 onward",
-      "status": "open",
-      "how": "Versioned saves from first format"
-    }
-  ],
-  "tripwires": [
-    {
-      "trap": "Stack analysis paralysis",
-      "tripwire": "ADR-0001 open at M0 exit",
-      "response": "Force the time-boxed decision; pick and move"
-    },
-    {
-      "trap": "Systemic but not fun",
-      "tripwire": "Slice Fun Gate fails",
-      "response": "Freeze content; re-invest in loop/director/characters"
-    },
-    {
-      "trap": "Ambition creep",
-      "tripwire": "New idea enters a live milestone",
-      "response": "Route to Parking Lot; triage at boundary only"
-    },
-    {
-      "trap": "Solo overreach",
-      "tripwire": "Build unplayed > 1 week, or 3+ systems half-done",
-      "response": "Stop; drive one to done; play it"
-    },
-    {
-      "trap": "Content-hunger repetition",
-      "tripwire": "Verbatim-repeat rate above target",
-      "response": "Recombination & cooldowns, not raw volume"
-    }
-  ],
-  "parkingLot": [],
-  "loopFeelCheck": {
-    "stage": "Stage 1 — Loop-Feel Check (§4)",
-    "date": "2026-07-05",
-    "build": "M1 complete (T10–T22); engine 146 + harness 39 tests green",
-    "verdict": "PASS (qualified)",
-    "moment": "Turn 7 of a live playthrough: 'You are thirsty and tired' surfaced a Drink water (1h) option — the first real resource+time trade; the survival clock makes move/search/rest a live decision it wasn't before T22.",
-    "decision": "Loop grips enough to proceed; M2 (world reactivity) is the correct next investment, not more loop tuning.",
-    "entryNotes": [
-      "Opening ~day still too calm — pressure should land by ~turn 3 (start needs non-zero or trim starting kit).",
-      "Decisions are maintenance-level until scarcity bites; M2's contested world (rivals, hordes on noise) supplies the dilemmas."
-    ]
+ "updated": "2026-07-05 (M2 Part 1 landed — T23-T27 done. Six-layer world-sim substrate (worldSim.ts) with an off-screen advanceWorld; off-screen regional threat/density drift; the zombie state machine + Screamer/Stalker types (SAVE_SCHEMA_VERSION 2->3, new content/zombies/); migrating hordes that re-path to a logged gunshot; and weather that couples stealth/power/roads. The world now moves every turn with 0 no-op turns. Engine 196 + harness 39 + content-loader 9 green; schema gate green over enemies+nodes+regions+wounds+zombies (5 types, 15 entries). Remaining M2: T28-T32. QA review of Part 1 written (docs/QA_REVIEW_M2_PART1.md): no code defects — all systems correct/tested/deterministic; findings are coupling/perception (H1 world invisible in Scene; M1 zombie types not consumed by combat; M2 drift de-escalates the opening) tracked in parkingLot PL-M2-01..04.)",
+ "phase": "M2 Reactive world — make the world move whether or not the player is watching: off-screen region drift, migrating hordes that re-path to noise, zombie types, weather, time-of-day danger, the Apocalypse Director, and telemetry instrumentation for later balance. Entry: M1 done and past the Loop-Feel Check.",
+ "currentMilestone": "M2",
+ "milestones": [
+  {
+   "id": "PRE",
+   "name": "Pre-production",
+   "theme": "GDD / PRD / DESIGN / Production Plan / art direction",
+   "effort": "-",
+   "status": "done"
+  },
+  {
+   "id": "M0",
+   "name": "Foundation",
+   "theme": "The skeleton runs",
+   "effort": "M",
+   "status": "done"
+  },
+  {
+   "id": "M1",
+   "name": "Core loop playable",
+   "theme": "The loop is satisfying",
+   "effort": "L",
+   "status": "done"
+  },
+  {
+   "id": "M2",
+   "name": "Reactive world",
+   "theme": "The world moves on its own",
+   "effort": "L",
+   "status": "active"
+  },
+  {
+   "id": "M3",
+   "name": "People, shelter & first story",
+   "theme": "A run becomes a story — Slice Fun Gate",
+   "effort": "XL",
+   "status": "pending"
+  },
+  {
+   "id": "M4",
+   "name": "Content-complete city",
+   "theme": "Breadth without repetition — MVP/beta",
+   "effort": "XL",
+   "status": "pending"
+  },
+  {
+   "id": "M5",
+   "name": "Release candidate",
+   "theme": "Balanced, accessible, hardened — v1.0",
+   "effort": "XL",
+   "status": "pending"
   }
+ ],
+ "tasks": [
+  {
+   "id": "T1",
+   "title": "Accept ADR-0001 — engine language & runtime",
+   "milestone": "M0",
+   "status": "done",
+   "note": "Accepted 2026-07-05: TypeScript, pure dependency-free engine package, Node ≥22, Vitest + fast-check."
+  },
+  {
+   "id": "T2",
+   "title": "Accept ADR-0002 — content data format",
+   "milestone": "M0",
+   "status": "done",
+   "note": "Accepted 2026-07-05: JSON + JSON Schema (2020-12), one entity per file, Ajv in CI/loader only, ICU strings. Unblocks T6, T8."
+  },
+  {
+   "id": "T3",
+   "title": "Define GameState shape (single serializable state)",
+   "milestone": "M0",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/engine/src/state/ — full DESIGN §4 shape, readonly + integer + plain-JSON discipline, SAVE_SCHEMA_VERSION=1, 6 tests incl. property round-trip."
+  },
+  {
+   "id": "T4",
+   "title": "Turn pipeline shell — all 14 stages as no-ops",
+   "milestone": "M0",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/engine/src/pipeline/applyAction.ts — applyAction(state,action) runs the fixed 14 DESIGN §5 stages as pure no-op ctx transforms, returns {state,scene}; 7 tests incl. stage-order lock + property determinism."
+  },
+  {
+   "id": "T5",
+   "title": "Seeded RNG with named streams",
+   "milestone": "M0",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/engine/src/rng/ — sfc32+cyrb128, named streams serialized as plain-JSON uint32 arrays in GameState.rng; pure functional draw API (drawFloat/Int/Pick); 9 tests incl. determinism, stream independence, save round-trip."
+  },
+  {
+   "id": "T6",
+   "title": "Content loader + first schemas",
+   "milestone": "M0",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/content-loader/ (separate Ajv package, NOT in dependency-free engine) + content/schemas/region.schema.json + one throwaway region; loadContent validates & indexes by id, throws on malformed content; 9 tests. Unblocks T8."
+  },
+  {
+   "id": "T7",
+   "title": "Save/load lossless round-trip",
+   "milestone": "M0",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/engine/src/save/saveGame.ts — versioned SaveFile envelope (format+saveSchemaVersion+one-line summary+state), migration ladder hook (empty at v1), SaveError on corrupt/foreign/future blobs. saveGame/loadGame deep-equal round-trip incl. rng/history/queue; pure, clock-free, dependency-free. 10 tests (TC-DET-05/07)."
+  },
+  {
+   "id": "T8",
+   "title": "CI that fails on malformed content",
+   "milestone": "M0",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/content-loader/src/validateCli.ts schema gate (exit 0 on valid content/, exit 1 on malformed) + .github/workflows/ci.yml running typecheck+tests for engine/content-loader/harness, the harness empty-turn smoke run, and a negative test proving malformed content is rejected. FR-CNT-02: volume can never corrupt a run."
+  },
+  {
+   "id": "T9",
+   "title": "Terminal harness runs an empty turn",
+   "milestone": "M0",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/harness/ (@zurvival/harness) — first headless engine client. runEmptyTurn() creates a run, resolves one turn through the pipeline, renders the Scene, and asserts the two M0 exit proofs (byte-identical determinism + lossless save round-trip). Runnable via `npm start` (tsx); 5 tests. M0 exit criterion met."
+  },
+  {
+   "id": "T10",
+   "title": "Accept ADR-0003 — save storage & versioning",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Accepted 2026-07-05: design/decisions/0003-save-storage-versioning.md. Local-first, client-owned I/O of the T7 SaveFile string (harness/native → atomic file under OS app-data; web → IndexedDB, not localStorage); single rolling autosave slot per run written write-temp-then-atomic-rename with a retained .bak (zero-corruption target); saves export/import as text (bug repro, DESIGN §9); migration = T7 forward-only ladder, one integer SAVE_SCHEMA_VERSION bumped only on breaking state-shape change, one pure/total N→N+1 rung per bump; optional cloud sync deferred post-launch as additive transport. Unblocks T11+ real saves."
+  },
+  {
+   "id": "T11",
+   "title": "Region & node graph with fog-of-war + node memory",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Done 2026-07-05: node graph is content — new content/schemas/node.schema.json + content/nodes/ (6 Rivermouth nodes forming a ring) + content/regions/region.rivermouth.json (replaced throwaway test-downtown). Engine prototype/engine/src/map/: buildRegionGraph enforces cross-file integrity JSON Schema can't (symmetric routes, one start, fully connected, known region/node refs) throwing MapError; NodeState gains a `discovered` fog flag (visited = lastVisit!==null); fogOfWar.discoverAround reveals a node + its neighbors; seedWorld.startRun bootstraps a run — seeds regions/nodes from baselines, stands player on start (visited today), reveals fog around it. Pure/dependency-free/integer/plain-JSON, deterministic, save-round-trips. 21 engine tests (integrity failures, reveal, seed, property) + 3 harness integration tests over shipped content. FR-SIM-02, FR-MAP-01..03,06. Unblocks T12 (move/search/rest over the graph)."
+  },
+  {
+   "id": "T12",
+   "title": "Core action loop — move / search / rest with time cost",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Done 2026-07-05: pipeline stages 1-4 + 14 made real (stages 5-13 still identity). New src/time/clock.ts (phaseOf + advanceClock: hours→day/phase rollover, turn++) and src/actions/coreActions.ts (availableActions/assertLegal/applyPlayerAction/tickNeeds/sceneOf); Action/Scene/SceneChoice extracted to src/pipeline/contract.ts. applyAction(state,action,graph?) now threads the transient graph: validate rejects unoffered actions (IllegalActionError, FR-CORE-01), advanceTime spends each action's hours (move 2/search 3/rest 6) so time always advances (FR-CORE-03), resolvePlayerAction applies move (relocate+visit+fog reveal), search (searchPct+34), rest (fatigue-40); updatePlayer drifts hunger/thirst/fatigue by hours; generateScene renders the Four Questions (FR-CORE-05). wait stays inert (0-cost) so all M0 tests pass unchanged. Pure/deterministic/integer/plain-JSON; save-lossless after every turn (FR-CORE-07). 14 engine loop tests + 2 harness integration turns over shipped Rivermouth. Unblocks T13 (telemetry that every turn changes >=1 system), T14 (noise), T17 (loot yield on search)."
+  },
+  {
+   "id": "T13",
+   "title": "Every resolved turn changes ≥1 system (telemetry-audited)",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/engine/src/telemetry/turnAudit.ts — the FR-CORE-04 no-no-op-turn audit, by machine not by hand. jsonEqual (by-value plain-JSON deep-equal, honest where a pure stage re-allocates an identical slice) + diffSystems (which TRACKED_SYSTEMS changed) + auditTurn ({turn,resolved,changedSystems,ok}). TRACKED_SYSTEMS deliberately EXCLUDES meta: counting the always-advancing clock/turn would make the invariant vacuous — the audit asks whether a real system moved beyond time. applyAction now instruments every turn, returning changed[] on TurnResult (empty for an inert wait — no turn resolved). Pure/deterministic/dependency-free. 12 engine tests (jsonEqual, meta-exclusion, per-action change reporting, a fast-check property that every resolved turn over random play changes >=1 system, and a hand-built clock-only turn proving the audit reports ok:false) + a harness 100-turn telemetry audit over shipped Rivermouth (all 100 resolved turns changed >=1 system, zero violations). engine 79 + harness 11 green. Feeds T14 (noise as a per-turn node-memory change) and the T21 Loop-Feel gate."
+  },
+  {
+   "id": "T14",
+   "title": "Noise deposit model",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/engine/src/sim/noise.ts + pipeline stage 6 (updateNode) made real. Each turn decays every node's noise by hours*NOISE_DECAY_PER_HOUR (5/h, floored 0) then deposits the action's noise at the player's current node (their location is already the move destination by stage 6) — decay-before-deposit keeps a fresh sound at full strength for the next turn's read (DESIGN §5 gunshot-this-turn/horde-next-turn; consumer is M2). noiseOf ranks volume: rest/wait 0, move 8, search 25, with an integer params.noise override (the T15 firearm hook). Noise lives in existing NodeState.noise (0-100 int). Pure/deterministic/dependency-free/integer; a silent zero-cost wait returns state untouched (M0 empty-turn contract preserved). DoD proven: the quiet path is legibly quieter (a rummaging run leaves the district materially noisier than a resting one). 14 engine tests + 2 harness integration runs over shipped Rivermouth (loud/quiet A/B autosave-lossless; 30-turn run every resolved turn passes the T13 audit). engine 92 + harness 13 green. Unblocks T15 (firearms deposit region-scale noise; stealth detection reads node noise)."
+  },
+  {
+   "id": "T15",
+   "title": "Avoidable turn-based combat + loud firearms + stealth path",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/engine/src/combat/combat.ts + content/enemies/enemy.walker.json + content/schemas/enemies.schema.json. Walkers loiter at a node (new NodeState.walkers, node memory); a contested node offers an avoidable encounter: Fight (melee 1-2 dmg + noise, alerted walker may inflict a named T16 wound), Fire (only if a loaded firearm carried; one-shots a walker, spends a round, dumps FIRE_NOISE 75 >> MELEE_NOISE 15 via the T14 params.noise override, FR-CBT-04), and Slip away to any discovered neighbour (FR-CBT-05 DoD: detection roll over node.noise+phase decides clean escape vs a parting wound, but you always escape — stealth-only survivor crosses the region without ever fighting). A started fight is GameState.combat (nullable), carried across turns so each Strike/Fire/Retreat is one turn-based exchange (FR-CBT-02); a kill clears combat and decrements node.walkers. Every option debits a real resource (FR-CBT-01: time/noise/ammo/wound-risk). All rolls from named RNG streams (combat, stealth) — a seed reproduces a fight. State-shape change: SAVE_SCHEMA_VERSION 1->2 + one forward-only migration rung (old saves gain combat:null + every node walkers:0); combat added to TRACKED_SYSTEMS; stage-1 validation now keys on choiceId so combat actions are validated (bare wait still inert). 12 engine tests + 3 harness integration runs over a hand-built district. engine 112 + harness 16 green; content gate green over enemies+nodes+regions+wounds. Implemented after T16 (combat consumes wounds). Unblocks T17 (loot on a searched/contested node) and T19 (Scene narrates the fight)."
+  },
+  {
+   "id": "T16",
+   "title": "Named wounds — treated, not regenerated",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/engine/src/sim/wounds.ts + content/wounds/ (laceration/sprain/bite/fracture) + content/schemas/wound.schema.json (schema-gate validated, Ajv2020 strict). Damage is a discrete named Wound in player.condition.wounds carrying the type id (never a copy), site, severity, accumulated treated, inflictedDay; persists across turns and saves. FR-INJ-04 invariant enforced: inflictWound appends (wounds accumulate, never merge); ONLY treatWound (spending care) advances treated; a wound leaves the body solely when treated>=severity; time/rest/movement never lower a wound. woundBurden (summed untreated remainder) is the handle T15 combat / needs / T19 UI read. Pure/deterministic/dependency-free/integer. 13 engine tests incl. two anti-regen proofs (loop play never lowers a wound; fast-check property the wound multiset never shrinks over no-treatment play). engine 100 green; schema gate green over nodes+regions+wounds. Unblocks T15 (an enemy blow inflicts a named wound). Implemented before T15 in dependency order (combat consumes wounds)."
+  },
+  {
+   "id": "T17",
+   "title": "Finite, contested, depleting loot economy",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/engine/src/sim/loot.ts + node `kind` field (content/nodes + node.schema.json). Loot is a finite stock: RegionState.loot (0-100). Searching draws from it and DEBITS it (FR-ECO-01) via a partial, diminishing yield (searchYieldCap — capped by region thinness and node searchPct, FR-ECO-03); the item is drawn from a plausibility table keyed to node kind (medical/store/police/generic/..., FR-ECO-02). Pipeline stage 7 (updateRegion) thins every region each turn by trunc(hours*survivorActivity/50) — rivals contest the same stock (FR-ECO-01), so an unsearched node can be poorer on return. Loot only falls, clamped at 0: a run can never pull more than the region held; a depleted region yields nothing but time+noise. Deterministic (named loot RNG stream), pure/dependency-free/integer. 6 shipped Rivermouth nodes gained a kind. 10 engine tests + 1 harness integration run over shipped Rivermouth (scavenging fills the pack while the stock only falls, lossless, zero audit violations). engine 122 + harness 17 green; content gate green. Feeds T18 (weight forces leave-behind) and T19 (Scene narrates the find)."
+  },
+  {
+   "id": "T18",
+   "title": "Weight-limited inventory",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/engine/src/sim/inventory.ts (FR-PLR-03). Carrying is now finite: CARRY_CAPACITY=40 weight budget, per-item ITEM_WEIGHTS (consumables 1 / food+water 3 / bulky 6 / firearm 8; unknown 2), inventoryWeight/remainingCapacity/fits. addItemBounded pockets a find only if it fits (returns {inventory,carried}); dropItem reclaims one unit. Wired into T17 loot: resolveSearchLoot debits the region's finite loot ONLY for what was carried, so a full pack stops draining the well (FR-ECO<->FR-PLR closed). New drop action offered per carried stack in availableActions (0-hour, no clock advance); sceneOf reads the pack ('heavy X/40' / 'full'). Carry weight is DERIVED, not stored -> no SAVE_SCHEMA_VERSION bump, nothing to migrate. Pure/deterministic/dependency-free/integer. 11 engine tests incl. a fast-check property that no search sequence overfills the pack + a full-pack-doesn't-debit-loot proof. Engine 133 + harness 17 green. Feeds T19 (Scene narrates the find/leave-behind)."
+  },
+  {
+   "id": "T19",
+   "title": "Story-first single-decision UI",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/harness/src/play.ts (FR-UI-01/02/03/05). The M0 harness becomes the first real playable client. renderScene lays out header->status->story->choices->footer (FR-UI-01); only critical state, in words (needs as prose, pack as a count, wounds named, infection as symptoms NEVER a number, FR-UI-02); choices show known cost, hide outcome, no fake choices - unoffered submissions rejected (FR-UI-03); single top-to-bottom column (FR-UI-05). Pure playSession folds choice-ids into resolved turns; transcript renders a run as narrative so a test drives what a human sees. Client-only (engine untouched) except moving the pack count out of engine narration into the client status line. 6 harness tests. Feeds T20/T21."
+  },
+  {
+   "id": "T20",
+   "title": "Accessibility baseline",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/harness/src/play.ts + test/accessibility.test.ts (NFR-ACC-01/02). Accessibility from the FIRST UI, not an M5 retrofit. NFR-ACC-01: render emits zero ANSI codes - every critical fact in words (full-pack leave-behind, named wound, threat + the way out, each choice's cost); a plain-text transcript is enough to play. NFR-ACC-02: fixed SCREEN_REGION_ORDER (header/status/story/prompt/choices/footer) stable across explore/over-weight/wounded/combat turns; keyboard-only - parseCommand maps a typed number to its choice (S save, Q quit), playByInputs proves number keys play the same slice as the choice script; nothing reachable only by pointer/timing. 9 harness tests."
+  },
+  {
+   "id": "T21",
+   "title": "Lossless quit/resume at any turn boundary → Loop-Feel Check",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Done 2026-07-05 (build): prototype/harness/src/play.ts resume seam + src/playCli.ts + test/resume.test.ts. Lossless quit/resume at ANY turn boundary - saveState serializes the T7 SaveFile, resumeSession reconstructs from the string alone (graph rebuilt from content, never stored) and continues; proven byte-identical to an uninterrupted run at EVERY boundary across turn types incl. a mid-combat boundary (combat is in state). New keyboard-only interactive CLI (npm run play / --resume) over a pipe-safe read-render-resolve loop, client-owned save file (ADR-0003). A full M1 slice runs end to end over shipped Rivermouth exercising every Part 1-3 system, every turn passing the T13 audit and lossless each boundary. 4 harness tests. Engine 133 + harness 36 + content-loader 9 green; schema gate green; npm start smoke exit 0. REMAINING: the Loop-Feel Check (PRODUCTION §4 Stage-1) is the owner's human verdict on whether picking an action is interesting - it cannot be auto-passed. Record it in the Fun-Gate log; a pass opens M2."
+  },
+  {
+   "id": "T22",
+   "title": "Loop-feel tuning — survival pressure (needs/wounds/mortality)",
+   "milestone": "M1",
+   "status": "done",
+   "note": "Done 2026-07-05: prototype/engine/src/sim/survival.ts. Response to the Loop-Feel read that move/search/rest was frictionless. Needs drift meaningfully (thirst 2/hr, hunger 1/hr, fatigue 2/hr; rest recovers fatigue) and eat/drink spend scavenged food/water to relieve them (why the pack matters). Untreated wounds tire you; a bite drives infection (incubating->symptomatic->terminal) that kills; treat spends the right med (T16 treatWound) to halt it. runEndReason (derived, no schema bump) ends the run on maxed hunger/thirst or terminal infection; availableActions returns [] and sceneOf narrates the death. Starting kit (2 water,2 food) buffers the opening; eat/drink/treat gated to relevant turns (no clutter). Client shows the ending and stops. 12 engine + 3 harness tests. Engine 146 + harness 39 + content-loader 9 green; schema gate green. Strictly on the loop (no M2 world reactivity). Prepares the M1 Loop-Feel Check re-run."
+  },
+  {
+   "id": "T23",
+   "title": "Six simulation layers updatable independently",
+   "milestone": "M2",
+   "status": "done",
+   "note": "Done 2026-07-05: new engine/src/sim/worldSim.ts defines six independently-tickable layers (zombies, regions, weather, timeOfDay, hordes, director) with a uniform pure tick(state,ctx); advanceWorld(state,hours,graph?) moves the world off-screen with no player action. Pipeline stages 6-9/11 delegate to the layers; the 14-stage names/order stay invariant. 11 tests; deterministic + save-lossless."
+  },
+  {
+   "id": "T24",
+   "title": "Off-screen regional drift — threat / density / loot",
+   "milestone": "M2",
+   "status": "done",
+   "note": "Done 2026-07-05: engine/src/sim/regionDrift.ts — threat/zombieDensity relax toward coupled 0-100 equilibria per elapsed hour with a `region`-stream jitter; runs in the regions layer before the T17 contest. A region's threat measurably changes across days with the player absent (verified 35->6 over a Rivermouth run). No schema bump. 9 tests."
+  },
+  {
+   "id": "T25",
+   "title": "Zombie state machine + first distinct types",
+   "milestone": "M2",
+   "status": "done",
+   "note": "Done 2026-07-05: engine/src/sim/zombies.ts — FR-CBT-06 state machine (dormant/wandering/investigating/chasing/feeding/hibernating) driven by node noise, player presence/scent, and phase; Screamer rouses neighbours, Stalker night-hunts. New NodeState.zombieState + zombieTypes ⇒ SAVE_SCHEMA_VERSION 2->3 with migrateV2toV3. New content/zombies/{walker,screamer,stalker}.json + zombie.schema.json + node-schema zombieTypes; clinic seeds a screamer, marina a stalker. Schema gate green (5 types). 11 engine tests + v2->v3 migration test."
+  },
+  {
+   "id": "T26",
+   "title": "Migrating hordes that re-path to noise",
+   "milestone": "M2",
+   "status": "done",
+   "note": "Done 2026-07-05: engine/src/sim/hordes.ts — hordes evaluate node noise within awareness and re-path to a loud node (a logged gunshot, >=REPATH_NOISE 30, redirects them; footsteps don't), else migrate over the graph by speed. One starter horde seeded per run in startRun. Never a combat target (FR-CBT-08). 11 tests incl. the gunshot-repath rate DoD."
+  },
+  {
+   "id": "T27",
+   "title": "Weather with multi-system effects",
+   "milestone": "M2",
+   "status": "done",
+   "note": "Done 2026-07-05: engine/src/sim/weather.ts — sticky reproducible transitions over clear/cloudy/rain/storm/fog/snow/wind; each state's effect vector couples multiple systems: stealth detection (wired into T15 detectChance, backward-compatible), grid power pressure, and regional road pressure. A storm re-labels the sky AND drains power AND degrades roads. No schema bump. 8 tests."
+  },
+  {
+   "id": "T28",
+   "title": "Time-of-day danger",
+   "milestone": "M2",
+   "status": "todo",
+   "note": "FR-SIM-04: phase-of-day raises or lowers danger (night = higher detection/threat, harder searches). Ties into stealth detection and horde activity already reading phase."
+  },
+  {
+   "id": "T29",
+   "title": "Route conditions",
+   "milestone": "M2",
+   "status": "todo",
+   "note": "FR-MAP-04: routes between nodes gain conditions (blocked/flooded/costly) that change move cost and availability and can shift with weather/world state."
+  },
+  {
+   "id": "T30",
+   "title": "Apocalypse Director — pacing bias without impossible states",
+   "milestone": "M2",
+   "status": "todo",
+   "note": "FR-SIM-10: a director biases pacing (spacing of pressure and relief) by nudging the sim layers within legal bounds. DoD: disabling the director changes pacing metrics but never produces an impossible state; determinism preserved."
+  },
+  {
+   "id": "T31",
+   "title": "Living History — append-only world log",
+   "milestone": "M2",
+   "status": "todo",
+   "note": "FR-SIM-11: an append-only Living History log records notable off-screen and on-screen world events (drift, horde moves, weather turns) for later story/telemetry use. Never mutated retroactively; save-lossless."
+  },
+  {
+   "id": "T32",
+   "title": "Telemetry instrumentation baseline",
+   "milestone": "M2",
+   "status": "todo",
+   "note": "PRD §4 proxies: instrument the M2 systems with the pacing/pressure telemetry proxies so later balance passes (M5) have a baseline. Off by default in shipping builds; deterministic capture over a seeded run."
+  }
+ ],
+ "adrs": [
+  {
+   "id": "ADR-0001",
+   "title": "Engine language & runtime",
+   "resolveBy": "M0",
+   "status": "accepted",
+   "blocks": "Unblocked: TypeScript accepted 2026-07-05"
+  },
+  {
+   "id": "ADR-0002",
+   "title": "Content data format",
+   "resolveBy": "M0",
+   "status": "accepted",
+   "blocks": "Unblocked: JSON + JSON Schema accepted 2026-07-05"
+  },
+  {
+   "id": "ADR-0003",
+   "title": "Save storage & versioning",
+   "resolveBy": "M1",
+   "status": "accepted",
+   "blocks": "Unblocked: local-first client-owned saves + T7 forward-only migration ladder accepted 2026-07-05; cloud sync deferred post-launch"
+  },
+  {
+   "id": "ADR-0004",
+   "title": "Platform ordering (native/Steam/bot)",
+   "resolveBy": "M4",
+   "status": "open",
+   "blocks": "Post-launch client work"
+  }
+ ],
+ "risks": [
+  {
+   "risk": "Undecided stack stalls delivery",
+   "retiredAt": "M0",
+   "status": "done",
+   "how": "ADR-0001 accepted — TypeScript. Risk retired."
+  },
+  {
+   "risk": "Systemic but not fun",
+   "retiredAt": "M3 Fun Gate",
+   "status": "open",
+   "how": "Prove the slice grips before any content pour"
+  },
+  {
+   "risk": "Impressive but static world",
+   "retiredAt": "M2",
+   "status": "open",
+   "how": "Off-screen evolution + director"
+  },
+  {
+   "risk": "Content volume / repetition",
+   "retiredAt": "M4",
+   "status": "open",
+   "how": "AI-at-volume behind review-capacity cap"
+  },
+  {
+   "risk": "Scope creep",
+   "retiredAt": "every boundary",
+   "status": "managed",
+   "how": "Cut filter + Won't-now register + parking lot"
+  },
+  {
+   "risk": "Balance fragility",
+   "retiredAt": "M5",
+   "status": "open",
+   "how": "Staged passes justified by telemetry"
+  },
+  {
+   "risk": "Save-schema churn",
+   "retiredAt": "M1 onward",
+   "status": "open",
+   "how": "Versioned saves from first format"
+  }
+ ],
+ "tripwires": [
+  {
+   "trap": "Stack analysis paralysis",
+   "tripwire": "ADR-0001 open at M0 exit",
+   "response": "Force the time-boxed decision; pick and move"
+  },
+  {
+   "trap": "Systemic but not fun",
+   "tripwire": "Slice Fun Gate fails",
+   "response": "Freeze content; re-invest in loop/director/characters"
+  },
+  {
+   "trap": "Ambition creep",
+   "tripwire": "New idea enters a live milestone",
+   "response": "Route to Parking Lot; triage at boundary only"
+  },
+  {
+   "trap": "Solo overreach",
+   "tripwire": "Build unplayed > 1 week, or 3+ systems half-done",
+   "response": "Stop; drive one to done; play it"
+  },
+  {
+   "trap": "Content-hunger repetition",
+   "tripwire": "Verbatim-repeat rate above target",
+   "response": "Recombination & cooldowns, not raw volume"
+  }
+ ],
+ "parkingLot": [
+  {
+   "id": "PL-M2-01",
+   "from": "QA_REVIEW_M2_PART1 H1",
+   "note": "Surface the reactive world in the Scene (weather, rising threat/density, an approaching horde, a roused/screaming node) — required before the M2 'feels alive' fun-gate can be judged. Highest-value next M2 step."
+  },
+  {
+   "id": "PL-M2-02",
+   "from": "QA_REVIEW_M2_PART1 M1",
+   "note": "Couple the T25 zombie state machine + types to combat/encounters (zombieState biases danger; Screamer/Stalker fight differently). Give type-only nodes a body — the marina Stalker currently has walkers:0 and is inert in play."
+  },
+  {
+   "id": "PL-M2-03",
+   "from": "QA_REVIEW_M2_PART1 M2",
+   "note": "Off-screen drift de-escalates the opening region (threat 35->7 over 7 idle days), against the 'land pressure by turn 3' exit note. Add an escalation bias (natural home: the T30 Director), keeping T24 as the neutral substrate."
+  },
+  {
+   "id": "PL-M2-04",
+   "from": "QA_REVIEW_M2_PART1 L1-L3",
+   "note": "Loop advanceWorld hour-by-hour for off-screen fast-forward (step-based layers don't scale with hours); season-gate weather; wire weather noiseFactor into the T14 noise model."
+  }
+ ],
+ "loopFeelCheck": {
+  "stage": "Stage 1 — Loop-Feel Check (§4)",
+  "date": "2026-07-05",
+  "build": "M1 complete (T10–T22); engine 146 + harness 39 tests green",
+  "verdict": "PASS (qualified)",
+  "moment": "Turn 7 of a live playthrough: 'You are thirsty and tired' surfaced a Drink water (1h) option — the first real resource+time trade; the survival clock makes move/search/rest a live decision it wasn't before T22.",
+  "decision": "Loop grips enough to proceed; M2 (world reactivity) is the correct next investment, not more loop tuning.",
+  "entryNotes": [
+   "Opening ~day still too calm — pressure should land by ~turn 3 (start needs non-zero or trim starting kit).",
+   "Decisions are maintenance-level until scarcity bites; M2's contested world (rivals, hordes on noise) supplies the dilemmas."
+  ]
+ }
 }
