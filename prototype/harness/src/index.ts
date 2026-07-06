@@ -4,3 +4,28 @@ export {
   type HarnessOptions,
   type EmptyTurnResult,
 } from "./runEmptyTurn.js";
+
+// Story-first single-decision play client (T19 · FR-UI-01/02/03/05)
+export {
+  renderScene,
+  describeStatus,
+  describeChoice,
+  playSession,
+  transcript,
+  renderRegions,
+  parseCommand,
+  playByInputs,
+  saveState,
+  resumeSession,
+  runEnded,
+  UnofferedChoiceError,
+  FOOTER,
+  SCREEN_REGION_ORDER,
+  type PlayedTurn,
+  type SessionResult,
+  type ScreenRegion,
+  type ScreenRegions,
+  type Command,
+  type StopReason,
+  type InputPlayResult,
+} from "./play.js";
