@@ -41,6 +41,8 @@ export function createInitialState(opts: InitialStateOptions): GameState {
         { type: "item.water", quantity: 2 },
         { type: "item.canned-food", quantity: 2 },
       ],
+      // The base warehouse (T39) — empty at the start; the first deposit banks surplus off the pack.
+      stash: [],
       equipment: {},
       skills: {},
       traits: [],

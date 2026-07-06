@@ -144,12 +144,30 @@ function migrateV5toV6(state: GameState): GameState {
   };
 }
 
+/**
+ * v6 -> v7 (task T39): the shared stash arrived. The player now keeps a base store — `player.stash` —
+ * separate from the weight-limited pack. v6 states have no such field; a forward-only rung adds it
+ * empty (`stash: []`) and stamps `meta.version` to 7. Empty is the safe default — a pre-Part-4 run has
+ * banked nothing — so every historical run migrates losslessly and stays inert. One N->N+1 rung, per
+ * the ADR-0003 / T7 ladder.
+ */
+function migrateV6toV7(state: GameState): GameState {
+  const src = state as unknown as { readonly player: Record<string, unknown> };
+  const player = "stash" in src.player ? src.player : { ...src.player, stash: [] };
+  return {
+    ...state,
+    meta: { ...state.meta, version: 7 },
+    player: player as unknown as GameState["player"],
+  };
+}
+
 const MIGRATIONS: { readonly [fromVersion: number]: SaveMigration } = {
   1: (save) => ({ ...save, saveSchemaVersion: 2, state: migrateV1toV2(save.state) }),
   2: (save) => ({ ...save, saveSchemaVersion: 3, state: migrateV2toV3(save.state) }),
   3: (save) => ({ ...save, saveSchemaVersion: 4, state: migrateV3toV4(save.state) }),
   4: (save) => ({ ...save, saveSchemaVersion: 5, state: migrateV4toV5(save.state) }),
   5: (save) => ({ ...save, saveSchemaVersion: 6, state: migrateV5toV6(save.state) }),
+  6: (save) => ({ ...save, saveSchemaVersion: 7, state: migrateV6toV7(save.state) }),
 };
 
 /** Two-digit zero-pad for the summary clock (pure, allocation-light). */

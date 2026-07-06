@@ -342,6 +342,71 @@ export {
   COMPANION_FLAG,
 } from "./sim/companions.js";
 
+// Shelter — claim a base, fortify with loot+time, upkeep decay, the safety payoff (T37/T38 · FR-SHL-01/02)
+export {
+  canClaimShelter,
+  canFortifyShelter,
+  shelterChoices,
+  isShelterAction,
+  resolveShelterAction,
+  applyShelterRest,
+  decayShelterFortification,
+  muffleShelterNoise,
+  shelterLine,
+  scaleByFort,
+  SCRAP_ITEM,
+  CLAIM_COST,
+  FORTIFY_COST,
+  FORTIFY_SCRAP,
+  FORTIFY_GAIN,
+  MAX_FORTIFICATION,
+  FORTIFY_DECAY_PER_HOUR,
+  SHELTER_REST_BONUS,
+  SHELTER_REST_FORT_MAX,
+  SHELTER_NOISE_MUFFLE_MAX,
+  SHELTER_DETECT_FLOOR_MAX,
+} from "./sim/shelter.js";
+
+// Shared stash — the base warehouse: deposit/withdraw + the raid hook (T39 · FR-SHL-03/FR-PLR-04)
+export {
+  atOwnShelter,
+  depositableTypes,
+  withdrawableTypes,
+  stashChoices,
+  isStashAction,
+  resolveStashAction,
+  depleteStash,
+  removeStashUnits,
+  stashUnits,
+  type StashRemoval,
+  cacheRead,
+  STASH_MOVE_COST,
+} from "./sim/stash.js";
+
+// Authored story arcs — the first scripted trigger chain over the sim (T40 · FR-STORY-01)
+export {
+  STORY_ARCS,
+  THE_LAST_CUSTOMER,
+  STORY_EVENT_KIND,
+  ARC_DORMANT,
+  ARC_PLEA,
+  ARC_HELPED,
+  ARC_REFUSED,
+  ARC_RESOLVED_GOOD,
+  ARC_RESOLVED_COLD,
+  arcOf,
+  arcBeat,
+  activeArcs,
+  registerArcs,
+  evaluateArcs,
+  resolveDueStoryEvents,
+  storyChoices,
+  isStoryAction,
+  resolveStoryAction,
+  storyLine,
+  type StoryArc,
+} from "./sim/story.js";
+
 // Core action loop — move/search/rest, time cost, scene (T12, DESIGN §5/§10)
 export { phaseOf, advanceClock } from "./time/clock.js";
 export {

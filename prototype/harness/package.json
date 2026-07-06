@@ -12,7 +12,8 @@
     "start": "tsx src/main.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "play": "tsx src/playCli.ts"
+    "play": "tsx src/playCli.ts",
+    "play:slice": "tsx src/playSlice.ts"
   },
   "dependencies": {},
   "devDependencies": {
