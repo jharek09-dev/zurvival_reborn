@@ -11,7 +11,7 @@
  * It is deliberately **selective**. Logging every turn would bloat the save and make `history` a
  * vacuously-always-changed system in the FR-CORE-04 audit — so it records only what a person would
  * actually recall: a change in the sky, nightfall, a horde stepping, a route's condition turning, a
- * fight ending, the run ending. A quiet turn writes nothing.
+ * fight ending, a survivor met/lost, a companion recruited/fallen, the run ending. A quiet turn writes nothing.
  *
  * Pure, deterministic, dependency-free (ADR-0001): a diff of two plain-JSON states in a fixed order, no
  * RNG, no clock read beyond the `meta` already on the resolved state. Wired at pipeline stage 13
@@ -21,6 +21,7 @@
 import type { GameState, HistoryEvent } from "../state/types.js";
 import { conditionOf } from "./routes.js";
 import { runEndReason } from "./survival.js";
+import { isCompanion } from "./companions.js";
 
 /** Stamp an event with the resolved clock (day/hour/turn from the after-state). */
 function stamp(after: GameState, type: string, subjects: readonly string[], data: HistoryEvent["data"]): HistoryEvent {
@@ -68,6 +69,27 @@ export function recordHistory(before: GameState, after: GameState): readonly His
   // A fight cleared this turn.
   if (before.combat !== null && after.combat === null) {
     events.push(stamp(after, "combat.cleared", [before.combat.enemy], { at: before.combat.node }));
+  }
+
+  // People (T35/T36): a survivor met, a survivor died of neglect, a companion recruited, a companion lost.
+  // A recruited survivor leaves `npcs` entirely (moved to `actors`), so an `alive` flip within `npcs` is
+  // an unambiguous death, never a graduation.
+  for (const id of Object.keys(after.npcs).sort()) {
+    const b = before.npcs[id];
+    const a = after.npcs[id]!;
+    if (b === undefined) continue;
+    if (!b.met && a.met) events.push(stamp(after, "npc.met", [id], { name: a.name }));
+    if (b.alive && !a.alive) events.push(stamp(after, "npc.died", [id], { name: a.name }));
+  }
+  for (const id of Object.keys(after.actors).sort()) {
+    if (before.actors[id] === undefined && isCompanion(after.actors[id]!)) {
+      events.push(stamp(after, "companion.recruited", [id], {}));
+    }
+  }
+  for (const id of Object.keys(before.actors).sort()) {
+    if (after.actors[id] === undefined && isCompanion(before.actors[id]!)) {
+      events.push(stamp(after, "companion.died", [id], {}));
+    }
   }
 
   // The run ended this turn.

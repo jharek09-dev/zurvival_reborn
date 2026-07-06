@@ -23,6 +23,7 @@ import {
   startRun,
   type GameState,
   type NodeDef,
+  type NPCDef,
   type RegionDef,
   type RegionGraph,
 } from "../../engine/src/index.js";
@@ -42,6 +43,7 @@ const load = <T>(sub: string): T[] =>
 function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; savePath: string } {
   const regions = load<RegionDef>("regions");
   const nodes = load<NodeDef>("nodes");
+  const npcs = load<NPCDef>("npcs");
   const resumeIdx = argv.indexOf("--resume");
   if (resumeIdx !== -1 && argv[resumeIdx + 1]) {
     const savePath = argv[resumeIdx + 1]!;
@@ -49,7 +51,7 @@ function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; 
     return { state, graph: buildRegionGraph(regions, nodes), savePath };
   }
   const seed = argv[2] && !argv[2].startsWith("--") ? argv[2] : "rivermouth-demo";
-  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes);
+  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes, npcs);
   return { state, graph, savePath: DEFAULT_SAVE };
 }
 

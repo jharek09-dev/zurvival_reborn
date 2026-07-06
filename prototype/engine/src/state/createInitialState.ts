@@ -66,6 +66,7 @@ export function createInitialState(opts: InitialStateOptions): GameState {
     routes: {},
     actors: {},
     groups: {},
+    npcs: {},
     hordes: [],
     items: {},
     story: { progress: {}, lore: [], endingFlags: {}, mysteries: {} },

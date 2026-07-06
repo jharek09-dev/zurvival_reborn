@@ -110,10 +110,46 @@ function migrateV3toV4(state: GameState): GameState {
   };
 }
 
+/**
+ * v4 -> v5 (task T33): survivor NPCs arrived. v4 states have no `npcs` slice; a forward-only rung adds
+ * it empty (`npcs: {}`) and stamps `meta.version` to 5. Empty is the safe default — a pre-people run
+ * simply carries no survivors, and the world re-populates none retroactively. Pure and total — one
+ * N->N+1 rung, per the ADR-0003 / T7 ladder.
+ */
+function migrateV4toV5(state: GameState): GameState {
+  const src = state as unknown as { readonly npcs?: unknown };
+  return {
+    ...state,
+    meta: { ...state.meta, version: 5 },
+    npcs: (src.npcs as GameState["npcs"] | undefined) ?? {},
+  };
+}
+
+/**
+ * v5 -> v6 (task T35): survivor interaction arrived. A survivor now carries `met` — whether the player
+ * has spoken with them. v5 survivors have no such field; a forward-only rung sets `met: false` on every
+ * survivor in the pool (a pre-Part-2 run has met no one, the safe default) and stamps `meta.version` to
+ * 6. Pure and total — one N->N+1 rung, per the ADR-0003 / T7 ladder.
+ */
+function migrateV5toV6(state: GameState): GameState {
+  const src = state as unknown as { readonly npcs?: Record<string, Record<string, unknown>> };
+  const npcs: Record<string, unknown> = {};
+  for (const [id, npc] of Object.entries(src.npcs ?? {})) {
+    npcs[id] = "met" in npc ? npc : { ...npc, met: false };
+  }
+  return {
+    ...state,
+    meta: { ...state.meta, version: 6 },
+    npcs: npcs as GameState["npcs"],
+  };
+}
+
 const MIGRATIONS: { readonly [fromVersion: number]: SaveMigration } = {
   1: (save) => ({ ...save, saveSchemaVersion: 2, state: migrateV1toV2(save.state) }),
   2: (save) => ({ ...save, saveSchemaVersion: 3, state: migrateV2toV3(save.state) }),
   3: (save) => ({ ...save, saveSchemaVersion: 4, state: migrateV3toV4(save.state) }),
+  4: (save) => ({ ...save, saveSchemaVersion: 5, state: migrateV4toV5(save.state) }),
+  5: (save) => ({ ...save, saveSchemaVersion: 6, state: migrateV5toV6(save.state) }),
 };
 
 /** Two-digit zero-pad for the summary clock (pure, allocation-light). */

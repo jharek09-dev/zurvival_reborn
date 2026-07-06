@@ -293,6 +293,55 @@ export {
   recordInto,
 } from "./sim/history.js";
 
+// Survivor NPCs — encounterable people with state, needs, deterministic spawn (T33 · FR-NPC-01)
+export {
+  spawnNpcs,
+  tickNpcs,
+  driftNpc,
+  startingNeeds,
+  NPC_STREAM,
+  type NPCDef,
+} from "./sim/npcs.js";
+
+// Trust & disposition — a per-NPC scalar that moves only from actions, no free regen (T34 · FR-NPC-02)
+export {
+  adjustTrust,
+  applyTrustEvent,
+  trustTier,
+  canParley,
+  canRecruit,
+  startingTrust,
+  TRUST_DELTAS,
+  DISPOSITION_TRUST,
+  PARLEY_MIN,
+  RECRUIT_MIN,
+  type TrustEventKind,
+  type TrustTier,
+} from "./sim/trust.js";
+
+// Survivor encounters — talk/share/threaten surfaced as Scene choices; needs given teeth (T35 · FR-NPC-01/06)
+export {
+  survivorsHere,
+  encounterPeople,
+  resolveEncounterAction,
+  isEncounterAction,
+  TALK_COST,
+  GIVE_COST,
+  THREATEN_COST,
+  RECRUIT_COST,
+} from "./sim/encounters.js";
+
+// Recruitable companions — graduate npcs→actors, follow the player, permanent remembered death (T36 · FR-NPC-03/04)
+export {
+  recruit,
+  tickCompanions,
+  killCompanion,
+  isCompanion,
+  companionIds,
+  companionsHere,
+  COMPANION_FLAG,
+} from "./sim/companions.js";
+
 // Core action loop — move/search/rest, time cost, scene (T12, DESIGN §5/§10)
 export { phaseOf, advanceClock } from "./time/clock.js";
 export {

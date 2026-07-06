@@ -1,0 +1,11 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.sarah",
+  "name": "Sarah",
+  "description": "A paramedic in a bloodstained hi-vis jacket, triaging strangers out of habit even now.",
+  "disposition": "friendly",
+  "homeNode": "node.rivermouth.clinic",
+  "background": "Ran the ambulance service out of the Rivermouth clinic until the roads stopped meaning anything.",
+  "personality": "Steady, wry, and constitutionally unable to walk past someone who is hurt.",
+  "secret": "She left a colleague behind on the last run and tells herself he made it out."
+}
