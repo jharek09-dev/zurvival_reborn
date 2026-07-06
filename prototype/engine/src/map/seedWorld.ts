@@ -17,6 +17,7 @@ import { buildRegionGraph } from "./regionGraph.js";
 import { discoverAround } from "./fogOfWar.js";
 import { seedStarterHordes } from "../sim/hordes.js";
 import { seedRoutes } from "../sim/routes.js";
+import { spawnNpcs, type NPCDef } from "../sim/npcs.js";
 import type { NodeDef, RegionDef, RegionGraph } from "./types.js";
 
 /** Clamp to a 0–100 integer; content baselines are already ints, this guards bad data. */
@@ -96,6 +97,7 @@ export function startRun(
   opts: InitialStateOptions,
   regionDefs: readonly RegionDef[],
   nodeDefs: readonly NodeDef[],
+  npcDefs: readonly NPCDef[] = [],
 ): RunStart {
   const graph = buildRegionGraph(regionDefs, nodeDefs);
   const base = createInitialState({ ...opts, startLocation: graph.startNodeId });
@@ -115,5 +117,7 @@ export function startRun(
   for (const def of nodeDefs) adjacency[def.id] = def.adjacent;
   const routes = seedRoutes(adjacency);
 
-  return { state: { ...base, regions, nodes, routes, hordes: seedStarterHordes(graph) }, graph };
+  const seeded: GameState = { ...base, regions, nodes, routes, hordes: seedStarterHordes(graph) };
+  // Seed the survivor pool from the named `npc` stream (T33); inert when no npcDefs are supplied.
+  return { state: spawnNpcs(seeded, npcDefs, graph), graph };
 }

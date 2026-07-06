@@ -14,7 +14,7 @@
  * threads named RNG streams and lives in `../combat/combat.ts`.
  */
 
-import type { GameState, NodeId } from "../state/types.js";
+import type { GameState, NodeId, NPCState } from "../state/types.js";
 import type { Action, Scene, SceneChoice } from "../pipeline/contract.js";
 import type { RegionGraph } from "../map/types.js";
 import { neighborsOf } from "../map/regionGraph.js";
@@ -47,6 +47,9 @@ import {
   isCombatAction,
   resolveCombatAction,
 } from "../combat/combat.js";
+import { encounterPeople, isEncounterAction, resolveEncounterAction } from "../sim/encounters.js";
+import { companionsHere } from "../sim/companions.js";
+import { canParley } from "../sim/trust.js";
 
 /** Time cost, in in-game hours, of each core action (FR-CORE-03). */
 export const MOVE_COST = 2;
@@ -155,6 +158,11 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
     action: { type: "rest", choiceId: "rest", timeCost: REST_COST },
   });
 
+  // People here (T35 · FR-NPC): talk / share / threaten / recruit a survivor present, or feed a companion.
+  // Offered in the explore branch only — an active fight or loitering walkers pre-empt it above — and
+  // appended after the survival verbs so the world-danger and self-care choices lead the list.
+  for (const choice of encounterPeople(state)) choices.push(choice);
+
   // Drop a carried item to reclaim weight (T18 · FR-PLR-03) — the leave-behind lever. Surfaced only
   // when the pack is heavy (>= PACK_HEAVY): below that there's ample room, so drops would just clutter
   // the single-decision screen (FR-UI). One choice per non-unique stack, stable-ordered by type; free.
@@ -208,6 +216,7 @@ function applySearch(state: GameState): GameState {
  */
 export function applyPlayerAction(state: GameState, graph: RegionGraph, action: Action): GameState {
   if (isCombatAction(action)) return resolveCombatAction(state, graph, action);
+  if (isEncounterAction(action)) return resolveEncounterAction(state, action);
   switch (action.type) {
     case "move": {
       const to = action.params?.["to"];
@@ -313,6 +322,55 @@ function worldLead(state: GameState, graph: RegionGraph): string | null {
   return null;
 }
 
+// --- people surfacing (T35 · FR-NPC-01) -------------------------------------------------------
+
+/** A first-sight read of a survivor's baseline temperament (the fixed half of the attitude model). */
+function dispositionRead(d: NPCState["disposition"]): string {
+  switch (d) {
+    case "hostile": return "hostile, hands ready";
+    case "wary": return "wary, watching your hands";
+    case "desperate": return "desperate, sizing up what you carry";
+    case "friendly": return "openly friendly";
+    default: return "guarded";
+  }
+}
+
+/** A pressing-need read for a survivor, or "" when nothing shows (surfaced only when it matters). */
+function npcNeedRead(n: NPCState): string {
+  if (n.needs.thirst >= 85 || n.needs.hunger >= 85) return ", and they look ready to drop";
+  if (n.needs.thirst >= 60) return ", and they look parched";
+  if (n.needs.hunger >= 60) return ", and they look half-starved";
+  return "";
+}
+
+/**
+ * A line naming the people at the player's node — companions at your side, a survivor to meet (their
+ * temperament on first sight), one you already know, one who has turned cold, or the body of one who did
+ * not make it. Null when no one is here. Self-sufficient from state (names/disposition/needs); the client
+ * enriches a first meeting with the content description (T35+/T41). Screen-reader-safe — all words.
+ */
+function peopleLine(state: GameState): string | null {
+  const here = state.player.location;
+  const bits: string[] = [];
+
+  const companions = companionsHere(state, here);
+  if (companions.length === 1) bits.push("Your companion is at your side.");
+  else if (companions.length > 1) bits.push(`${companions.length} companions are with you.`);
+
+  for (const id of Object.keys(state.npcs).sort()) {
+    const n = state.npcs[id]!;
+    if (n.location !== here) continue;
+    if (!n.alive) { bits.push(`${n.name} lies where they fell.`); continue; }
+    if (!canParley(n)) { bits.push(`${n.name} will not meet your eye — past talking now.`); continue; }
+    bits.push(
+      n.met
+        ? `${n.name} is here${npcNeedRead(n)}.`
+        : `Someone is here — ${n.name}, ${dispositionRead(n.disposition)}${npcNeedRead(n)}.`,
+    );
+  }
+  return bits.length > 0 ? bits.join(" ") : null;
+}
+
 /**
  * Render the Scene for a state (stage 14, and the client's source for the *first* scene before any
  * action). With a graph and the player on a real node it answers the Four Questions; a fight or a
@@ -345,8 +403,9 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   // Surface the reactive world (QA H1 / PL-M2-01): a fight or the sharpest world danger leads, then the
   // atmosphere line, then the place itself. Screen-reader-safe — everything critical is in words.
   const lead = threat ?? worldLead(state, graph);
+  const people = peopleLine(state);
   const atmosphere = atmosphereLine(state);
-  const narration = [lead, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
+  const narration = [lead, people, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
 
   return { turn, day, hour, phase, location: here, narration, choices: availableActions(state, graph) };
 }

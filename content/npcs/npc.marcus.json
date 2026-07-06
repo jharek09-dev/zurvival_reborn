@@ -1,0 +1,11 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.marcus",
+  "name": "Marcus",
+  "description": "A big man holding a doorway at the police post like it still means something, watching your hands.",
+  "disposition": "wary",
+  "homeNode": "node.rivermouth.police-post",
+  "background": "Ex-National Guard, three days off the wall when the cordon fell.",
+  "personality": "Slow to trust, quick to cover an exit; loyal once you are on the right side of the door.",
+  "secret": "He knows the evacuation was called off long before the sirens stopped."
+}

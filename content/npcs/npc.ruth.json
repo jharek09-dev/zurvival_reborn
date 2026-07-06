@@ -1,0 +1,11 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.ruth",
+  "name": "Ruth",
+  "description": "An older woman rationing crackers behind the corner-store counter, sizing up what you carry.",
+  "disposition": "desperate",
+  "homeNode": "node.rivermouth.corner-store",
+  "background": "Owned the corner store for thirty years; now she is its last customer and its guard.",
+  "personality": "Sharp-tongued and frightened, bargaining hard because she has been robbed twice already.",
+  "secret": "The back room is emptier than she lets on — she is nearly out of everything."
+}

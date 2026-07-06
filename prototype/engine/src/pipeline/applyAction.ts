@@ -27,6 +27,8 @@ import { applyPlayerAction, assertLegal, sceneOf, tickNeeds } from "../actions/c
 import { updateNodeNoise } from "../sim/noise.js";
 import { runLayer, type SimContext } from "../sim/worldSim.js";
 import { tickRoutes } from "../sim/routes.js";
+import { tickNpcs } from "../sim/npcs.js";
+import { tickCompanions } from "../sim/companions.js";
 import { recordHistory, appendHistory } from "../sim/history.js";
 import { diffSystems } from "../telemetry/turnAudit.js";
 import type { Action, Scene, SceneChoice, TurnResult } from "./contract.js";
@@ -88,6 +90,15 @@ const simCtx = (ctx: TurnContext): SimContext => {
   return ctx.graph === undefined ? { hours } : { hours, graph: ctx.graph };
 };
 
+/** Stage 5: advance the people — every living survivor's needs drift (T33), then the party companions
+ * drift, follow the player, and can die (T36). Was a no-op; the stage name and the 14-stage order are
+ * unchanged, only the body graduated. Both ticks are inert on a zero-hour turn / an empty pool. */
+const updateCompanions: StageFn = (ctx) => {
+  const hours = Math.max(0, Math.trunc(ctx.action.timeCost ?? 0));
+  const withNpcs = tickNpcs(ctx.state, hours);
+  return { ...ctx, state: tickCompanions(withNpcs, hours) };
+};
+
 /** Stage 6: decay/deposit node noise (T14), then tick the node-local zombie state machine (T25). */
 const updateNode: StageFn = (ctx) => {
   const withNoise = updateNodeNoise(ctx.state, ctx.action);
@@ -136,7 +147,7 @@ export const PIPELINE_STAGES: readonly { readonly name: string; readonly run: St
   { name: "advanceTime", run: advanceTime },
   { name: "resolvePlayerAction", run: resolvePlayerAction },
   { name: "updatePlayer", run: updatePlayer },
-  { name: "updateCompanions", run: identity },
+  { name: "updateCompanions", run: updateCompanions },
   { name: "updateNode", run: updateNode },
   { name: "updateRegion", run: updateRegion },
   { name: "updateWorld", run: updateWorld },

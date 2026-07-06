@@ -1,7 +1,7 @@
 {
- "updated": "2026-07-05 (M2 Part 2 landed — T28-T32 done + the world made perceivable. timeOfDay + director layers fill the last two worldSim no-ops; routes gain weather-driven conditions (SAVE_SCHEMA_VERSION 3->4, one additive migrateV3toV4 rung); Living History records notable events into the existing history slice; a pacing telemetry baseline instruments the world and proves the director's pacing DoD. A light Scene-surfacing pass (weather/tide atmosphere line, approaching-horde + roused/screamer leads, route conditions + cost on move choices, weather in the header) makes the reactive world visible — addresses QA H1 / PL-M2-01. Director escalation counters off-screen de-escalation — addresses PL-M2-03. Engine 239 + harness 39 + content-loader 9 green; schema gate green over enemies+nodes+regions+wounds+zombies (5 types, 15 entries); determinism + save-lossless (v4) + 0 no-op turns verified end-to-end over Rivermouth. Only one schema bump this block. Remaining M2 follow-ups: PL-M2-02 (zombie types -> combat), PL-M2-04 (weather noiseFactor, hour-by-hour fast-forward, season-gate). QA review: docs/QA_REVIEW_M2_PART2.md.)",
- "phase": "M2 Reactive world — make the world move whether or not the player is watching: off-screen region drift, migrating hordes that re-path to noise, zombie types, weather, time-of-day danger, the Apocalypse Director, and telemetry instrumentation for later balance. Entry: M1 done and past the Loop-Feel Check.",
- "currentMilestone": "M2",
+ "updated": "2026-07-06 (M3 Part 1 complete — T33 Survivor NPCs + T34 Trust & disposition, done and verified. NPCState + GameState.npcs (SAVE_SCHEMA_VERSION 4->5, one forward-only rung migrateV4toV5 seeding npcs:{}); handcrafted content/npcs (Sarah/Marcus/Ruth) behind npc.schema.json (schema gate 18 entries/6 types); deterministic spawn from a new named `npc` RNG stream; NPC needs drift via the T22 economy at pipeline stage 5 (14-stage order unchanged); a per-NPC 0-100 trust scalar seeded from disposition, asymmetric action deltas, tier + parley/recruit gates, no free regen. Engine-first (no client surfacing yet, per plan). Verified in a clean env: engine 265 + content-loader 9 + harness 39 green; typecheck clean across all three packages; schema gate green incl npcs + malformed still rejected; 40-turn Rivermouth golden run byte-identical with 0 no-op turns, save-lossless across v5, survivors persisted and simulated. M3 queue remainder T35-T42 staged as todo. Parking lot unchanged: PL-M2-02 (zombie types->combat), PL-M2-04 (weather noiseFactor, hour-by-hour fast-forward, season-gate).)",
+ "phase": "M3 People, shelter & first story — a run becomes a story. Encounterable survivors with trust, dialogue and recruitment; claim and fortify a shelter with a shared stash; a first authored story arc surfaced in the Scene. Exit: the Slice Fun Gate — prove the slice grips before any content pour. Entry: M2 Reactive world complete.",
+ "currentMilestone": "M3",
  "milestones": [
   {
    "id": "PRE",
@@ -29,14 +29,14 @@
    "name": "Reactive world",
    "theme": "The world moves on its own",
    "effort": "L",
-   "status": "active"
+   "status": "done"
   },
   {
    "id": "M3",
    "name": "People, shelter & first story",
    "theme": "A run becomes a story — Slice Fun Gate",
    "effort": "XL",
-   "status": "pending"
+   "status": "active"
   },
   {
    "id": "M4",
@@ -277,6 +277,76 @@
    "milestone": "M2",
    "status": "done",
    "note": "Done 2026-07-05: engine/src/telemetry/pacing.ts. samplePacing(state) is a pure client-driven snapshot of the PRD-4 proxies (pressure, tide, region threat/density, walker/horde load, blocked routes, distress, director on); summarizePacing folds a run into pacing metrics (mean/peak pressure, high/calm turns, oscillations, longest calm streak). Off by default — nothing in the pipeline captures. Deterministic over a seeded run; proves the T30 DoD. 4 tests."
+  },
+  {
+   "id": "T33",
+   "title": "Survivor NPCs — encounterable people with state & needs",
+   "milestone": "M3",
+   "status": "done",
+   "note": "Done 2026-07-06 (M3 Part 1): NPCState + GameState.npcs; SAVE_SCHEMA_VERSION 4->5 with one forward-only rung migrateV4toV5 (seeds npcs:{}). content/npcs + npc.schema.json (schema-first; gate now 18 entries/6 types) — Sarah/Marcus/Ruth. Deterministic spawn from a new named `npc` RNG stream (spawnNpcs in startRun); needs drift via the T22 economy wired at pipeline stage 5 (updateCompanions body; 14-stage order unchanged); npcs added to TRACKED_SYSTEMS. Verified: engine 265 (+26) green, save-lossless, v4->v5 migration, 40-turn Rivermouth golden run byte-identical with 0 no-op turns and survivors persisted+simulated. FR-NPC-01 (VS subset)."
+  },
+  {
+   "id": "T34",
+   "title": "Trust & disposition model",
+   "milestone": "M3",
+   "status": "done",
+   "note": "Done 2026-07-06 (M3 Part 1): src/sim/trust.ts — trust 0-100 on NPCState seeded from disposition (DISPOSITION_TRUST); asymmetric action deltas (help +15/share +10/trade +5; threaten -20/rob -30/abandon -25) via applyTrustEvent; adjustTrust clamps; trustTier bands + canParley (>=20) / canRecruit (>=70) gates feeding T35/T36. No free regen — trust never drifts, a betrayal sticks (property test + end-to-end). Pure/integer, save-lossless. FR-NPC-02 (VS subset)."
+  },
+  {
+   "id": "T35",
+   "title": "Dialogue & interaction choices",
+   "milestone": "M3",
+   "status": "todo",
+   "note": "FR-NPC-03: meeting a survivor offers talk/trade/help/threaten as Scene choices with known costs and hidden outcomes (no fake choices), engine-resolved and client-narrated. Every option debits a real resource (time/trust/loot). Surfaced accessibly per the T19/T20 UI contract."
+  },
+  {
+   "id": "T36",
+   "title": "Companion recruitment",
+   "milestone": "M3",
+   "status": "todo",
+   "note": "FR-NPC-04: a sufficiently-trusted survivor can join the run as a companion (party state carried across turns and saves). Extra hands AND an extra mouth — contributes to search/defence, consumes food/water — a real trade, not a free buff. Save-lossless across recruit/lose."
+  },
+  {
+   "id": "T37",
+   "title": "Claim a shelter",
+   "milestone": "M3",
+   "status": "todo",
+   "note": "FR-SHL-01: claim a discovered node as a base — a safety bonus (lower night threat / better rest quality), one active shelter per run, in GameState (schema rung if needed). The first place on the map that is yours; anchors T38/T39."
+  },
+  {
+   "id": "T38",
+   "title": "Fortify & upkeep",
+   "milestone": "M3",
+   "status": "todo",
+   "note": "FR-SHL-02: spend loot + time to fortify the shelter (dampen node noise, resist horde drift, raise the detection floor against night hunters); fortification decays and needs upkeep — a live maintenance decision against the reactive world, not a one-time purchase."
+  },
+  {
+   "id": "T39",
+   "title": "Shared stash",
+   "milestone": "M3",
+   "status": "todo",
+   "note": "FR-SHL-03 / FR-PLR-04: deposit/withdraw loot at the shelter, a store separate from the T18 carry budget so a run can bank surplus. Depletion/theft hooks to the contested world (a raided stash is a story beat). Save-lossless; weight still bites on the road."
+  },
+  {
+   "id": "T40",
+   "title": "First authored story arc",
+   "milestone": "M3",
+   "status": "todo",
+   "note": "FR-STORY-01: one scripted multi-beat arc as a deterministic trigger chain over the sim (a survivor in trouble -> a costed choice -> a consequence that ripples into trust/shelter/world). Append-only into Living History (T31); save-lossless; reproducible from a seed. Proof that systems can carry a story."
+  },
+  {
+   "id": "T41",
+   "title": "Story surfaced in the Scene",
+   "milestone": "M3",
+   "status": "todo",
+   "note": "FR-UI-STORY: narrative beats and NPC/story leads appear in the Four-Questions UI alongside the world-surfacing pass (weather/threat/horde), plain-text and keyboard-only (NFR-ACC). A run should READ as a story, not a stat sheet — the perceivable half of the M3 fun-gate."
+  },
+  {
+   "id": "T42",
+   "title": "Slice Fun Gate",
+   "milestone": "M3",
+   "status": "todo",
+   "note": "PRODUCTION §4 Stage-2 — the owner's human verdict that 'a run becomes a story'. The M3 exit; cannot be auto-passed. Record it in the Fun-Gate log; retires the 'systemic but not fun' risk. A pass opens M4 (content-complete city); a fail freezes content and re-invests in people/shelter/story."
   }
  ],
  "adrs": [

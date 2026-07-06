@@ -7,6 +7,44 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Milestone
 
+- **M3 — Part 2 (T35–T36) makes the people layer played: survivors are met, fed, threatened, recruited, and lost.**
+  The silent substrate T33/T34 shipped now reaches the Scene and bites. **Survivor encounters (T35, `sim/encounters.ts`)**
+  surface every living survivor at the player's node as choices — *talk* (a one-shot that flips a new `NPCState.met`,
+  gated by `canParley`), *share food/water* (spend one of your items to buy their need down by the T22 relief and earn
+  trust, `share +10`, offered only when carried and pressing), and *threaten* (`−20`) — wired into `availableActions`/
+  `sceneOf` so the harness surfaces them in plain text with no client rewrite. The needs model finally has **teeth**:
+  `driftNpc` kills a survivor whose hunger or thirst saturates (`NEED_FATAL`), so `alive` flips and the world has someone
+  besides the player to fall on; threaten past `PARLEY_MIN` **turns** a survivor cold, and the no-regen property keeps that
+  door shut. **Recruitable companions (T36, `sim/companions.ts`)** graduate a met survivor at `trust ≥ 70` out of `npcs`
+  into an `actors` `Survivor` flagged a companion (`recruit`); pipeline **stage 5** now drifts companions and keeps them at
+  the player's side (they follow), fed from your pack through the same share verbs; a neglected companion dies **permanently**
+  — removed from `actors`, remembered by a `fallen.<id>` flag and a `companion.died` entry in the Living History
+  (`killCompanion` exposes the same seam for a future combat death). The **Living History** learns four people events
+  (`npc.met`, `npc.died`, `companion.recruited`, `companion.died`). One additive schema bump this block —
+  `SAVE_SCHEMA_VERSION 5→6` with one forward-only rung `migrateV5toV6` (every old survivor gains `met:false`); `actors` is
+  populated by runtime transition on an existing always-`{}` collection, so T36 rides no rung. No new RNG stream, so every
+  M2/M3P1 golden run stays byte-identical; a scripted meet→recruit→travel slice reproduced byte-for-byte, round-tripped
+  losslessly across v6, and kept the FR-CORE-04 audit clean. Engine **296 (+31)** + harness **42 (+3)** + content-loader 9
+  green; typecheck clean; schema gate green (6 types / 18 entries, content unchanged) and malformed still rejected; the
+  14-stage order unchanged and the reserved `groups` untouched. Retires FR-NPC-03/04 (VS subsets) and the FR-NPC-01
+  surfacing. See `docs/M3_PART2_PLAN.md` and `docs/QA_REVIEW_M3_PART2.md`.
+
+- **M3 — People, shelter & first story is UNDERWAY; Part 1 (T33–T34) lays the people substrate.** A run now has
+  *people* in it. **Survivor NPCs (T33)** add a new per-run `GameState.npcs` of `NPCState` (name, disposition, needs,
+  location, alive, trust) behind `SAVE_SCHEMA_VERSION 4→5` (one forward-only rung `migrateV4toV5`, seeds `npcs:{}`); a
+  handcrafted Rivermouth pool — Sarah the paramedic, Marcus the ex-Guard, Ruth the shopkeeper — ships as `content/npcs`
+  behind a schema-first `npc.schema.json` (the gate now covers 6 types / 18 entries). Survivors spawn **deterministically
+  from a new named `npc` RNG stream** (`spawnNpcs` in `startRun`) and their needs grind on with the hours via the T22
+  economy, wired into pipeline **stage 5** (`updateCompanions` body; the fixed 14-stage order is unchanged); `npcs` joins
+  the FR-CORE-04 audit. **Trust & disposition (T34, `sim/trust.ts`)** gives each survivor a 0–100 trust scalar seeded from
+  disposition, moved only by the player's actions — help/share/trade raise it, threaten/rob/abandon lower it, asymmetrically
+  so a betrayal costs more than a good turn earns — that **never regenerates on its own** (a betrayal sticks), with tier
+  bands and `canParley`/`canRecruit` gates staged for T35/T36. Engine-first: no client surfacing yet (per the plan). Over a
+  40-turn Rivermouth golden run the pool spawned at its home nodes, reproduced byte-for-byte, round-tripped losslessly
+  across the v5 bump, kept **0 no-op turns**, and its survivors were simulated (a paramedic's thirst climbing) and
+  persisted. Engine 265 (+26) + harness 39 + content-loader 9 green; schema gate green incl. the new npcs and malformed
+  still rejected; one schema bump this block. See `docs/M3_PART1_PLAN.md` and `docs/QA_REVIEW_M3_PART1.md`.
+
 - **M2 — Reactive world is COMPLETE (T23–T32); the living world is now visible in play.** Part 2 filled the
   last two world-sim layers and made the whole reactive world perceivable. **Time-of-day danger (T28)** gives the
   phase one owner (`sim/timeOfDay.ts`): darkness conceals a stealth mover (the T15 detection term, now named), night

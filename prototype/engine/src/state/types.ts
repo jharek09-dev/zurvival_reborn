@@ -15,7 +15,7 @@
  */
 
 /** Bump on any breaking change to this shape; checked on load (DESIGN §9). */
-export const SAVE_SCHEMA_VERSION = 4;
+export const SAVE_SCHEMA_VERSION = 6;
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -167,6 +167,44 @@ export interface Survivor {
   readonly relationships: { readonly [actorId: ActorId]: number };
   readonly inventory: readonly InventoryEntry[];
   readonly flags: Flags;
+}
+
+/**
+ * NPC disposition — a survivor's baseline temperament (M3 task T33 · FR-NPC-01). The *fixed* half of
+ * the attitude model, seeded from content; {@link NPCState.trust} is the half that moves (T34).
+ */
+export type NPCDisposition = "hostile" | "wary" | "neutral" | "friendly" | "desperate";
+
+/**
+ * An encounterable survivor — a person in the run with their own state and needs (M3 task T33 ·
+ * FR-NPC-01). Deliberately lighter than {@link Survivor} (the reserved companion/faction record): a
+ * survivor you have merely *met* is not yet a party member. One instance per handcrafted definition in
+ * the Vertical Slice, keyed by `id` in {@link GameState.npcs}.
+ *
+ * `trust` (T34 · FR-NPC-02) is the 0–100 scalar that shifts only from the player's actions and never
+ * regenerates on its own — a betrayal sticks. `alive` is flipped false when a survivor's
+ * needs saturate (T35 death); `met` (T35) records whether the player has spoken with them.
+ */
+export interface NPCState {
+  readonly id: ActorId;
+  /** Content id of the handcrafted survivor definition (DESIGN §8 — an id, never a content copy). */
+  readonly type: ContentId;
+  /** Survivor's name, denormalised from content so a save reads on its own. */
+  readonly name: string;
+  readonly disposition: NPCDisposition;
+  /** Hunger/thirst/fatigue as 0–100 ints; drift with elapsed hours like the player's needs (T22). */
+  readonly needs: Needs;
+  /** Current node, or null when off-map. */
+  readonly location: NodeId | null;
+  readonly alive: boolean;
+  /**
+   * Whether the player has *spoken* with this survivor (M3 task T35). Flipped true by a `talk`
+   * interaction, which reveals their FR-NPC-01 flavour; a precondition on recruitment (you cannot ask a
+   * stranger to follow you). False at spawn — a survivor you have not yet met (schema v6).
+   */
+  readonly met: boolean;
+  /** 0–100 int trust toward the player (T34 · FR-NPC-02). Moves only from actions; no free regen. */
+  readonly trust: number;
 }
 
 /** An off-screen faction / rival group (GDD XII; moves in pipeline stage 10). */
@@ -395,6 +433,8 @@ export interface GameState {
   readonly routes: { readonly [routeKey: string]: RouteState };
   readonly actors: { readonly [actorId: ActorId]: Survivor };
   readonly groups: { readonly [groupId: GroupId]: SurvivorGroup };
+  /** Encounterable survivors — people with state, needs, and trust (T33/T34 · FR-NPC-01/02). */
+  readonly npcs: { readonly [npcId: ActorId]: NPCState };
   readonly hordes: readonly Horde[];
   readonly combat: CombatState | null;
   readonly items: { readonly [itemId: ItemInstanceId]: ItemInstance };

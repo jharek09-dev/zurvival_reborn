@@ -42,6 +42,7 @@ export const TRACKED_SYSTEMS = [
   "routes",
   "actors",
   "groups",
+  "npcs",
   "hordes",
   "combat",
   "items",
