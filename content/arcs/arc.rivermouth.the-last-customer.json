@@ -1,0 +1,51 @@
+{
+  "$schema": "../schemas/arc.schema.json",
+  "id": "arc.rivermouth.the-last-customer",
+  "title": "The Last Customer",
+  "premise": "Ruth ran the corner store for thirty years; robbed twice and nearly out of everything, she comes to your barricade. What you spare \u2014 or don't \u2014 decides how she remembers you.",
+  "subject": "npc.ruth",
+  "trigger": {
+    "needThreshold": 60
+  },
+  "beats": {
+    "plea": "Ruth sways at your barricade, hollow-eyed and begging to be let in \u2014 she has nothing left. Sheltering her means sparing supplies from your cache.",
+    "helped": "Ruth is resting under your roof, some colour coming back to her.",
+    "refused": "Ruth is out there in the dark, and she knows exactly what your cache holds.",
+    "resolvedGood": "Ruth slipped back at first light and left supplies in your cache \u2014 she remembered.",
+    "resolvedCold": "Your cache has been torn into and the barricade wrenched loose \u2014 Ruth came back for what you would not give."
+  },
+  "choices": {
+    "help": {
+      "label": "Take Ruth in \u2014 share the cache",
+      "timeCost": 2,
+      "stashDraw": 2,
+      "trustDelta": 25
+    },
+    "refuse": {
+      "label": "Turn Ruth away",
+      "timeCost": 1,
+      "trustDelta": -35
+    }
+  },
+  "consequences": {
+    "delayHours": 12,
+    "good": {
+      "repay": [
+        {
+          "item": "item.canned-food",
+          "quantity": 2
+        },
+        {
+          "item": "item.water",
+          "quantity": 1
+        }
+      ],
+      "trustDelta": 20
+    },
+    "cold": {
+      "raidUnits": 3,
+      "barricadeHit": 20
+    }
+  },
+  "notes": "First authored arc (T40 \u00b7 FR-STORY-01). The engine (src/sim/story.ts, THE_LAST_CUSTOMER) holds the authoritative VS dials; these mirror them for review and carry the surfaced prose. Ruth's desperate disposition (npc.ruth) starts her needs high so the trigger is reachable in a real run."
+}

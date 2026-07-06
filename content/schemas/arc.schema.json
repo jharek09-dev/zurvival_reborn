@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/arc.schema.json",
+  "title": "Story arc",
+  "description": "A handcrafted, multi-beat story arc (FR-STORY-01). A deterministic trigger chain over the sim: a subject survivor in trouble, a costed player choice, and a rippling consequence. The engine carries the authoritative VS dials (src/sim/story.ts); this file is the authored source of truth — its prose is surfaced by the client (T41+), and its dials mirror the engine for review, exactly as an NPC's background/personality flavour is authored here but the engine reads a subset (T33/T35).",
+  "type": "object",
+  "required": ["id", "title", "premise", "subject", "trigger", "beats", "choices", "consequences"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "Optional editor hint pointing at this schema." },
+    "id": { "type": "string", "pattern": "^arc\\.[a-z0-9]+(?:[.\\-_][a-z0-9]+)*$", "description": "Stable content id of the form arc.<region>.<slug>." },
+    "title": { "type": "string", "minLength": 1, "description": "Player-facing arc title (ICU MessageFormat string)." },
+    "premise": { "type": "string", "minLength": 1, "description": "One-line premise — the human pitch for the arc." },
+    "subject": { "type": "string", "pattern": "^npc\\.[a-z0-9]+(?:[.\\-_][a-z0-9]+)*$", "description": "The survivor the arc is about; its trigger and ripples read this npc (T33/T34)." },
+    "trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["needThreshold"],
+      "description": "When the systems have produced 'a survivor in trouble at your base'.",
+      "properties": {
+        "needThreshold": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Hunger/thirst at or above which the subject is in trouble." }
+      }
+    },
+    "beats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plea", "helped", "refused", "resolvedGood", "resolvedCold"],
+      "description": "Authored prose for each beat, surfaced in the Scene (T41) — plain-text, screen-reader-safe.",
+      "properties": {
+        "plea": { "type": "string", "minLength": 1 },
+        "helped": { "type": "string", "minLength": 1 },
+        "refused": { "type": "string", "minLength": 1 },
+        "resolvedGood": { "type": "string", "minLength": 1 },
+        "resolvedCold": { "type": "string", "minLength": 1 }
+      }
+    },
+    "choices": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["help", "refuse"],
+      "description": "The plea's costed fork; dials mirror the engine (src/sim/story.ts).",
+      "properties": {
+        "help": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["label", "timeCost", "stashDraw", "trustDelta"],
+          "properties": {
+            "label": { "type": "string", "minLength": 1 },
+            "timeCost": { "type": "integer", "minimum": 1, "maximum": 24 },
+            "stashDraw": { "type": "integer", "minimum": 0, "maximum": 20 },
+            "trustDelta": { "type": "integer", "minimum": -100, "maximum": 100 }
+          }
+        },
+        "refuse": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["label", "timeCost", "trustDelta"],
+          "properties": {
+            "label": { "type": "string", "minLength": 1 },
+            "timeCost": { "type": "integer", "minimum": 1, "maximum": 24 },
+            "trustDelta": { "type": "integer", "minimum": -100, "maximum": 100 }
+          }
+        }
+      }
+    },
+    "consequences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["delayHours", "good", "cold"],
+      "description": "The delayed ripple, resolved in pipeline stage 12 when it comes due.",
+      "properties": {
+        "delayHours": { "type": "integer", "minimum": 1, "maximum": 168 },
+        "good": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repay", "trustDelta"],
+          "description": "She repays: supplies cached back to your base, and she warms further.",
+          "properties": {
+            "repay": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["item", "quantity"],
+                "properties": {
+                  "item": { "type": "string", "pattern": "^item\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$" },
+                  "quantity": { "type": "integer", "minimum": 1, "maximum": 20 }
+                }
+              }
+            },
+            "trustDelta": { "type": "integer", "minimum": -100, "maximum": 100 }
+          }
+        },
+        "cold": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["raidUnits", "barricadeHit"],
+          "description": "She comes back for what you would not give: a raid on the cache and the barricade.",
+          "properties": {
+            "raidUnits": { "type": "integer", "minimum": 0, "maximum": 20 },
+            "barricadeHit": { "type": "integer", "minimum": 0, "maximum": 100 }
+          }
+        }
+      }
+    },
+    "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
+  }
+}

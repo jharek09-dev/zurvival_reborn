@@ -48,6 +48,15 @@ import {
   resolveCombatAction,
 } from "../combat/combat.js";
 import { encounterPeople, isEncounterAction, resolveEncounterAction } from "../sim/encounters.js";
+import {
+  shelterChoices,
+  shelterLine,
+  isShelterAction,
+  resolveShelterAction,
+  applyShelterRest,
+} from "../sim/shelter.js";
+import { stashChoices, isStashAction, resolveStashAction } from "../sim/stash.js";
+import { storyChoices, isStoryAction, resolveStoryAction, storyLine } from "../sim/story.js";
 import { companionsHere } from "../sim/companions.js";
 import { canParley } from "../sim/trust.js";
 
@@ -158,6 +167,19 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
     action: { type: "rest", choiceId: "rest", timeCost: REST_COST },
   });
 
+  // Shelter (T37/T38 · FR-SHL): claim a searched-clean node as your base, or fortify the base you stand in.
+  // Appended after rest — both are "at this place" actions — and before the people/drop blocks. Inert until a
+  // node is searched clean (claim) or you stand in your own shelter with scrap (fortify).
+  for (const choice of shelterChoices(state)) choices.push(choice);
+
+  // Shared stash (T39 · FR-SHL-03/FR-PLR-04): bank surplus at the base or pull it back. Offered only while
+  // standing in your own shelter, per carried/stashed stack, free like the T18 drop — inert everywhere else.
+  for (const choice of stashChoices(state)) choices.push(choice);
+
+  // Authored story (T40 · FR-STORY-01): a live arc beat's costed choices — e.g. the plea at your base.
+  // Surfaced in the same at-your-place block; inert unless an arc has a decision waiting here.
+  for (const choice of storyChoices(state)) choices.push(choice);
+
   // People here (T35 · FR-NPC): talk / share / threaten / recruit a survivor present, or feed a companion.
   // Offered in the explore branch only — an active fight or loitering walkers pre-empt it above — and
   // appended after the survival verbs so the world-danger and self-care choices lead the list.
@@ -217,6 +239,9 @@ function applySearch(state: GameState): GameState {
 export function applyPlayerAction(state: GameState, graph: RegionGraph, action: Action): GameState {
   if (isCombatAction(action)) return resolveCombatAction(state, graph, action);
   if (isEncounterAction(action)) return resolveEncounterAction(state, action);
+  if (isShelterAction(action)) return resolveShelterAction(state, action);
+  if (isStashAction(action)) return resolveStashAction(state, action);
+  if (isStoryAction(action)) return resolveStoryAction(state, action);
   switch (action.type) {
     case "move": {
       const to = action.params?.["to"];
@@ -253,8 +278,9 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
  */
 export function tickNeeds(state: GameState, action: Action): GameState {
   // Stage 4: drift needs by the hours spent and apply wound decline / infection (T22). A zero-hour
-  // action (bare `wait`) changes nothing, preserving the M0 empty-turn contract.
-  return updateCondition(state, action);
+  // action (bare `wait`) changes nothing, preserving the M0 empty-turn contract. A rest at your claimed
+  // shelter then recovers extra fatigue (T37/T38) — applied here so survival.ts stays shelter-agnostic.
+  return applyShelterRest(updateCondition(state, action), action);
 }
 
 const pad2 = (n: number): string => (n < 10 ? `0${n}` : `${n}`);
@@ -404,8 +430,10 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   // atmosphere line, then the place itself. Screen-reader-safe — everything critical is in words.
   const lead = threat ?? worldLead(state, graph);
   const people = peopleLine(state);
+  const shelter = shelterLine(state);
+  const story = storyLine(state);
   const atmosphere = atmosphereLine(state);
-  const narration = [lead, people, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
+  const narration = [lead, people, shelter, story, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
 
   return { turn, day, hour, phase, location: here, narration, choices: availableActions(state, graph) };
 }

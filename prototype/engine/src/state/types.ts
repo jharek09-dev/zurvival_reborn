@@ -15,7 +15,7 @@
  */
 
 /** Bump on any breaking change to this shape; checked on load (DESIGN §9). */
-export const SAVE_SCHEMA_VERSION = 6;
+export const SAVE_SCHEMA_VERSION = 7;
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -138,6 +138,13 @@ export interface InventoryEntry {
 export interface Player {
   readonly condition: CharacterState;
   readonly inventory: readonly InventoryEntry[];
+  /**
+   * A store kept at the player's shelter, separate from the weight-limited pack (M3 task T39 ·
+   * FR-SHL-03 / FR-PLR-04). Deposited loot leaves the carry budget entirely — the base banks the
+   * surplus — and it is the store the contested world can *raid* (a raided cache is a story beat,
+   * T40). Empty until the first deposit; weightless while stored (schema v7).
+   */
+  readonly stash: readonly InventoryEntry[];
   /** Slot → item-instance id (or content id for non-unique gear). */
   readonly equipment: { readonly [slot: string]: string };
   /** Skill key → 0–100 int. */

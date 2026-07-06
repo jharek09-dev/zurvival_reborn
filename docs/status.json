@@ -1,7 +1,7 @@
 {
- "updated": "2026-07-06 (M3 Part 1 complete — T33 Survivor NPCs + T34 Trust & disposition, done and verified. NPCState + GameState.npcs (SAVE_SCHEMA_VERSION 4->5, one forward-only rung migrateV4toV5 seeding npcs:{}); handcrafted content/npcs (Sarah/Marcus/Ruth) behind npc.schema.json (schema gate 18 entries/6 types); deterministic spawn from a new named `npc` RNG stream; NPC needs drift via the T22 economy at pipeline stage 5 (14-stage order unchanged); a per-NPC 0-100 trust scalar seeded from disposition, asymmetric action deltas, tier + parley/recruit gates, no free regen. Engine-first (no client surfacing yet, per plan). Verified in a clean env: engine 265 + content-loader 9 + harness 39 green; typecheck clean across all three packages; schema gate green incl npcs + malformed still rejected; 40-turn Rivermouth golden run byte-identical with 0 no-op turns, save-lossless across v5, survivors persisted and simulated. M3 queue remainder T35-T42 staged as todo. Parking lot unchanged: PL-M2-02 (zombie types->combat), PL-M2-04 (weather noiseFactor, hour-by-hour fast-forward, season-gate).)",
- "phase": "M3 People, shelter & first story — a run becomes a story. Encounterable survivors with trust, dialogue and recruitment; claim and fortify a shelter with a shared stash; a first authored story arc surfaced in the Scene. Exit: the Slice Fun Gate — prove the slice grips before any content pour. Entry: M2 Reactive world complete.",
- "currentMilestone": "M3",
+ "updated": "2026-07-06 (M5 backlog authored — the production line is complete end to end. Populated M5 (Release candidate / v1.0), the last empty milestone, with its 12-task backlog T58–T69, mapped to PRODUCTION §3 M5 scope, the §8 staged-balance sequence (survivability → scarcity → pacing/director → difficulty → accessibility), the §9/§10 gates, and the PRD FR/NFR set: monetization decision (T58); two staged balance passes (T59–T60); multiple endings from run components (T61); failure endings + epilogues (T62); full accessibility verified with assistive tech (T63); localization externalization (T64); save-migration proof across a real schema change (T65); reliability & performance hardening — crash-free ≥99.5%, <100 ms turn (T66); the polish / UI-restraint pass (T67); content freeze & every-Must-met release audit (T68); and the v1.0 'one more day' launch gate (T69). currentMilestone stays M4 (active) and the phase banner is unchanged — M5 is future work and the WIP limit holds at one milestone in flight. All milestones M0–M5 now carry tasks (57 → 69). Engine/prototype state unchanged — planning + dashboard only, no code touched.)",
+ "phase": "M4 Content-complete city — breadth without repetition, the full first city. The launch Content Bible for one city: all regions & nodes, the target survivor pool with several companions, full encounter categories with chains & evolution, infection as staged identity, the radio network, a crafting/rooms/jobs economy, factions & inter-NPC relationships, depth screens, an adaptive audio mix with non-audio equivalents, difficulty modes, and the accessibility baseline complete — all content schema-validated in CI. Exit: MVP / public beta. Entry: M3 done and the Slice Fun Gate passed; content schemas frozen for authoring.",
+ "currentMilestone": "M4",
  "milestones": [
   {
    "id": "PRE",
@@ -36,14 +36,14 @@
    "name": "People, shelter & first story",
    "theme": "A run becomes a story — Slice Fun Gate",
    "effort": "XL",
-   "status": "active"
+   "status": "done"
   },
   {
    "id": "M4",
    "name": "Content-complete city",
    "theme": "Breadth without repetition — MVP/beta",
    "effort": "XL",
-   "status": "pending"
+   "status": "active"
   },
   {
    "id": "M5",
@@ -296,57 +296,246 @@
    "id": "T35",
    "title": "Dialogue & interaction choices",
    "milestone": "M3",
-   "status": "todo",
-   "note": "FR-NPC-03: meeting a survivor offers talk/trade/help/threaten as Scene choices with known costs and hidden outcomes (no fake choices), engine-resolved and client-narrated. Every option debits a real resource (time/trust/loot). Surfaced accessibly per the T19/T20 UI contract."
+   "status": "done",
+   "note": "Done 2026-07-06 (M3 Part 2): src/sim/encounters.ts — FR-NPC-01 surfacing + FR-NPC-06 (VS subset). Living survivors at the player's node are offered as Scene choices (availableActions/sceneOf, explore branch only — a fight/walkers pre-empt): talk (one-shot, flips new NPCState.met, gated by canParley), share food/water (spend a player item, buy their need down by the T22 relief, +10 trust via applyTrustEvent 'share', offered only when carried & the need is pressing), threaten (-20 trust; past PARLEY_MIN they turn and no-regen keeps it). Teeth: driftNpc kills a survivor whose hunger/thirst hits NEED_FATAL (alive flips; body persists, inert). Living History gains npc.met/npc.died. Harness surfaces it via the existing render path (no client rewrite). Engine 296 + harness 42 green; deterministic, integer-only, save-lossless."
   },
   {
    "id": "T36",
    "title": "Companion recruitment",
    "milestone": "M3",
-   "status": "todo",
-   "note": "FR-NPC-04: a sufficiently-trusted survivor can join the run as a companion (party state carried across turns and saves). Extra hands AND an extra mouth — contributes to search/defence, consumes food/water — a real trade, not a free buff. Save-lossless across recruit/lose."
+   "status": "done",
+   "note": "Done 2026-07-06 (M3 Part 2): src/sim/companions.ts — FR-NPC-03/04 (VS subset). A met survivor at trust>=70 (canRecruit) graduates out of GameState.npcs into an actors Survivor flagged companion (recruit); pipeline stage 5 now drifts companions AND keeps them at the player's side (they follow across moves), fed from the pack via the T35 share verbs. Permanent, remembered death (FR-NPC-04): a neglected companion dies -> removed from actors for good (non-returning), fallen.<id> flag on the player, companion.died in the append-only Living History; killCompanion exposes the same transition for a future combat death. actors is populated by runtime transition (no schema rung); reserved groups untouched; save-lossless with a live companion; both stage-5 ticks inert on a 0-hour turn / empty party."
   },
   {
    "id": "T37",
    "title": "Claim a shelter",
    "milestone": "M3",
-   "status": "todo",
-   "note": "FR-SHL-01: claim a discovered node as a base — a safety bonus (lower night threat / better rest quality), one active shelter per run, in GameState (schema rung if needed). The first place on the map that is yours; anchors T38/T39."
+   "status": "done",
+   "note": "Done 2026-07-06 (M3 Part 3): src/sim/shelter.ts — FR-SHL-01. Claim a node you have SEARCHED CLEAN (searchPct>=100) as your base while holding none — one active shelter per run — via a claim-shelter Scene verb wired into availableActions/sceneOf. Sets the reserved Player.shelterId (NO schema rung — the T3 shape, populated like actors were in T36), costs CLAIM_COST=4h, appends shelter.claimed to the Living History, and is a resolved player-changing turn (FR-CORE-04, no no-op). Payoff: resting at the base recovers extra fatigue (applyShelterRest in stage 4 — base +15, scaling with fortification). shelterLine reads the base into the Scene in plain text (NFR-ACC). Inert on shelterId===null, so every prior run stays byte-identical."
   },
   {
    "id": "T38",
    "title": "Fortify & upkeep",
    "milestone": "M3",
-   "status": "todo",
-   "note": "FR-SHL-02: spend loot + time to fortify the shelter (dampen node noise, resist horde drift, raise the detection floor against night hunters); fortification decays and needs upkeep — a live maintenance decision against the reactive world, not a one-time purchase."
+   "status": "done",
+   "note": "Done 2026-07-06 (M3 Part 3): src/sim/shelter.ts — FR-SHL-02. Fortify the base you stand in: spend one item.scrap (T17 loot tables) + FORTIFY_COST=3h to raise the reserved NodeState.barricades by FORTIFY_GAIN=25 (cap 100). Barricades decay FORTIFY_DECAY_PER_HOUR=1/h in pipeline stage 6 (updateNode) — a live upkeep decision, only ever touching a node with barricades>0 so prior runs are untouched; logs shelter.fortified on a genuine rise. Three integer payoffs scaled trunc(max*barricades/100): noise muffle at the base (SHELTER_NOISE_MUFFLE_MAX=20 → also RESISTS HORDE DRIFT since the T26 re-path reads node.noise), a detection floor in stimulusAt (SHELTER_DETECT_FLOOR_MAX=40 → dormant by day at full fortification, a stalker-at-night reduced NOT nullified), and deeper rest (SHELTER_REST_FORT_MAX=15). No schema rung; no new RNG; 14-stage order unchanged."
   },
   {
    "id": "T39",
    "title": "Shared stash",
    "milestone": "M3",
-   "status": "todo",
-   "note": "FR-SHL-03 / FR-PLR-04: deposit/withdraw loot at the shelter, a store separate from the T18 carry budget so a run can bank surplus. Depletion/theft hooks to the contested world (a raided stash is a story beat). Save-lossless; weight still bites on the road."
+   "status": "done",
+   "note": "Done 2026-07-06 (M3 Part 4): src/sim/stash.ts — FR-SHL-03/FR-PLR-04. A base warehouse separate from the T18 carry budget. Deposit/withdraw offered only while standing in your own shelter (atOwnShelter), one choice per carried/stashed non-unique stack, FREE (0h, mirrors the T18 drop) — they change player.inventory<->player.stash without advancing the clock. The stash is WEIGHTLESS while stored (inventoryWeight reads inventory only), so a run banks surplus and weight still bites on the road; withdraw is gated on fits(). depleteStash(state,count) is the contested-world RAID hook — peels units in stable (alphabetical) order via the shared removeStashUnits and logs a single stash.raided beat; T40's cold branch rides it. cacheRead surfaces the store in shelterLine (words, never a number). The block's ONE schema rung: Player.stash, v6->v7 — migrateV6toV7 appends stash:[] (idempotent), SAVE_SCHEMA_VERSION=7; empty on every prior run so all are inert + byte-identical. 12 new engine tests (test/stash.test.ts) incl. the v6->v7 migration + a deposited round-trip; integer-only, save-lossless."
   },
   {
    "id": "T40",
    "title": "First authored story arc",
    "milestone": "M3",
-   "status": "todo",
-   "note": "FR-STORY-01: one scripted multi-beat arc as a deterministic trigger chain over the sim (a survivor in trouble -> a costed choice -> a consequence that ripples into trust/shelter/world). Append-only into Living History (T31); save-lossless; reproducible from a seed. Proof that systems can carry a story."
+   "status": "done",
+   "note": "Done 2026-07-06 (M3 Part 4): src/sim/story.ts — FR-STORY-01. 'The Last Customer' (arc.rivermouth.the-last-customer, subject npc.ruth): a deterministic trigger chain over the sim, NO save-schema rung (rides reserved-and-inert story.progress[arcId] as the int beat counter + queue for the delayed consequence — the same populate-a-reserved-shape move T37/T38 made). Opt-in per run: startRun gains arcIds, registerArcs seeds story.progress, so a run that enables no arc — and every prior golden — is byte-identical (evaluateArcs/resolveDueStoryEvents/storyChoices are true no-ops on progress{}/queue[]). Beats: DORMANT->PLEA (auto, stage 13, when you hold a shelter, have met her, and her T33 needs crossed needThreshold=60 at your base) -> HELPED/REFUSED (costed help/refuse via stage-3 dispatch: help spends stashDraw=2 + eases her needs + trust +25 and enqueues the good repayment; refuse trust -35 below parley — betrayal sticks — and enqueues the cold raid) -> RESOLVED_GOOD/COLD (stage 12, when due after delayHours=12: good caches repay supplies + trust; cold calls depleteStash(3) + barricadeHit 20 — the raided-stash story beat). Two identity pipeline stages graduate (12 resolveQueue, 13 evaluateStory) with names + 14-stage order unchanged. Authored content/arcs/arc.rivermouth.the-last-customer.json + content/schemas/arc.schema.json (gate 19/7); engine holds the authoritative VS dials, content mirrors them (harness integrity test guards drift). No RNG (pure predicates + fixed transforms) => byte-identical from seed; save-lossless (progress+queue round-trip); FR-CORE-04 clean (story/queue/history move). 14 engine tests (test/story.test.ts) incl. a subagent-found storyLine regression."
   },
   {
    "id": "T41",
    "title": "Story surfaced in the Scene",
    "milestone": "M3",
-   "status": "todo",
-   "note": "FR-UI-STORY: narrative beats and NPC/story leads appear in the Four-Questions UI alongside the world-surfacing pass (weather/threat/horde), plain-text and keyboard-only (NFR-ACC). A run should READ as a story, not a stat sheet — the perceivable half of the M3 fun-gate."
+   "status": "done",
+   "note": "Done 2026-07-06 (M3 Part 4): FR-UI-STORY. The run READS as a story. storyLine(state) — the active arc's live beat in words (the plea while it waits, the sheltering/foreboding while a consequence is pending, the outcome the turn it lands) — composed into sceneOf's narration list after the world/people/shelter leads and before atmosphere, so danger still leads but the story is impossible to miss. The arc's costed choices arrive via availableActions in the same at-your-place block. No state, no new client code: the T19 play.ts 'story' region already prints scene.narration and choices already list their known cost, so the T20 transcript carries the whole beat plain-text, keyboard-only (NFR-ACC-01/02). Proven in the harness (test/story.test.ts, +3) — plea in the story region, fork as numbered choices with costs, selectable by number — and end-to-end in docs/qa/FUN_GATE_SLICE.md. Subagent review caught + fixed a legibility bug: storyLine's resolved-outcome line peeked only the last history slot, but stage 13 appends world events after the stage-12 beat, so the payoff dropped on busy turns — now scans for the beat at meta.turn (regression-tested)."
   },
   {
    "id": "T42",
    "title": "Slice Fun Gate",
    "milestone": "M3",
+   "status": "done",
+   "note": "PASSED — Session 3 (2026-07-06), owner playtest. The M3 Slice Fun Gate: a run becomes a story. Session 1 surfaced a real defect (the arc's 'Take Ruth in' silently gated on cache>=2); fixed by making the requirement legible (Session 2, owner chose keep-the-rule-make-it-visible); Session 3 played the FULL loop to its close and it delivered end-to-end: emergent setup (the hours spent making a home starve Ruth, who follows you to the barricade) -> a legible costed choice (stash 2, take her in, cache->bare, 'resting under your roof') -> the rippling consequence (~12h later she repays: 'Ruth slipped back at first light and left supplies in your cache — she remembered', the cache refills, withdrawable). Deterministic, save-lossless, plain-text keyboard-only. Verdict PASS on the systemic/retellable-moment bar; the across-run 'one more day' durability is the scope M4 content now builds on (the gate's job was to decide the foundation grips before the content pour — it does). Retires the 'systemic but not fun' risk. Opens M4; content schemas freeze for authoring. Carried to M4/M5: choice-weight scarcity tune (a flush start made the 2-unit cost light), a played base-siege on the good branch (PL-M3-08, narrated horde never arrives), more arcs for variety (PL-M3-09), and a repay-prose/time polish ('first light' shown at 17:00). Recorded in docs/qa/FUN_GATE_LOG.md Session 3."
+  },
+  {
+   "id": "T43",
+   "title": "M4 decision gates — ADR-0004 + cross-run memory + licensing",
+   "milestone": "M4",
    "status": "todo",
-   "note": "PRODUCTION §4 Stage-2 — the owner's human verdict that 'a run becomes a story'. The M3 exit; cannot be auto-passed. Record it in the Fun-Gate log; retires the 'systemic but not fun' risk. A pass opens M4 (content-complete city); a fail freezes content and re-invests in people/shelter/story."
+   "note": "Resolve the decisions PRODUCTION §9 ties to M4 before they stall content/beta. ADR-0004 platform ordering (native / Steam / chat-bot sequence; web-first already set) — unblocks post-launch client work. Cross-run memory persistence (how much Living History carries between runs) — gates endings & meta-progression. Licensing selection (proprietary / source-available / open) — must land before any public beta distribution. Each a written ADR against its criteria; time-box, decide, and log so none silently drifts."
+  },
+  {
+   "id": "T44",
+   "title": "Content Bible — the full first city (regions & nodes)",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "FR-MAP-01 / FR-SIM-02 at city scale. Author the full launch city: all regions (≈4–6) and ≈40–60 nodes with real per-node memory (loot %, damage, corpses, occupants, discoveries persisting all run), grouped into regions connected by routes — replacing the single Rivermouth slice region. Content-as-data (FR-CNT-01), schema-valid in CI (FR-CNT-02). Respects the §6.4 content-budget caps; a cap hit early is a signal to stop authoring and go playtest."
+  },
+  {
+   "id": "T45",
+   "title": "Target survivor pool + several companions",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "FR-NPC-01: grow the handcrafted, named survivor pool toward the ~60–100 v1 target (or a defined beta subset if review capacity requires, §7), each with background, personality, and a secret. Several recruitable companions (FR-NPC-03/04) beyond the M3 one-companion slice — autonomous AI, trust-gated orders, permanent remembered death. AI drafts bios/dialogue against the schema; casting and the voice pass stay a human gate — the people are the heart."
+  },
+  {
+   "id": "T46",
+   "title": "Full zombie roster",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "FR-CBT-06/07: complete the distinct zombie type set beyond the M2 walker/screamer/stalker. Each keyed to the state machine (dormant/wander/investigate/chase/feed/hibernate) and driven by senses (noise/scent/sight), with type signatures readable in play and audio-independent (FR-AUD-06). Schema-valid, deterministic from seed+state, save-lossless."
+  },
+  {
+   "id": "T47",
+   "title": "Encounter categories, chains & multi-stage flows",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "FR-ENC-03..08. Full category coverage — exploration/combat/social/environmental/story/psychological/shelter (05, Must); encounter chains where flags set now enable follow-ups later (03); multi-stage flows negotiation→fight→chase (04); moral encounters with no clean answer feeding Humanity (06); optional false encounters — tension without payoff (07); and encounter evolution — the same node yields before/during/after variants by its state (08). Requirements + effects declared in data (FR-CNT-03), no hard-coded branching."
+  },
+  {
+   "id": "T48",
+   "title": "Repeat-suppression & recombination (the §4 repeat-rate gate)",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "The content-volume risk mitigation and an M4 DoD gate. Keep verbatim-encounter repeats under the PRD §4 target across a full run via tag/condition recombination (FR-ENC-01/02), the Rule of Three at significant locations (FR-CNT-04, ≥3 approaches/outcomes), encounter evolution (FR-ENC-08), and cooldowns — never raw volume. Instrument the verbatim-repeat rate (§4 health signal) so the gate is measured, not guessed. This is where AI-at-volume sits behind the review-capacity cap."
+  },
+  {
+   "id": "T49",
+   "title": "Infection as staged identity",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "FR-INJ-05..08. Infection as a staged identity — asymptomatic → symptomatic → advanced → terminal — with NO infection bar (05); it alters perception, available dialogue, and visible symptoms by stage (06); diagnosis, treatment, and quarantine paths, late stages costlier and less certain (07); and never an instant Game Over — it becomes a harder way to keep playing (08). Comprehension-tested so players can act on symptoms without the hidden number (retires the 'infection confusion' tripwire)."
+  },
+  {
+   "id": "T50",
+   "title": "Radio network",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "FR-STY-03: the radio network — emergency / military / civilian / ham / unknown signals that evolve with world state (a station goes dark, a broadcast shifts as threat rises). Broadcasting and listening are priced risk per the M4 wireframe SCR-09 (Steel monopoly, aging signals). Content-as-data, deterministic from seed+state, save-lossless."
+  },
+  {
+   "id": "T51",
+   "title": "Economy — resource loops, spoilage, crafting, repairs",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "FR-ECO-04..07. Four resource loops — body / safety / health / power — each with drains and sinks (04); food spoilage, faster after power loss, and water purification (05); crafting (medical/weapon/shelter/survival) gated by blueprints, components, and rooms (06); and repairs that keep artifacts alive (07 — honest repair-over-replace per workshop wireframe SCR-10). Every option debits a real resource; deterministic; save-lossless."
+  },
+  {
+   "id": "T52",
+   "title": "Shelter depth — jobs & craftable rooms",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "FR-SHL-03/04, building on the M3 claim/fortify/shared-stash. Assignable jobs that run while the player is away, producing/consuming from the shared stash (03) — the base becomes a loop, not just a pack drain (closes PL-M3-01); and craftable rooms (kitchen/medical/workshop/radio/watchtower/garden) that unlock capability (04). Off-screen shelter upkeep lands here (closes PL-M3-05). Deterministic, save-lossless."
+  },
+  {
+   "id": "T53",
+   "title": "Factions & inter-NPC relationships",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "FR-NPC-02/05/06/07. Per-character memory driving per-relationship trust/respect/fear — not a global bar (02, Must); desertion and betrayal from low trust or mistreatment (05); dynamic conversations where a survivor's memories/knowledge act as real loot / location hints (06, Must); and inter-NPC friendships & rivalries that move shelter morale (07). The people-side off-screen sim (PL-M3-02) is a dependency."
+  },
+  {
+   "id": "T54",
+   "title": "Depth screens",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "FR-UI-04: on-demand depth screens — inventory, companions, shelter, map/journal, codex — layered over the story-first single-decision Scene without cluttering it. Keyboard-navigable and screen-reader friendly from the first cut (NFR-ACC-01/02); critical info never conveyed by colour or pointer alone; matches the M4 component-library states (default/pressed/focus halo/trust-locked)."
+  },
+  {
+   "id": "T55",
+   "title": "Adaptive audio + non-audio equivalents",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "FR-AUD-01/02/06: a layered, state-driven adaptive mix — ambient/environmental/dynamic/player/music (01); audio as information — noise direction/distance, zombie-type signatures, heartbeat with Fear (02); and a non-audio equivalent for every meaningful sound cue (06, Must). The game must be fully playable with sound off — accessibility, not polish."
+  },
+  {
+   "id": "T56",
+   "title": "Difficulty modes & accessibility baseline complete",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "Difficulty modes in — survivability/scarcity/pacing dials, calibrated later in the M5 staged balance passes; and the NFR-ACC baseline completed from its M1 start (NFR-ACC-01..04): text-first with no colour/audio-only cues, keyboard-only, screen-reader navigable, one-hand mobile layout. Accessibility is a Must from the first UI and finished here — never an M5 retrofit."
+  },
+  {
+   "id": "T57",
+   "title": "M4 exit — content-complete city & public-beta hardening",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "The M4 Definition of Done. The first city is content-complete and schema-valid (CI green, FR-CNT-02); verbatim encounter repetition sits under the PRD §4 target across a full run; infection-as-identity plays as 'a harder way to keep going', comprehension-tested with players; and the beta is stable enough to hand out. A pass opens M5 (release candidate). This milestone is the MVP / public beta."
+  },
+  {
+   "id": "T58",
+   "title": "Monetization & business-model decision",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "PRD Open Question 5 (PRODUCTION §9 decision schedule, resolve by M5): decide the monetization / business model — premium / free+cosmetic / episodic — so launch planning can finalize. A written decision against its criteria, logged like an ADR. Licensing (Open Q8) was already settled at the M4 beta gate (T43); this closes the last open commercial decision before v1.0."
+  },
+  {
+   "id": "T59",
+   "title": "Staged balance pass 1 — survivability & scarcity",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "GDD XVI / PRODUCTION §8 staged balance, passes 1–2 (survivability → scarcity). Tune death timing / causes / margins and resource scarcity against the M2 telemetry baseline (§4 proxies), never by feel — every change justified by telemetry or a logged playtest and re-checked against the Survival Triangle (no strategy escapes a trade). Begins retiring the balance-fragility risk (§10)."
+  },
+  {
+   "id": "T60",
+   "title": "Staged balance pass 2 — pacing/director & difficulty modes",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "PRODUCTION §8 staged balance, passes 3–4 (pacing/director → difficulty modes). Tune the Apocalypse Director's escalate/relief bands (T30) and the M4 difficulty dials (T56) against pacing telemetry (mean/peak pressure, oscillations, longest calm streak); director + comeback mechanics carry the tension. Verify no mode yields an impossible or trivial run. Completes the balance-fragility retirement (§10)."
+  },
+  {
+   "id": "T61",
+   "title": "Multiple endings from run components",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "FR-STY-06 (Must, v1): assemble multiple endings from real run components — who lived, what you built, the choices logged in the append-only Living History (T31) — with no single 'true ending'. Reproducible from seed+state; the history is the source, so an ending reflects the run that actually happened."
+  },
+  {
+   "id": "T62",
+   "title": "Failure endings with closure + epilogues",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "FR-STY-07 (Must) + FR-CBT-10 (Last Stand) + FR-STY-08 (Should). Authored failure endings — Last Stand / overrun / infection — resolve as a heightened final-choice sequence with real closure, not a death card; plus epilogues following surviving NPCs. Death is a scene. Builds on the M3 first authored failure ending (T40/T42)."
+  },
+  {
+   "id": "T63",
+   "title": "Full accessibility — verified with assistive tech",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "NFR-ACC-01..04 completed and VERIFIED with real assistive tech, not just authored: critical info never by colour/audio alone (01), full screen-reader support over a semantic, navigable text UI (02), scalable text + high-contrast / colorblind-safe themes (03), reduced-motion / reduced-flicker modes (04, Should). Accessibility has been a Must since the first UI (M1); here it is proven, never retrofitted."
+  },
+  {
+   "id": "T64",
+   "title": "Localization externalization complete",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "NFR-LOC-01 (Should): all player-facing strings externalized for localization, completed to 100% (the design kept the art-bible §3.7.7 +35% expansion headroom). No hard-coded copy in the shipped path; a pseudo-locale pass proves nothing is baked in. Actual translations may follow post-launch, but externalization ships at v1."
+  },
+  {
+   "id": "T65",
+   "title": "Save migration proven across a real schema change",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "NFR-SAVE-02 (Must): prove the versioned-save migration ladder (ADR-0003 / T7) across a REAL breaking schema change — an old save from an earlier SAVE_SCHEMA_VERSION loads, migrates forward one pure N→N+1 rung at a time, and resumes losslessly with no silent corruption. The vertical slice already bumped the version to 7 with per-bump rungs; M5 proves the whole ladder end-to-end on a shipped-format save."
+  },
+  {
+   "id": "T66",
+   "title": "Reliability & performance hardening",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "NFR-REL-01 + NFR-PERF-01/02 (Must). Crash-free session rate ≥99.5% at launch with zero save-corruption — the deterministic core gives repro-from-seed for every report; and hold the turn budget: resolve+render < 100 ms on a mid-range 2022 phone, initial load < 3 s, heavy region/horde updates amortized (addresses PL-M2-07). Soak-test long runs and bound the append-only history growth (PL-M2-06)."
+  },
+  {
+   "id": "T67",
+   "title": "Polish & UI-restraint pass",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "FR-UI-06 (Should): the emotional-UI and restraint pass — the 'Quiet Screen' for loss moments (SCR-08 register), a UI that degrades legibly with player state, and a final cut of anything that clutters the story-first single-decision Scene. Gated on art/audio direction locked (M5 entry). The perceivable finish that makes v1 feel authored, not prototyped."
+  },
+  {
+   "id": "T68",
+   "title": "Content freeze & every-Must-met release audit",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "The M5 DoD backbone: freeze content, then audit that every Must requirement is met at its release target (PRD §7 MoSCoW) — no Must cut to hit the date; if one can't fit, the milestone is re-scoped, not shipped broken. Schema gate green over the full city (FR-CNT-02); the Won't-now register stays frozen; every shipped item traces back to the PRD by ID."
+  },
+  {
+   "id": "T69",
+   "title": "v1.0 launch gate — the external 'one more day' test",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "The M5 exit and v1.0 go/no-go. Balance targets hit in telemetry; a save survives a real migration; accessibility verified with assistive tech; and the 'one more day' test (GDD XVI) passes with EXTERNAL players, not just the owner — at session end they want to continue. A pass ships v1.0; native/Steam/chat-bot clients and any second city move to Post-launch per the ADR-0004 order."
   }
  ],
  "adrs": [
@@ -389,8 +578,8 @@
   {
    "risk": "Systemic but not fun",
    "retiredAt": "M3 Fun Gate",
-   "status": "open",
-   "how": "Prove the slice grips before any content pour"
+   "status": "done",
+   "how": "Slice Fun Gate PASSED 2026-07-06 (M3) — the slice produces a retellable, systemic story end-to-end. Risk retired."
   },
   {
    "risk": "Impressive but static world",
@@ -485,6 +674,56 @@
    "id": "PL-M2-07",
    "from": "M2 Part 2 T28/T30",
    "note": "Per-turn world cost now also scans every route (T29) and diffs before/after for history (T31), on top of the Part-1 O(nodes+regions+hordes). Fine at Rivermouth scale; watch against the phone budget as the map/horde count grows (the known heavy path)."
+  },
+  {
+   "id": "PL-M3-01",
+   "from": "QA_REVIEW_M3_PART2 M1",
+   "note": "Companion upkeep is pack-only — a companion's needs are relieved solely by the player's give-food/give-water from a finite pack, so a supply-poor run loses them to attrition (intended, but a standing drain with no self-feeding). Give companions/survivors a base to draw from when the shelter + shared stash land (T37/T39) so keeping people is a base loop, not only a pack drain."
+  },
+  {
+   "id": "PL-M3-02",
+   "from": "QA_REVIEW_M3_PART2 L4",
+   "note": "No off-screen people-sim and survivors don't move — npcs/companions drift only on the player's turns (stage 5), not inside advanceWorld, and non-companion survivors stay pinned to their node. A survivor left starving in a district you fast-forward past doesn't die until you return. The people side of stage 10 (moveGroups) + off-screen upkeep is a later M3 block (overlaps PL-M2-04 for the world half)."
+  },
+  {
+   "id": "PL-M3-03",
+   "from": "QA_REVIEW_M3_PART2 L1/L5",
+   "note": "Model cleanups before the 60-100 survivor pool: a recruited Survivor carries no name in state (recoverable from content via type; engine companion prose is generic 'your companion'), and dead survivors linger in npcs unbounded as remembered bodies. Add a name on the reserved shape (or a client lookup) and a corpse sweep."
+  },
+  {
+   "id": "PL-M3-04",
+   "from": "QA_REVIEW_M3_PART2 L2/L3",
+   "note": "Interaction depth deferred: threaten only spends trust (no intimidation payoff — info/forced trade), and recruit reads trust+met only (no disposition check, no party cap — a hostile-disposition survivor is recruitable, party size unbounded). Wire threaten-for-something and recruitment guards when the party grows past the one-companion VS."
+  },
+  {
+   "id": "PL-M3-05",
+   "from": "QA_REVIEW_M3_PART3 M1",
+   "note": "Off-screen shelter upkeep deferred — barricades decay only on the player's turns (pipeline stage 6, updateNode), not inside advanceWorld, so a base abandoned for days is not weaker for it (kept that way to preserve byte-identity this block). Land off-screen barricade decay alongside the deferred off-screen people-sim (PL-M3-02)."
+  },
+  {
+   "id": "PL-M3-06",
+   "from": "QA_REVIEW_M3_PART3 M2",
+   "note": "No attacker on the base yet — a fortified shelter resists detection + horde drift but nothing assaults it (no night-raid/siege event, no raided-stash beat; the stash itself is T39). The payoff is currently inferred from the ABSENCE of danger, not survival of an attack. Dramatise it with the T39/T40 contested-world hooks."
+  },
+  {
+   "id": "PL-M3-07",
+   "from": "QA_REVIEW_M3_PART3 L1/L2/L3/L4",
+   "note": "Shelter VS simplifications to revisit: fortification reuses the generic NodeState.barricades (untangle if node-generic barricading ever ships); claim is once-per-run with no relocate/abandon verb; fortifying is silent (safe-base fantasy over hammering-draws-the-dead); and costs/rates (CLAIM_COST 4, FORTIFY_COST 3, FORTIFY_GAIN 25, decay 1/h, the three *_MAX payoffs) are first-pass dials for the T42 Fun Gate / M5 balance."
+  },
+  {
+   "id": "PL-M3-08",
+   "from": "QA_REVIEW_M3_PART4 (subagent review, by design)",
+   "note": "The cold raid is a narrated stat beat (depleteStash + barricadeHit resolved off a rest in stage 12), not a played, moment-to-moment defense of the shelter — the drama is inferred from the aftermath (cache/barricade reads change), not survived live. Extends PL-M3-06: the live night-siege/defended-base fight is still deferred (M4 contested-world). The T40 raid is the first thing that ATTACKS the base, but off-turn."
+  },
+  {
+   "id": "PL-M3-09",
+   "from": "QA_REVIEW_M3_PART4 / FUN_GATE provisional read",
+   "note": "One authored arc, one subject (Ruth): the slice tells a story well but a second run tells the SAME story. Retellability ACROSS runs — the real target of the 'one more day' test — is unproven by a single arc (the arc LIBRARY is post-gate M4 content by design). This is the central open question the Fun Gate (T42) must weigh with real playtesters."
+  },
+  {
+   "id": "PL-M3-10",
+   "from": "QA_REVIEW_M3_PART4 L-notes",
+   "note": "Story VS simplifications to revisit: the arc's help branch is gated on the cache covering stashDraw, so a bare cache at plea time leaves refuse the only resolution (intended for the VS 'she came back for what you would not give', but a 'you have nothing to give' third path is a lever); the arc is authored engine-side (src/sim/story.ts, THE_LAST_CUSTOMER) with content/arcs mirroring the dials + carrying the surfaced prose (VS content/engine bridge, harness-guarded against drift) — reading dials FROM content is post-VS; the companion payoff (help Ruth -> recruit gate) is available but not surfaced as the arc's reward; and all arc dials (needThreshold 60, delayHours 12, stashDraw 2, raidUnits 3, barricadeHit 20, helpTrust +25, refuseTrust -35) are first-pass, tuned at the T42 Fun Gate / M5 balance."
   }
  ],
  "loopFeelCheck": {

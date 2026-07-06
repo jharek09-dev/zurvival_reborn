@@ -92,6 +92,17 @@ export function recordHistory(before: GameState, after: GameState): readonly His
     }
   }
 
+  // Shelter (T37/T38): a base claimed, or fortification raised. A claim flips shelterId from null; a fortify
+  // raises the shelter node's barricades (a decay-only turn lowers them and logs nothing).
+  const sid = after.player.shelterId;
+  if (before.player.shelterId === null && sid !== null) {
+    events.push(stamp(after, "shelter.claimed", [sid], {}));
+  } else if (sid !== null && before.player.shelterId === sid) {
+    const wasB = before.nodes[sid]?.barricades ?? 0;
+    const nowB = after.nodes[sid]?.barricades ?? 0;
+    if (nowB > wasB) events.push(stamp(after, "shelter.fortified", [sid], { from: wasB, to: nowB }));
+  }
+
   // The run ended this turn.
   const endBefore = runEndReason(before);
   const endAfter = runEndReason(after);

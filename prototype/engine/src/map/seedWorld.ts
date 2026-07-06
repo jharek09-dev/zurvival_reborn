@@ -18,6 +18,7 @@ import { discoverAround } from "./fogOfWar.js";
 import { seedStarterHordes } from "../sim/hordes.js";
 import { seedRoutes } from "../sim/routes.js";
 import { spawnNpcs, type NPCDef } from "../sim/npcs.js";
+import { registerArcs } from "../sim/story.js";
 import type { NodeDef, RegionDef, RegionGraph } from "./types.js";
 
 /** Clamp to a 0–100 integer; content baselines are already ints, this guards bad data. */
@@ -98,6 +99,7 @@ export function startRun(
   regionDefs: readonly RegionDef[],
   nodeDefs: readonly NodeDef[],
   npcDefs: readonly NPCDef[] = [],
+  arcIds: readonly string[] = [],
 ): RunStart {
   const graph = buildRegionGraph(regionDefs, nodeDefs);
   const base = createInitialState({ ...opts, startLocation: graph.startNodeId });
@@ -118,6 +120,9 @@ export function startRun(
   const routes = seedRoutes(adjacency);
 
   const seeded: GameState = { ...base, regions, nodes, routes, hordes: seedStarterHordes(graph) };
-  // Seed the survivor pool from the named `npc` stream (T33); inert when no npcDefs are supplied.
-  return { state: spawnNpcs(seeded, npcDefs, graph), graph };
+  // Seed the survivor pool from the named `npc` stream (T33); inert when no npcDefs are supplied. Then
+  // register any opt-in story arcs into `story.progress` (T40); inert when none are supplied, so every
+  // prior run stays byte-identical.
+  const peopled = spawnNpcs(seeded, npcDefs, graph);
+  return { state: registerArcs(peopled, arcIds), graph };
 }

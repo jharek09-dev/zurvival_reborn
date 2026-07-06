@@ -31,6 +31,7 @@ import type { ContentId, GameState, NodeId, NodeState, ZombieState } from "../st
 import type { RegionGraph } from "../map/types.js";
 import { neighborsOf } from "../map/regionGraph.js";
 import { clampNoise } from "./noise.js";
+import { scaleByFort, SHELTER_DETECT_FLOOR_MAX } from "./shelter.js";
 
 /** The first three type ids (mirror `content/zombies/`). */
 export const ZOMBIE_WALKER: ContentId = "zombie.walker";
@@ -109,6 +110,10 @@ export function stimulusAt(state: GameState, nodeId: NodeId, node: NodeState, gr
   else if (playerAdjacent) s += PLAYER_ADJACENT_BONUS;
   if (playerNear && bleeding) s += SCENT_BONUS;
   if (night && playerNear && hasTag(node, "nightHunter")) s += STALKER_NIGHT_BONUS;
+  // A fortified shelter raises the detection floor (T38): it blunts the presence/scent/night-hunter draw on
+  // the player's own base, scaled by fortification. Full fortification cancels the "player is here" bonus, so
+  // a secure base goes dormant by day; a stalker at night is reduced, never nullified. Inert off the shelter.
+  if (state.player.shelterId === nodeId) s -= scaleByFort(SHELTER_DETECT_FLOOR_MAX, node.barricades);
   return s;
 }
 

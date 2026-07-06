@@ -25,11 +25,13 @@ import type { RegionGraph } from "../map/types.js";
 import { advanceClock } from "../time/clock.js";
 import { applyPlayerAction, assertLegal, sceneOf, tickNeeds } from "../actions/coreActions.js";
 import { updateNodeNoise } from "../sim/noise.js";
+import { decayShelterFortification, muffleShelterNoise } from "../sim/shelter.js";
 import { runLayer, type SimContext } from "../sim/worldSim.js";
 import { tickRoutes } from "../sim/routes.js";
 import { tickNpcs } from "../sim/npcs.js";
 import { tickCompanions } from "../sim/companions.js";
 import { recordHistory, appendHistory } from "../sim/history.js";
+import { evaluateArcs, resolveDueStoryEvents } from "../sim/story.js";
 import { diffSystems } from "../telemetry/turnAudit.js";
 import type { Action, Scene, SceneChoice, TurnResult } from "./contract.js";
 
@@ -99,10 +101,17 @@ const updateCompanions: StageFn = (ctx) => {
   return { ...ctx, state: tickCompanions(withNpcs, hours) };
 };
 
-/** Stage 6: decay/deposit node noise (T14), then tick the node-local zombie state machine (T25). */
+/** Stage 6: decay/deposit node noise (T14), apply shelter fortification upkeep + noise muffle (T38), then
+ * tick the node-local zombie state machine (T25). */
 const updateNode: StageFn = (ctx) => {
+  const hours = Math.max(0, Math.trunc(ctx.action.timeCost ?? 0));
   const withNoise = updateNodeNoise(ctx.state, ctx.action);
-  return { ...ctx, state: runLayer(withNoise, "zombies", simCtx(ctx)) };
+  // Shelter upkeep (T38): fortification decays with the hours, then a fortified base muffles its own noise
+  // (the quieter value feeds the zombie stimulus below and the horde re-path next stage). Both inert without
+  // a claimed shelter, so the M0 empty-turn contract and every prior run stay untouched.
+  const decayed = decayShelterFortification(withNoise, hours);
+  const muffled = muffleShelterNoise(decayed, hours);
+  return { ...ctx, state: runLayer(muffled, "zombies", simCtx(ctx)) };
 };
 
 /** Stage 7: the regions layer — off-screen threat/density drift (T24) then the loot contest (T17). */
@@ -125,6 +134,13 @@ const moveHordes: StageFn = (ctx) => ({ ...ctx, state: runLayer(ctx.state, "hord
 /** Stage 11: the Apocalypse Director biases pacing without ever forcing an impossible state (T30). */
 const tickDirector: StageFn = (ctx) => ({ ...ctx, state: runLayer(ctx.state, "director", simCtx(ctx)) });
 
+/**
+ * Stage 12: resolve any story consequence in the queue that has come due (T40) — the delayed good
+ * repayment or the cold raid the arc enqueued when the player chose. Inert when the queue holds no due
+ * story event, so every prior run (empty queue) is byte-identical; the stage name / order never move.
+ */
+const resolveQueue: StageFn = (ctx) => ({ ...ctx, state: resolveDueStoryEvents(ctx.state) });
+
 /** Stage 14: project the resolved state into the Scene the client will render. */
 const generateScene: StageFn = (ctx) => ({ ...ctx, scene: sceneOf(ctx.state, ctx.graph) });
 
@@ -134,8 +150,12 @@ const generateScene: StageFn = (ctx) => ({ ...ctx, scene: sceneOf(ctx.state, ctx
  * Selective by design, so a quiet turn writes nothing and the FR-CORE-04 audit stays honest.
  */
 const evaluateStory: StageFn = (ctx) => {
-  const events = recordHistory(ctx.before, ctx.state);
-  return events.length === 0 ? ctx : { ...ctx, state: appendHistory(ctx.state, events) };
+  // T40: advance the authored arcs first (auto-trigger a plea when the world has set the stage), so this
+  // turn's beat is in the log; then record the Living History as before. Inert when no arc is active.
+  const withArcs = evaluateArcs(ctx.state);
+  const events = recordHistory(ctx.before, withArcs);
+  const state = events.length === 0 ? withArcs : appendHistory(withArcs, events);
+  return state === ctx.state ? ctx : { ...ctx, state };
 };
 
 /**
@@ -154,7 +174,7 @@ export const PIPELINE_STAGES: readonly { readonly name: string; readonly run: St
   { name: "moveHordes", run: moveHordes },
   { name: "moveGroups", run: identity },
   { name: "tickDirector", run: tickDirector },
-  { name: "resolveQueue", run: identity },
+  { name: "resolveQueue", run: resolveQueue },
   { name: "evaluateStory", run: evaluateStory },
   { name: "generateScene", run: generateScene },
 ];

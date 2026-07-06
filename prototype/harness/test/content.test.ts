@@ -7,7 +7,9 @@ import {
   startRun,
   isDiscovered,
   isVisited,
+  THE_LAST_CUSTOMER,
   type NodeDef,
+  type NPCDef,
   type RegionDef,
 } from "../../engine/src/index.js";
 
@@ -60,5 +62,39 @@ describe("shipped content — region.rivermouth node graph (T11)", () => {
     }
     const hidden = Object.values(state.nodes).filter((n) => !n.discovered);
     expect(hidden.length).toBeGreaterThan(0);
+  });
+});
+
+
+/**
+ * Integration (T40): the authored arc content is a real, referentially-sound story — its subject resolves
+ * to a shipped survivor, and its dials match the engine's authoritative VS constant, so the content and
+ * the trigger chain cannot drift apart unnoticed (the VS content/engine bridge).
+ */
+describe("shipped content — the authored arc (T40 · FR-STORY-01)", () => {
+  interface ArcDef {
+    id: string; subject: string; trigger: { needThreshold: number };
+    choices: { help: { timeCost: number; stashDraw: number; trustDelta: number }; refuse: { timeCost: number; trustDelta: number } };
+    consequences: { delayHours: number; good: { repay: { item: string; quantity: number }[]; trustDelta: number }; cold: { raidUnits: number; barricadeHit: number } };
+  }
+  const arcs = loadDefs<ArcDef>("arcs");
+  const npcs = loadDefs<NPCDef>("npcs");
+
+  it("ships exactly the VS arc, and its subject is a real survivor", () => {
+    const arc = arcs.find((a) => a.id === THE_LAST_CUSTOMER.id);
+    expect(arc).toBeDefined();
+    expect(npcs.some((n) => n.id === arc!.subject)).toBe(true);
+    expect(arc!.subject).toBe(THE_LAST_CUSTOMER.subject);
+  });
+
+  it("the content dials mirror the engine's authoritative arc (no drift)", () => {
+    const arc = arcs.find((a) => a.id === THE_LAST_CUSTOMER.id)!;
+    expect(arc.trigger.needThreshold).toBe(THE_LAST_CUSTOMER.needThreshold);
+    expect(arc.choices.help.stashDraw).toBe(THE_LAST_CUSTOMER.stashDraw);
+    expect(arc.choices.help.trustDelta).toBe(THE_LAST_CUSTOMER.helpTrust);
+    expect(arc.choices.refuse.trustDelta).toBe(THE_LAST_CUSTOMER.refuseTrust);
+    expect(arc.consequences.delayHours).toBe(THE_LAST_CUSTOMER.delayHours);
+    expect(arc.consequences.cold.raidUnits).toBe(THE_LAST_CUSTOMER.raidUnits);
+    expect(arc.consequences.cold.barricadeHit).toBe(THE_LAST_CUSTOMER.barricadeHit);
   });
 });
