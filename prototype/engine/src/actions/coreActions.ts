@@ -20,7 +20,22 @@ import type { RegionGraph } from "../map/types.js";
 import { neighborsOf } from "../map/regionGraph.js";
 import { discoverAround } from "../map/fogOfWar.js";
 import { resolveSearchLoot } from "../sim/loot.js";
-import { dropItem, inventoryWeight, CARRY_CAPACITY } from "../sim/inventory.js";
+import { dropItem, inventoryWeight, itemName, CARRY_CAPACITY, PACK_HEAVY } from "../sim/inventory.js";
+import {
+  updateCondition,
+  eat as eatFood,
+  drink as drinkWater,
+  treat as treatWounds,
+  canEat,
+  canDrink,
+  canTreat,
+  isRunOver,
+  runEndReason,
+  endingNarration,
+  EAT_COST,
+  DRINK_COST,
+  TREAT_COST,
+} from "../sim/survival.js";
 import {
   combatChoices,
   combatNarration,
@@ -38,8 +53,8 @@ export const DROP_COST = 0;
 
 /** How much a single search advances a node's searchPct (3 searches exhaust a node). */
 export const SEARCH_GAIN = 34;
-/** Fatigue a single rest recovers. */
-export const REST_RECOVERY = 40;
+/** Fatigue a single rest recovers — re-exported from the survival module (T22 owns needs). */
+export { REST_RECOVERY } from "../sim/survival.js";
 
 /** Thrown when a submitted action was not among the Scene's offered choices (FR-CORE-01). */
 export class IllegalActionError extends Error {
@@ -65,6 +80,7 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   const node = state.nodes[here];
   if (node === undefined) return [];
 
+  if (isRunOver(state)) return []; // the run has ended — no actions follow a death (T22)
   if (state.combat !== null) return combatChoices(state, graph);
   if (node.walkers > 0) return encounterChoices(state, graph);
 
@@ -93,6 +109,33 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
     });
   }
 
+  // Survival actions (T22): spend a scavenged item to buy a need back down / treat a wound. Offered
+  // only when relevant (carrying the item and the need is pressing / a wound is open) — no clutter.
+  if (canEat(state)) {
+    choices.push({
+      id: "eat",
+      label: "Eat a ration",
+      timeCost: EAT_COST,
+      action: { type: "eat", choiceId: "eat", timeCost: EAT_COST },
+    });
+  }
+  if (canDrink(state)) {
+    choices.push({
+      id: "drink",
+      label: "Drink water",
+      timeCost: DRINK_COST,
+      action: { type: "drink", choiceId: "drink", timeCost: DRINK_COST },
+    });
+  }
+  if (canTreat(state)) {
+    choices.push({
+      id: "treat",
+      label: "Treat your wounds",
+      timeCost: TREAT_COST,
+      action: { type: "treat", choiceId: "treat", timeCost: TREAT_COST },
+    });
+  }
+
   choices.push({
     id: "rest",
     label: "Rest and recover",
@@ -100,15 +143,18 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
     action: { type: "rest", choiceId: "rest", timeCost: REST_COST },
   });
 
-  // Drop a carried item to reclaim weight (T18 · FR-PLR-03) — the leave-behind lever. One choice per
-  // non-unique stack, stable-ordered by type; costs no time. Absent on an empty pack.
-  for (const type of [...new Set(node ? state.player.inventory.filter((e) => e.itemId === undefined).map((e) => e.type) : [])].sort()) {
-    choices.push({
-      id: `drop:${type}`,
-      label: `Drop ${type}`,
-      timeCost: DROP_COST,
-      action: { type: "drop", choiceId: `drop:${type}`, timeCost: DROP_COST, params: { item: type } },
-    });
+  // Drop a carried item to reclaim weight (T18 · FR-PLR-03) — the leave-behind lever. Surfaced only
+  // when the pack is heavy (>= PACK_HEAVY): below that there's ample room, so drops would just clutter
+  // the single-decision screen (FR-UI). One choice per non-unique stack, stable-ordered by type; free.
+  if (node && inventoryWeight(state.player.inventory) >= PACK_HEAVY) {
+    for (const type of [...new Set(state.player.inventory.filter((e) => e.itemId === undefined).map((e) => e.type))].sort()) {
+      choices.push({
+        id: `drop:${type}`,
+        label: `Drop ${itemName(type)}`,
+        timeCost: DROP_COST,
+        action: { type: "drop", choiceId: `drop:${type}`, timeCost: DROP_COST, params: { item: type } },
+      });
+    }
   }
 
   return choices;
@@ -168,6 +214,12 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
         ? state
         : { ...state, player: { ...state.player, inventory } };
     }
+    case "eat":
+      return eatFood(state);
+    case "drink":
+      return drinkWater(state);
+    case "treat":
+      return treatWounds(state);
     default:
       return state;
   }
@@ -179,22 +231,9 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
  * nothing — this is what keeps the M0 empty turn a genuine no-op.
  */
 export function tickNeeds(state: GameState, action: Action): GameState {
-  const hours = Math.max(0, Math.trunc(action.timeCost ?? 0));
-  if (hours === 0) return state;
-
-  const { needs } = state.player.condition;
-  const hunger = clampPct(needs.hunger + hours);
-  const thirst = clampPct(needs.thirst + hours);
-  const fatigue =
-    action.type === "rest" ? clampPct(needs.fatigue - REST_RECOVERY) : clampPct(needs.fatigue + hours);
-
-  return {
-    ...state,
-    player: {
-      ...state.player,
-      condition: { ...state.player.condition, needs: { hunger, thirst, fatigue } },
-    },
-  };
+  // Stage 4: drift needs by the hours spent and apply wound decline / infection (T22). A zero-hour
+  // action (bare `wait`) changes nothing, preserving the M0 empty-turn contract.
+  return updateCondition(state, action);
 }
 
 const pad2 = (n: number): string => (n < 10 ? `0${n}` : `${n}`);
@@ -213,14 +252,20 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
     return { turn, day, hour, phase, narration: "", choices: [] };
   }
 
+  // The run has ended (T22): narrate the death, offer nothing further.
+  const end = runEndReason(state);
+  if (end !== null) {
+    return { turn, day, hour, phase, location: here, narration: endingNarration(end), choices: [] };
+  }
+
   const name = graph.nodes[here]?.name ?? here;
   const threat = combatNarration(state);
   const where = graph.nodes[here]?.description ?? "";
   const searched =
     node.searchPct >= 100 ? " It has been searched clean." : node.searchPct > 0 ? " You have searched here before." : "";
-  const carried = inventoryWeight(state.player.inventory);
-  const pack =
-    carried >= CARRY_CAPACITY ? " Your pack is full." : carried > 0 ? ` Your pack is heavy (${carried}/${CARRY_CAPACITY}).` : "";
+  // A full pack is world feedback (you can't take more) — surface it in prose; the precise pack
+  // count is the client's to render (T18/T19). Only the qualitative "full" belongs in narration.
+  const pack = inventoryWeight(state.player.inventory) >= CARRY_CAPACITY ? " Your pack is full." : "";
   const setting = `${where}${searched}${pack} (Day ${day}, ${phase} ${pad2(hour)}:00 — at ${name}.)`;
   const narration = threat ? `${threat} ${setting}` : setting;
 

@@ -2,7 +2,7 @@
   "name": "@zurvival/harness",
   "version": "0.0.1",
   "private": true,
-  "description": "Zurvival Reborn terminal harness (T9) — the first headless client of @zurvival/engine. Runs an empty turn and proves the M0 skeleton is deterministic and save-lossless.",
+  "description": "Zurvival Reborn terminal harness (T9) \u2014 the first headless client of @zurvival/engine. Runs an empty turn and proves the M0 skeleton is deterministic and save-lossless.",
   "type": "module",
   "main": "./src/index.ts",
   "engines": {
@@ -11,7 +11,8 @@
   "scripts": {
     "start": "tsx src/main.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "play": "tsx src/playCli.ts"
   },
   "dependencies": {},
   "devDependencies": {

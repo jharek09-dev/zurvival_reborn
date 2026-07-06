@@ -35,7 +35,12 @@ export function createInitialState(opts: InitialStateOptions): GameState {
         infection: { stage: "none", progression: 0 },
         mind: { stress: 0, morale: 70 },
       },
-      inventory: [],
+      // A modest starting kit buffers the opening so the survival clock (T22) is pressure, not a
+      // guillotine — it runs out, and then you must scavenge (FR-CORE-02 · GDD V).
+      inventory: [
+        { type: "item.water", quantity: 2 },
+        { type: "item.canned-food", quantity: 2 },
+      ],
       equipment: {},
       skills: {},
       traits: [],

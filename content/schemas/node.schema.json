@@ -58,6 +58,11 @@
       "type": "string",
       "description": "Author commentary. JSON has no comments (ADR-0002); use this field."
     },
+    "walkers": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Walkers loitering here at run start — seeds an avoidable encounter at this node (FR-CBT-01, T15). Live count lives in GameState.nodes; omit for a quiet node (defaults to 0)."
+    },
     "kind": {
       "type": "string",
       "enum": [

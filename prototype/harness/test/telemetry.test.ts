@@ -26,12 +26,19 @@ const load = <T>(sub: string): T[] =>
     .filter((f) => f.endsWith(".json"))
     .map((f) => JSON.parse(readFileSync(join(contentDir, sub, f), "utf8")) as T);
 
-/** A deterministic "restless survivor": always move if able, else search, else rest. */
+/**
+ * A deterministic survival-aware survivor: stay alive first (drink, eat, treat when offered), then
+ * explore — search, move, rest. Since T22 the loop is mortal, so a heedless survivor would die of
+ * thirst; this one manages needs and lasts as long as the finite region can sustain them.
+ */
 function pickChoice(state: GameState, graph: ReturnType<typeof startRun>["graph"]) {
   const choices = availableActions(state, graph);
   return (
-    choices.find((c) => c.id.startsWith("move:")) ??
+    choices.find((c) => c.id === "drink") ??
+    choices.find((c) => c.id === "eat") ??
+    choices.find((c) => c.id === "treat") ??
     choices.find((c) => c.id === "search") ??
+    choices.find((c) => c.id.startsWith("move:")) ??
     choices.find((c) => c.id === "rest") ??
     choices[0]
   );
@@ -41,7 +48,7 @@ describe("100-turn telemetry audit over Rivermouth (T13)", () => {
   const regions = load<RegionDef>("regions");
   const nodes = load<NodeDef>("nodes");
 
-  it("every one of 100 resolved turns changes >= 1 tracked system", () => {
+  it("every resolved turn of a survival run (up to 100) changes >= 1 tracked system", () => {
     let { state, graph } = startRun({ seed: "audit-100", createdAt: "2026-07-05T00:00:00Z" }, regions, nodes);
 
     let resolved = 0;
@@ -49,7 +56,7 @@ describe("100-turn telemetry audit over Rivermouth (T13)", () => {
 
     for (let i = 0; i < 100; i++) {
       const choice = pickChoice(state, graph);
-      if (!choice) break;
+      if (!choice) break; // the run ended (death / no actions) — audit what actually happened
       const before = state;
       const res = applyAction(before, choice.action, graph);
       state = res.state;
@@ -62,8 +69,8 @@ describe("100-turn telemetry audit over Rivermouth (T13)", () => {
       }
     }
 
-    expect(resolved).toBe(100); // the survivor always had a costed action to take
-    expect(violations).toEqual([]); // FR-CORE-04: no no-consequence turns
-    expect(state.meta.turn).toBe(100);
+    expect(resolved).toBeGreaterThanOrEqual(20); // a substantial multi-turn audit really ran
+    expect(violations).toEqual([]); // FR-CORE-04: no no-consequence turns, however long the run
+    expect(state.meta.turn).toBe(resolved); // every resolved turn advanced the clock
   });
 });

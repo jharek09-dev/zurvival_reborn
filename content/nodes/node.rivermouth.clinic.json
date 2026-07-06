@@ -5,6 +5,7 @@
   "name": "Shuttered Clinic",
   "description": "A neighborhood clinic, doors chained from the inside. Medical supplies if you can get in — and the reason the doors were chained, if you can't leave.",
   "kind": "medical",
+  "walkers": 2,
   "adjacent": [
     "node.rivermouth.corner-store",
     "node.rivermouth.police-post"

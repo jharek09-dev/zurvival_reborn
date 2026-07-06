@@ -49,11 +49,12 @@ describe("noise over Rivermouth (T14)", () => {
       expect(loadGame(saveGame(loudState))).toStrictEqual(loudState); // safe to stop
     }
 
-    // Quiet: rest in place.
+    // Quiet: rest in place (until the survival clock ends the run — resting never makes noise).
     let quiet = startRun(opts, regions, nodes);
     let quietState = quiet.state;
     for (let i = 0; i < 12; i++) {
-      const c = availableActions(quietState, quiet.graph).find((x) => x.id === "rest")!;
+      const c = availableActions(quietState, quiet.graph).find((x) => x.id === "rest");
+      if (!c) break; // run ended (T22) — a resting run stays silent however long it lasts
       quietState = applyAction(quietState, c.action, quiet.graph).state;
     }
 

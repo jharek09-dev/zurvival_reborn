@@ -106,7 +106,7 @@ describe("rivals contest the stock (T17 · FR-ECO-01)", () => {
     const start = s.regions["region.x"]!.loot;
     for (let i = 0; i < 4; i++) s = take(s, graph, "rest"); // rest only — never search
     expect(s.regions["region.x"]!.loot).toBeLessThan(start); // rivals drew it down
-    expect(itemCount(s)).toBe(0); // and the player took nothing
+    expect(itemCount(s)).toBe(itemCount(state)); // and the player took nothing (kit unchanged)
   });
 
   it("contestRegion / updateRegionContest are inert at zero hours and clamp at zero", () => {

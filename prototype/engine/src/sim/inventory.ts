@@ -23,6 +23,13 @@ export const CARRY_CAPACITY = 40;
 export const DEFAULT_ITEM_WEIGHT = 2;
 
 /**
+ * The pack is "heavy" at or above this load — the point where the leave-behind decision starts to
+ * matter and the client surfaces drop options. Below it the pack has room to spare, so drops would
+ * be noise on the single-decision screen (FR-UI). 3/4 of capacity.
+ */
+export const PACK_HEAVY = Math.trunc((CARRY_CAPACITY * 3) / 4);
+
+/**
  * Weight of one unit of each item the M1 loot tables (T17) can emit. Small integers so a fresh run
  * scavenges freely but a full sweep of a rich node forces a drop: light consumables 1, food/water 3,
  * bulky gear 6, a firearm 8.
@@ -48,6 +55,12 @@ export const ITEM_WEIGHTS: { readonly [type: string]: number } = {
 export function itemWeight(type: string): number {
   const w = ITEM_WEIGHTS[type];
   return w === undefined ? DEFAULT_ITEM_WEIGHT : w;
+}
+
+/** Human-readable name of an item id for labels: "item.canned-food" -> "canned food". */
+export function itemName(type: string): string {
+  const tail = type.startsWith("item.") ? type.slice("item.".length) : type;
+  return tail.replace(/-/g, " ").trim() || type;
 }
 
 /** Total weight the pack is carrying: summed `quantity × unit weight`. Pure. */
