@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.mercy-hospital.icu-tower",
+  "regionId": "region.mercy-hospital",
+  "name": "ICU Tower",
+  "description": "The intensive-care floors, monitors dead on their arms, a patient strapped into every bed. Not all of the straps held.",
+  "kind": "medical",
+  "walkers": 3,
+  "adjacent": [
+    "node.mercy-hospital.morgue",
+    "node.mercy-hospital.pharmacy-wing"
+  ],
+  "zombieTypes": [
+    "zombie.stalker"
+  ],
+  "notes": "High-tier medical + stalker; vertical danger."
+}

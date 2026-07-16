@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.hillcrest.observatory",
+  "regionId": "region.hillcrest",
+  "name": "Observatory",
+  "description": "The hilltop dome, its telescope still aimed at a sky no one watches now. From the gallery the entire city lays open — every district, every column of smoke.",
+  "kind": "generic",
+  "claimable": true,
+  "adjacent": [
+    "node.hillcrest.radio-mast",
+    "node.hillcrest.reservoir"
+  ],
+  "zombieTypes": [
+    "zombie.stalker"
+  ],
+  "notes": "Map vantage (reveal/intel); claimable; a stalker in the dome."
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.downtown.meridian-tower",
+  "regionId": "region.downtown",
+  "name": "Meridian Tower",
+  "description": "A half-gutted office high-rise. The stairwell is a punishing climb, but the upper floors are dry, defensible, and someone clearly broadcast from the top once.",
+  "kind": "generic",
+  "claimable": true,
+  "adjacent": [
+    "node.downtown.news-plaza",
+    "node.downtown.rooftop-garden"
+  ],
+  "zombieTypes": [
+    "zombie.stalker"
+  ],
+  "notes": "Claimable high base; the office-broadcaster story hook (GDD VII). Stalker in the stairwells."
+}

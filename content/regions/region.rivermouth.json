@@ -11,6 +11,9 @@
     "power": 0,
     "water": 20
   },
-  "adjacent": [],
-  "notes": "M1's first real region (T11). Six nodes forming a ring so fog-of-war reveals two neighbors from the start node. Region-to-region adjacency stays empty until a second region ships (M4)."
+  "adjacent": [
+    "region.downtown",
+    "region.ironworks"
+  ],
+  "notes": "M1's first region (T11), now the city's front door (T44). Baseline pinned by loadContent.test (threat 35, loot 70) — unchanged. Region adjacency wired to Downtown (the gridlock bridge) and the Ironworks (the harbor rail line)."
 }

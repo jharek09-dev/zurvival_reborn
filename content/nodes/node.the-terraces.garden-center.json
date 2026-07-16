@@ -1,0 +1,13 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.the-terraces.garden-center",
+  "regionId": "region.the-terraces",
+  "name": "Garden Center",
+  "description": "A nursery under a collapsed shade-canopy. Seed packets, sacks of fertilizer, rain barrels — the raw material of a garden, or a bomb.",
+  "kind": "store",
+  "adjacent": [
+    "node.the-terraces.little-league-park",
+    "node.the-terraces.veterinary-clinic"
+  ],
+  "notes": "Chemistry/growing components (economy); non-obvious value the five-question test rewards."
+}

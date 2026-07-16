@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.the-terraces.elm-court",
+  "regionId": "region.the-terraces",
+  "name": "Elm Court",
+  "description": "A row of foreclosed houses, half already stripped. The other half still hide full pantries behind the mess — people left here in a hurry.",
+  "kind": "residential",
+  "walkers": 2,
+  "adjacent": [
+    "node.the-terraces.community-school",
+    "node.the-terraces.maple-street"
+  ],
+  "notes": "Spread-thin residential food; rewards a patient search."
+}

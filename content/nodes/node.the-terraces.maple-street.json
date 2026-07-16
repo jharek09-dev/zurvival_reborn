@@ -1,0 +1,15 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.the-terraces.maple-street",
+  "regionId": "region.the-terraces",
+  "name": "Maple Street",
+  "description": "A cul-de-sac of open front doors and picked-over kitchens. One house at the end still keeps its curtains drawn and, some nights, a light.",
+  "kind": "residential",
+  "claimable": true,
+  "adjacent": [
+    "node.the-terraces.elm-court",
+    "node.the-terraces.fire-station",
+    "node.the-terraces.water-tower"
+  ],
+  "notes": "Claimable home base + a mystery neighbor (story/diplomacy)."
+}

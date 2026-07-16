@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.hillcrest.lecture-hall",
+  "regionId": "region.hillcrest",
+  "name": "Lecture Hall",
+  "description": "A tiered auditorium, seats bolted in rows, the projection booth barricaded from within. Someone rationed their last days up in that booth.",
+  "kind": "generic",
+  "walkers": 2,
+  "adjacent": [
+    "node.hillcrest.science-labs",
+    "node.hillcrest.university-quad"
+  ],
+  "notes": "Minor loot + a small story; a booth to breach or parley."
+}

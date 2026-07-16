@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/region.schema.json",
+  "id": "region.mercy-hospital",
+  "name": "Mercy Hospital District",
+  "description": "The medical mother lode and the place it all went wrong — an ER, a morgue, a pharmacy behind every lock the staff could throw. Extreme danger for the drugs that actually cure.",
+  "baseline": {
+    "threat": 80,
+    "zombieDensity": 85,
+    "loot": 75,
+    "survivorActivity": 15,
+    "power": 35,
+    "water": 30
+  },
+  "adjacent": [
+    "region.downtown",
+    "region.hillcrest",
+    "region.the-terraces"
+  ],
+  "notes": "Highest-danger region; top-tier medical loot; carries the fallen-evacuation-point story (GDD VII) and the origin of the outbreak."
+}

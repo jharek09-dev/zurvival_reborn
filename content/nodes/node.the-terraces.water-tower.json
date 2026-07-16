@@ -1,0 +1,13 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.the-terraces.water-tower",
+  "regionId": "region.the-terraces",
+  "name": "Water Tower",
+  "description": "The suburb's tank on rusted stilts, ladder rungs slick to the touch. From the catwalk the whole east side lays open; the tank itself is a lot of clean water.",
+  "kind": "generic",
+  "adjacent": [
+    "node.the-terraces.maple-street",
+    "node.the-terraces.overlook-road"
+  ],
+  "notes": "Vantage + water source; payoff gated behind a climb."
+}

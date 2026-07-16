@@ -1,0 +1,15 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.rivermouth.rail-yard",
+  "regionId": "region.rivermouth",
+  "name": "Harbor Rail Yard",
+  "description": "A silted freight terminus of dead boxcars and a coupling shed. The line runs inland to the ironworks; the cars still hold what never got shipped.",
+  "kind": "industrial",
+  "walkers": 3,
+  "adjacent": [
+    "node.ironworks.rail-depot",
+    "node.rivermouth.overpass",
+    "node.rivermouth.police-post"
+  ],
+  "notes": "New M4 gateway to the Ironworks (rail line). Container loot vs. an exposed yard."
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.ironworks.fuel-depot",
+  "regionId": "region.ironworks",
+  "name": "Fuel Depot",
+  "description": "A tank farm of diesel and gasoline, the gauges still holding. Fuel to run everything you own, and one careless spark from a crater.",
+  "kind": "industrial",
+  "walkers": 2,
+  "adjacent": [
+    "node.ironworks.chemical-plant",
+    "node.ironworks.scrap-yard"
+  ],
+  "notes": "Fuel for vehicles/generators; a high-consequence hazard."
+}

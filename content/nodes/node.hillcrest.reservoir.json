@@ -1,0 +1,13 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.hillcrest.reservoir",
+  "regionId": "region.hillcrest",
+  "name": "The Reservoir",
+  "description": "The city's drinking water behind an earthen dam, still and clean and enormous. A long, open, exposed walk out along the crest to reach it.",
+  "kind": "generic",
+  "adjacent": [
+    "node.hillcrest.observatory",
+    "node.hillcrest.waterworks"
+  ],
+  "notes": "Major clean-water source; the payoff is gated behind exposure."
+}

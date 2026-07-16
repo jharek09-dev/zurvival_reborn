@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.downtown.grand-pharmacy",
+  "regionId": "region.downtown",
+  "name": "Grand Pharmacy",
+  "description": "The big downtown drugstore. Front shelves swept bare months ago; the controlled-substances cage in back still holds the drugs that matter — and forcing it will matter too.",
+  "kind": "medical",
+  "walkers": 3,
+  "adjacent": [
+    "node.downtown.department-store",
+    "node.downtown.union-bank"
+  ],
+  "zombieTypes": [
+    "zombie.screamer"
+  ],
+  "notes": "Rule-of-Three medical (loud force / patient pick / trade for the key); the Riverside Pharmacy analog (GDD)."
+}

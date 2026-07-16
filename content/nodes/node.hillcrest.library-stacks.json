@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.hillcrest.library-stacks",
+  "regionId": "region.hillcrest",
+  "name": "Library Stacks",
+  "description": "Miles of silent shelving in the dark, the card catalog the only index left. Manuals for everything humans knew how to do — and long blind aisles between you and the door.",
+  "kind": "generic",
+  "claimable": true,
+  "adjacent": [
+    "node.hillcrest.dormitory",
+    "node.hillcrest.science-labs"
+  ],
+  "zombieTypes": [
+    "zombie.stalker"
+  ],
+  "notes": "Knowledge (blueprints/how-to as loot); claimable but stalker-haunted."
+}

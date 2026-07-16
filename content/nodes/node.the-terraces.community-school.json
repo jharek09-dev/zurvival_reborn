@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.the-terraces.community-school",
+  "regionId": "region.the-terraces",
+  "name": "Community School",
+  "description": "A brick elementary school with the gym windows sandbagged from the inside. Someone is in there, and they have heard you coming.",
+  "kind": "residential",
+  "claimable": true,
+  "adjacent": [
+    "node.the-terraces.corner-chapel",
+    "node.the-terraces.elm-court"
+  ],
+  "notes": "Survivors barricaded (diplomacy / recruit hook); claimable once befriended or cleared."
+}

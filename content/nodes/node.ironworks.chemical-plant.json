@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.ironworks.chemical-plant",
+  "regionId": "region.ironworks",
+  "name": "Chemical Plant",
+  "description": "Tank farms and a maze of pipework, one line hissing where it shouldn't. Purification chemistry and reagents, past the part where the air burns your eyes.",
+  "kind": "industrial",
+  "adjacent": [
+    "node.ironworks.fuel-depot",
+    "node.ironworks.power-substation"
+  ],
+  "zombieTypes": [
+    "zombie.screamer"
+  ],
+  "notes": "Water-purification/chem components; a standing environmental hazard."
+}

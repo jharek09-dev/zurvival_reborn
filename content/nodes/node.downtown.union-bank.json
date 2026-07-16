@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.downtown.union-bank",
+  "regionId": "region.downtown",
+  "name": "Union Bank",
+  "description": "A marble banking hall, its vault door yawning open and empty of cash — but the safe-deposit room and the manager's cabinet were never touched.",
+  "kind": "generic",
+  "adjacent": [
+    "node.downtown.city-hall",
+    "node.downtown.grand-pharmacy",
+    "node.downtown.news-plaza"
+  ],
+  "notes": "Decision node: the obvious loot is gone, the patient find isn't."
+}

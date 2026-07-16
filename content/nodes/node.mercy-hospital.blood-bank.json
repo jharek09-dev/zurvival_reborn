@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.mercy-hospital.blood-bank",
+  "regionId": "region.mercy-hospital",
+  "name": "Blood Bank",
+  "description": "A refrigerated store of labeled bags gone to ruin, and a researcher's abandoned notebook that was asking the right questions.",
+  "kind": "medical",
+  "adjacent": [
+    "node.hillcrest.science-labs",
+    "node.mercy-hospital.chapel-of-rest",
+    "node.mercy-hospital.emergency-room"
+  ],
+  "zombieTypes": [
+    "zombie.screamer"
+  ],
+  "notes": "Research/story hook (feeds infection/cure arcs); gateway to Hillcrest's labs."
+}

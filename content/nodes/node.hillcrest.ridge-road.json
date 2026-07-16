@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.hillcrest.ridge-road",
+  "regionId": "region.hillcrest",
+  "name": "Ridge Road",
+  "description": "The hairpin along the ridge, the campus wall on one side and a long drop on the other. No cover the whole way — but it ties the hill to everything under it.",
+  "kind": "generic",
+  "walkers": 2,
+  "adjacent": [
+    "node.hillcrest.university-quad",
+    "node.the-terraces.overlook-road"
+  ],
+  "notes": "Gateway hub: the Terraces (down the switchback) and around toward Mercy. Exposed, no cover — the observatory owns the view."
+}

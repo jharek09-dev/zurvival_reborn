@@ -1,0 +1,15 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.ironworks.warehouse-row",
+  "regionId": "region.ironworks",
+  "name": "Warehouse Row",
+  "description": "Pallet racks tower into the dark in a building the size of a runway. Everything here comes in bulk — but the aisles are blind canyons, and you never see what shares one until you are in it.",
+  "kind": "industrial",
+  "walkers": 4,
+  "adjacent": [
+    "node.ironworks.foundry",
+    "node.ironworks.loading-canal",
+    "node.ironworks.machine-shop"
+  ],
+  "notes": "The volume-of-loot node; bulk everything vs. the heaviest walker load in the works."
+}

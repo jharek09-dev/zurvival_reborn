@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.ironworks.foundry",
+  "regionId": "region.ironworks",
+  "name": "The Foundry",
+  "description": "The great casting shed, crucibles cold, ingots and bar stock everywhere you look. Sound carries forever under that roof.",
+  "kind": "industrial",
+  "walkers": 3,
+  "adjacent": [
+    "node.ironworks.power-substation",
+    "node.ironworks.rail-depot",
+    "node.ironworks.warehouse-row"
+  ],
+  "zombieTypes": [
+    "zombie.screamer"
+  ],
+  "notes": "Metal stock for crafting/repairs; acoustically dangerous — a search here is a broadcast."
+}

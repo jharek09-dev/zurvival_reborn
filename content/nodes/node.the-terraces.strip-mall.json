@@ -1,0 +1,15 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.the-terraces.strip-mall",
+  "regionId": "region.the-terraces",
+  "name": "Strip Mall",
+  "description": "A laundromat, a nail salon, a liquor store, a taquería — fronts smashed, stockrooms maybe not. The parking lot is one slow, grazing crowd.",
+  "kind": "store",
+  "walkers": 3,
+  "adjacent": [
+    "node.downtown.department-store",
+    "node.the-terraces.corner-chapel",
+    "node.the-terraces.little-league-park"
+  ],
+  "notes": "Gateway to Downtown retail; stockroom loot vs. a lot full of walkers."
+}

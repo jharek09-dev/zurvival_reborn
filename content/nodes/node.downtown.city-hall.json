@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.downtown.city-hall",
+  "regionId": "region.downtown",
+  "name": "City Hall",
+  "description": "The seat of a government that failed here. A small security armory, the evacuation records, and a lobby drifted with the paperwork of the last bad week.",
+  "kind": "police",
+  "adjacent": [
+    "node.downtown.subway-entrance",
+    "node.downtown.union-bank"
+  ],
+  "zombieTypes": [
+    "zombie.screamer"
+  ],
+  "notes": "Firearms + the evac-order story; the municipal-armory node."
+}

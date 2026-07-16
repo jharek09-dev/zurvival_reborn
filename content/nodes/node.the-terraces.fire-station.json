@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.the-terraces.fire-station",
+  "regionId": "region.the-terraces",
+  "name": "Fire Station",
+  "description": "Engine bay open, one truck gone, the tool wall intact — axes, halligans, bolt cutters. The dormitory upstairs was built to sleep a crew.",
+  "kind": "police",
+  "claimable": true,
+  "adjacent": [
+    "node.mercy-hospital.evac-checkpoint",
+    "node.the-terraces.maple-street",
+    "node.the-terraces.veterinary-clinic"
+  ],
+  "zombieTypes": [
+    "zombie.screamer"
+  ],
+  "notes": "The GDD Rule-of-Three exemplar (loud raid / quiet tools / survivors inside); claimable, tools for crafting."
+}

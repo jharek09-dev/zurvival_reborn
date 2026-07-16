@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.hillcrest.dormitory",
+  "regionId": "region.hillcrest",
+  "name": "Dormitory",
+  "description": "Student housing, room after identical room, most doors ajar. Small comforts left behind in the open ones; small horrors behind the ones still shut.",
+  "kind": "residential",
+  "walkers": 3,
+  "adjacent": [
+    "node.hillcrest.faculty-housing",
+    "node.hillcrest.library-stacks",
+    "node.hillcrest.university-quad"
+  ],
+  "zombieTypes": [
+    "zombie.stalker"
+  ],
+  "notes": "Residential loot at volume; a stalker; the door-by-door tension."
+}

@@ -6,8 +6,10 @@
   "description": "A section of raised highway sheared onto the street below. You can pick a path over the rubble, slowly, in the open — or turn back.",
   "kind": "generic",
   "adjacent": [
-    "node.rivermouth.transit-plaza",
-    "node.rivermouth.marina"
+    "node.downtown.gridlock-bridge",
+    "node.rivermouth.marina",
+    "node.rivermouth.rail-yard",
+    "node.rivermouth.transit-plaza"
   ],
-  "notes": "Traversal choke to the marina; slow and exposed, the quiet-but-costly route."
+  "notes": "Traversal choke to the marina; the quiet-but-costly route. M4: the ramp up onto the gridlock bridge into Downtown."
 }

@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.hillcrest.university-quad",
+  "regionId": "region.hillcrest",
+  "name": "University Quad",
+  "description": "The green heart of the campus, ringed by lecture halls and watched from a hundred dark windows. Cross it fast, or skirt the colonnade.",
+  "kind": "generic",
+  "walkers": 2,
+  "adjacent": [
+    "node.hillcrest.dormitory",
+    "node.hillcrest.lecture-hall",
+    "node.hillcrest.ridge-road",
+    "node.hillcrest.waterworks"
+  ],
+  "notes": "Campus hub; the open-vs-edges approach choice."
+}

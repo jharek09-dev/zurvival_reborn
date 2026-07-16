@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.ironworks.loading-canal",
+  "regionId": "region.ironworks",
+  "name": "Loading Canal",
+  "description": "A straight concrete canal cut through the works, a barge half-sunk at the wharf. Slow open water, and the seam where the industry touches the hill's reservoir.",
+  "kind": "generic",
+  "adjacent": [
+    "node.hillcrest.waterworks",
+    "node.ironworks.foreman-office",
+    "node.ironworks.warehouse-row"
+  ],
+  "notes": "Gateway to Hillcrest (the waterworks); water access."
+}

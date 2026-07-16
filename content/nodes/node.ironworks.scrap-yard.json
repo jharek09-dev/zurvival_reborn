@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.ironworks.scrap-yard",
+  "regionId": "region.ironworks",
+  "name": "Scrap Yard",
+  "description": "A maze of crushed cars behind a chained gate someone already cut. Materials for the taking — and something that learned to hunt the blind aisles, patient and unseen.",
+  "kind": "industrial",
+  "walkers": 3,
+  "adjacent": [
+    "node.ironworks.foreman-office",
+    "node.ironworks.fuel-depot"
+  ],
+  "zombieTypes": [
+    "zombie.stalker"
+  ],
+  "notes": "Raw materials + a stalker; the maze you can get lost in."
+}

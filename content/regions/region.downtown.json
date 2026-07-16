@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/region.schema.json",
+  "id": "region.downtown",
+  "name": "Downtown Core",
+  "description": "Dense, vertical, and loud. Towers of high-tier loot over streets that answer every gunshot — the richest and most dangerous ground in the city.",
+  "baseline": {
+    "threat": 70,
+    "zombieDensity": 80,
+    "loot": 85,
+    "survivorActivity": 10,
+    "power": 25,
+    "water": 10
+  },
+  "adjacent": [
+    "region.ironworks",
+    "region.mercy-hospital",
+    "region.rivermouth",
+    "region.the-terraces"
+  ],
+  "notes": "The GDD marquee region (Part XIV sketch): high density, high-tier loot behind serious risk, threat that spikes fast with noise. Hub of the city graph."
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.downtown.subway-entrance",
+  "regionId": "region.downtown",
+  "name": "Subway Entrance",
+  "description": "Stairs down into standing water and total dark, where the trains stopped. A tunnel runs under the city — toward the hospital, if the wall map is right.",
+  "kind": "generic",
+  "adjacent": [
+    "node.downtown.city-hall",
+    "node.downtown.parking-structure",
+    "node.mercy-hospital.parking-deck"
+  ],
+  "zombieTypes": [
+    "zombie.stalker"
+  ],
+  "notes": "Gateway to Mercy via the underground; stalker-held; the route that skips the streets."
+}

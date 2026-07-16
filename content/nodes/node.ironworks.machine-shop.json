@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.ironworks.machine-shop",
+  "regionId": "region.ironworks",
+  "name": "Machine Shop",
+  "description": "Lathes, a mill, a workbench with the tools still racked. A craftsman's whole capability behind a roll-down door that makes it defensible.",
+  "kind": "industrial",
+  "claimable": true,
+  "adjacent": [
+    "node.ironworks.foreman-office",
+    "node.ironworks.warehouse-row"
+  ],
+  "notes": "Crafting/repairs enabler (M4 T51/T52); claimable workshop."
+}
