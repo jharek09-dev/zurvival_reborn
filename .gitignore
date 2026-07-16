@@ -50,3 +50,7 @@ saves/
 
 # ─── Local working artifacts (scratch space, never committed) ──
 /.sandbox/
+# Generated diffs from the per-block authoring workflow — the commit is the
+# record, so the patch is redundant once landed. Force-add if one is ever
+# genuinely needed: git add -f <file>.patch
+*.patch
