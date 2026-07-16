@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.ironworks.rail-depot",
+  "regionId": "region.ironworks",
+  "name": "Rail Depot",
+  "description": "A marshalling yard of dead locomotives and stacked containers. The line runs down to the harbor one way and up toward the hills the other.",
+  "kind": "industrial",
+  "walkers": 2,
+  "adjacent": [
+    "node.ironworks.foundry",
+    "node.rivermouth.rail-yard"
+  ],
+  "notes": "Gateway to Rivermouth (the harbor rail yard); the industrial spine."
+}

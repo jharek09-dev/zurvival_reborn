@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/region.schema.json",
+  "id": "region.hillcrest",
+  "name": "Hillcrest",
+  "description": "The high ground — a university, the city's reservoir, and a radio mast on the ridge. Water, knowledge, and a vantage over everything below, held by holdouts who watch the roads.",
+  "baseline": {
+    "threat": 40,
+    "zombieDensity": 40,
+    "loot": 50,
+    "survivorActivity": 45,
+    "power": 50,
+    "water": 80
+  },
+  "adjacent": [
+    "region.ironworks",
+    "region.mercy-hospital",
+    "region.the-terraces"
+  ],
+  "notes": "Water source + radio network (T50) + research/quarantine story + map vantage. The strategic hill; survivor activity high."
+}

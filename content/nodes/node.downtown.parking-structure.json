@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.downtown.parking-structure",
+  "regionId": "region.downtown",
+  "name": "Parking Structure",
+  "description": "A concrete spiral of dead cars, pitch black between the levels. Fuel to siphon and a shortcut through the block — if you can stand the dark.",
+  "kind": "generic",
+  "walkers": 3,
+  "adjacent": [
+    "node.downtown.food-court",
+    "node.downtown.subway-entrance",
+    "node.ironworks.power-substation"
+  ],
+  "zombieTypes": [
+    "zombie.stalker"
+  ],
+  "notes": "Fuel + a stalker; the dark through-route. Gateway toward the Ironworks substation."
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/region.schema.json",
+  "id": "region.ironworks",
+  "name": "The Ironworks",
+  "description": "A river-and-rail industrial belt of foundries, tank farms, and warehouses. Materials, fuel, and tools for the taking — and the hazards that come with all three.",
+  "baseline": {
+    "threat": 55,
+    "zombieDensity": 60,
+    "loot": 60,
+    "survivorActivity": 20,
+    "power": 60,
+    "water": 55
+  },
+  "adjacent": [
+    "region.downtown",
+    "region.hillcrest",
+    "region.rivermouth"
+  ],
+  "notes": "Crafting/economy backbone (feeds M4 T51/T52): metal stock, fuel, chemistry, a workshop. Environmental hazards; power/water infrastructure. Rail links to the harbor, canal to the hill."
+}

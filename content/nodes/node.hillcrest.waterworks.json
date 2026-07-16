@@ -1,0 +1,15 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.hillcrest.waterworks",
+  "regionId": "region.hillcrest",
+  "name": "Waterworks",
+  "description": "The treatment plant below the dam — pumps, chlorine drums, the clean pipes the whole city drank from. Restart it and taps run again; the walkers came for the same water.",
+  "kind": "industrial",
+  "walkers": 2,
+  "adjacent": [
+    "node.hillcrest.reservoir",
+    "node.hillcrest.university-quad",
+    "node.ironworks.loading-canal"
+  ],
+  "notes": "Gateway to the Ironworks (the canal); water infrastructure (economy)."
+}

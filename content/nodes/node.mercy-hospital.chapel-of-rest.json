@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.mercy-hospital.chapel-of-rest",
+  "regionId": "region.mercy-hospital",
+  "name": "Chapel of Rest",
+  "description": "The hospital chapel, untouched, its candles long out. A door that locks from the inside and a silence the rest of the building cannot reach.",
+  "kind": "generic",
+  "claimable": true,
+  "adjacent": [
+    "node.mercy-hospital.blood-bank",
+    "node.mercy-hospital.morgue"
+  ],
+  "notes": "Claimable island of calm inside the worst region."
+}

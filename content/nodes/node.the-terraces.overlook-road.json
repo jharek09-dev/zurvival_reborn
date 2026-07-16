@@ -1,0 +1,15 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.the-terraces.overlook-road",
+  "regionId": "region.the-terraces",
+  "name": "Overlook Road",
+  "description": "The switchback where the suburb climbs toward the hill. Long sightlines both ways — and nowhere to hide if something is already on it.",
+  "kind": "generic",
+  "walkers": 2,
+  "adjacent": [
+    "node.hillcrest.ridge-road",
+    "node.the-terraces.little-league-park",
+    "node.the-terraces.water-tower"
+  ],
+  "notes": "Gateway hub: ties the Terraces to Hillcrest (the ridge) and down toward Downtown. Exposed road."
+}

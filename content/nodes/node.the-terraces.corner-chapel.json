@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.the-terraces.corner-chapel",
+  "regionId": "region.the-terraces",
+  "name": "Corner Chapel",
+  "description": "A little stone church, its doors chalked with a cross and a date. Pews shoved into a barricade, a dry cellar, and the quiet of a place people trusted.",
+  "kind": "generic",
+  "claimable": true,
+  "adjacent": [
+    "node.the-terraces.community-school",
+    "node.the-terraces.strip-mall"
+  ],
+  "notes": "Low-loot, high-safety refuge; claimable."
+}

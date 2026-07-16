@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.downtown.gridlock-bridge",
+  "regionId": "region.downtown",
+  "name": "Gridlock Bridge",
+  "description": "The span into Downtown, welded solid with a mile of abandoned cars. You cross on foot between cold hoods, exposed the whole way, or you don't cross at all.",
+  "kind": "generic",
+  "walkers": 2,
+  "adjacent": [
+    "node.downtown.news-plaza",
+    "node.rivermouth.overpass"
+  ],
+  "notes": "Gateway from Rivermouth; the one road in, and it's a shooting gallery."
+}

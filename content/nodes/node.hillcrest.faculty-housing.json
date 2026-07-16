@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.hillcrest.faculty-housing",
+  "regionId": "region.hillcrest",
+  "name": "Faculty Housing",
+  "description": "Hillside homes for the professors, better built and better stocked than the dorms. One study is locked, and the key is on a body downstairs.",
+  "kind": "residential",
+  "claimable": true,
+  "adjacent": [
+    "node.hillcrest.dormitory",
+    "node.hillcrest.radio-mast"
+  ],
+  "notes": "Quality residential loot + a small key/story puzzle; claimable."
+}

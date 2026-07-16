@@ -1,0 +1,15 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.mercy-hospital.ambulance-bay",
+  "regionId": "region.mercy-hospital",
+  "name": "Ambulance Bay",
+  "description": "A row of open rigs and a diesel pump that still holds pressure. The loud way into the hospital — engines, jump kits, and a roll-up door that screams when it moves.",
+  "kind": "generic",
+  "walkers": 2,
+  "adjacent": [
+    "node.mercy-hospital.emergency-room",
+    "node.mercy-hospital.evac-checkpoint",
+    "node.mercy-hospital.parking-deck"
+  ],
+  "notes": "Gateway from the Downtown side; fuel and rigs, and a noise tax on the way in."
+}

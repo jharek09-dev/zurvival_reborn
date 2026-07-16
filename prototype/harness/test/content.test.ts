@@ -31,20 +31,37 @@ function loadDefs<T>(sub: string): T[] {
     .map((f) => JSON.parse(readFileSync(join(dir, f), "utf8")) as T);
 }
 
-describe("shipped content — region.rivermouth node graph (T11)", () => {
+describe("shipped content — the full city node graph (T44 · FR-MAP-01/FR-SIM-02)", () => {
   const regions = loadDefs<RegionDef>("regions");
   const nodes = loadDefs<NodeDef>("nodes");
 
-  it("builds a connected, symmetric graph of 5–8 nodes with one start", () => {
+  it("builds one connected, symmetric city graph within the M4 budget, single start", () => {
+    // buildRegionGraph throws on any asymmetry, dangling edge, missing/multiple start, or a
+    // disconnected node — so a clean build already proves the whole city is ONE connected graph.
     const g = buildRegionGraph(regions, nodes);
     const count = Object.keys(g.nodes).length;
-    expect(count).toBeGreaterThanOrEqual(5);
-    expect(count).toBeLessThanOrEqual(8);
+    // M4 city budget (PRODUCTION §6.4): the full first city (~40–60 nodes) — supersedes the 5–8 slice.
+    expect(count).toBeGreaterThanOrEqual(40);
+    expect(count).toBeLessThanOrEqual(65);
+    expect(Object.keys(g.regions).length).toBe(6);
     expect(g.startNodeId).toBe("node.rivermouth.transit-plaza");
   });
 
-  it("exposes a claimable safehouse node (FR-MAP-06)", () => {
-    expect(nodes.some((n) => n.claimable === true)).toBe(true);
+  it("populates every region and stitches them with cross-region routes", () => {
+    const g = buildRegionGraph(regions, nodes);
+    // Every shipped region carries at least one node...
+    for (const rid of Object.keys(g.regions)) {
+      expect(Object.values(g.nodes).some((n) => n.regionId === rid)).toBe(true);
+    }
+    // ...and at least one route crosses a region boundary, so the city is one graph, not islands.
+    const crossRegion = Object.values(g.nodes).some((n) =>
+      n.adjacent.some((a) => g.nodes[a]!.regionId !== n.regionId),
+    );
+    expect(crossRegion).toBe(true);
+  });
+
+  it("exposes several claimable safehouse nodes across the city (FR-MAP-06)", () => {
+    expect(nodes.filter((n) => n.claimable === true).length).toBeGreaterThanOrEqual(5);
   });
 
   it("starts a run with fog revealed only around the start node", () => {
@@ -56,7 +73,7 @@ describe("shipped content — region.rivermouth node graph (T11)", () => {
     const start = graph.startNodeId;
     expect(state.player.location).toBe(start);
     expect(isVisited(state.nodes[start]!)).toBe(true);
-    // Start + its neighbors discovered; at least one node still hidden on a 6-node ring.
+    // Start + its immediate neighbors discovered; the rest of the ~60-node city stays fogged.
     for (const nbr of graph.nodes[start]!.adjacent) {
       expect(isDiscovered(state.nodes[nbr]!)).toBe(true);
     }

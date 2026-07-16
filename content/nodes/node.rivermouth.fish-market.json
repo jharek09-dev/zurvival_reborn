@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.rivermouth.fish-market",
+  "regionId": "region.rivermouth",
+  "name": "Fish Market",
+  "description": "A gutted riverside market of empty ice beds and a stench that has outlived its cause. Sealed tins and a chandlery in back survived the looting; the smell hid them.",
+  "kind": "store",
+  "walkers": 2,
+  "adjacent": [
+    "node.rivermouth.corner-store",
+    "node.rivermouth.marina"
+  ],
+  "notes": "New M4 node knitting the harbor ring tighter. Spoilage/brine flavor; back-room reward."
+}

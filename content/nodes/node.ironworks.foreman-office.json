@@ -1,0 +1,15 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.ironworks.foreman-office",
+  "regionId": "region.ironworks",
+  "name": "Foreman's Office",
+  "description": "The site office up on stilts over the yard, keys on a board, manifests still on the desk. A bad approach for anything that can't climb, good sightlines for you.",
+  "kind": "generic",
+  "claimable": true,
+  "adjacent": [
+    "node.ironworks.loading-canal",
+    "node.ironworks.machine-shop",
+    "node.ironworks.scrap-yard"
+  ],
+  "notes": "Claimable + intel (manifests as loot hints); defensible."
+}

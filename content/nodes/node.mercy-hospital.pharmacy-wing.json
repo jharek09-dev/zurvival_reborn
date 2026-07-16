@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.mercy-hospital.pharmacy-wing",
+  "regionId": "region.mercy-hospital",
+  "name": "Pharmacy Wing",
+  "description": "The hospital dispensary, three sets of doors deep. The drugs that actually cure things are here, behind every lock the staff had time to throw.",
+  "kind": "medical",
+  "walkers": 3,
+  "adjacent": [
+    "node.mercy-hospital.emergency-room",
+    "node.mercy-hospital.icu-tower"
+  ],
+  "notes": "The medical mother lode; layered risk for the best loot in the city."
+}

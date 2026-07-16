@@ -7,7 +7,8 @@
   "kind": "police",
   "adjacent": [
     "node.rivermouth.clinic",
-    "node.rivermouth.marina"
+    "node.rivermouth.marina",
+    "node.rivermouth.rail-yard"
   ],
   "notes": "Firearm source that sets up the loud/quiet tension (FR-CBT/FR-SIM-06) explored in T14/T15."
 }

@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.ironworks.power-substation",
+  "regionId": "region.ironworks",
+  "name": "Power Substation",
+  "description": "The grid's local heart — transformers, a control room, breakers as tall as you. Throw the right ones and the block wakes up; throw the wrong ones and so does something else.",
+  "kind": "industrial",
+  "adjacent": [
+    "node.downtown.parking-structure",
+    "node.ironworks.chemical-plant",
+    "node.ironworks.foundry"
+  ],
+  "notes": "Gateway to Downtown; the power-infrastructure decision node."
+}

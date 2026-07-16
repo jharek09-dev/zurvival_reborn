@@ -1,0 +1,15 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.the-terraces.little-league-park",
+  "regionId": "region.the-terraces",
+  "name": "Little League Park",
+  "description": "A ball field with a concession stand and a horde grazing the outfield like cattle. Snacks and a first-aid kit wait in the dugout, if you stay quiet.",
+  "kind": "generic",
+  "walkers": 2,
+  "adjacent": [
+    "node.the-terraces.garden-center",
+    "node.the-terraces.overlook-road",
+    "node.the-terraces.strip-mall"
+  ],
+  "notes": "Open, horde-adjacent; the quiet-scavenge lesson made concrete."
+}

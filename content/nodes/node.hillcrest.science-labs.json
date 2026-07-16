@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.hillcrest.science-labs",
+  "regionId": "region.hillcrest",
+  "name": "Science Labs",
+  "description": "Biology and chemistry benches under a taped-up QUARANTINE sign. The reagents and the answers are both in here — and so is whatever the sign was about.",
+  "kind": "medical",
+  "adjacent": [
+    "node.hillcrest.lecture-hall",
+    "node.hillcrest.library-stacks",
+    "node.mercy-hospital.blood-bank"
+  ],
+  "zombieTypes": [
+    "zombie.screamer"
+  ],
+  "notes": "Gateway to Mercy (the research link); the cure/infection story; medical + chem loot."
+}

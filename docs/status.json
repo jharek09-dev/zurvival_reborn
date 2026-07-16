@@ -1,5 +1,5 @@
 {
- "updated": "2026-07-06 (M5 backlog authored — the production line is complete end to end. Populated M5 (Release candidate / v1.0), the last empty milestone, with its 12-task backlog T58–T69, mapped to PRODUCTION §3 M5 scope, the §8 staged-balance sequence (survivability → scarcity → pacing/director → difficulty → accessibility), the §9/§10 gates, and the PRD FR/NFR set: monetization decision (T58); two staged balance passes (T59–T60); multiple endings from run components (T61); failure endings + epilogues (T62); full accessibility verified with assistive tech (T63); localization externalization (T64); save-migration proof across a real schema change (T65); reliability & performance hardening — crash-free ≥99.5%, <100 ms turn (T66); the polish / UI-restraint pass (T67); content freeze & every-Must-met release audit (T68); and the v1.0 'one more day' launch gate (T69). currentMilestone stays M4 (active) and the phase banner is unchanged — M5 is future work and the WIP limit holds at one milestone in flight. All milestones M0–M5 now carry tasks (57 → 69). Engine/prototype state unchanged — planning + dashboard only, no code touched.)",
+ "updated": "2026-07-16 (M4 Part 1 — T43 + T44: the city is on the map and the M4 decisions are logged). T43 resolves the three M4 decision gates as written ADRs (PRODUCTION §9), so none stalls content/beta: ADR-0004 (web-first RATIFIED as the sole launch surface through beta + v1.0; the native/Steam/bot ordering deferred to the v1.0 launch gate T69 with a named trigger → ADR-0004a — decided against beta telemetry, not a guess), ADR-0005 (a bounded, local, per-profile cross-run Chronicle + a capped set of light unlocks — the deterministic source M5 endings T61/T62 read; policy only, no engine code this part), and ADR-0006 (the beta ships ALL-RIGHTS-RESERVED — the placeholder LICENSE stands as its real license, so the gate is closed and distribution is unblocked — with the final selection (open source / source-available / proprietary) DEFERRED to the coupled T58 monetization decision under a named trigger → ADR-0006a; permissive licensing is a one-way door, so the irreversible call is made after the business model it constrains, not before it). T44 pours the full first city: 6 regions (Rivermouth [start, 6→8 nodes], Downtown, The Terraces, Mercy Hospital, The Ironworks, Hillcrest) and 60 nodes — the top of the §6.4 ≈40–60 band — as ONE connected, schema-valid graph from the single Rivermouth start, 9 inter-region gateway routes, region adjacency wired, 14 claimable safehouses, walker/screamer/stalker seeding (full roster is T46), first-pass region baselines. Authored content-as-data via a validated generator (asymmetry / dangling-edge / disconnection made impossible), verified by the real engine buildRegionGraph + the schema gate, and subagent-audited for prose quality (5 fixes). Rivermouth's six shipped nodes keep their exact prose/kind/flags (only city adjacency added) and the region keeps its pinned baseline (threat 35, loot 70). CI green in a clean sandbox: engine 349 · content-loader 9 · harness 48 · typecheck clean ×3 · schema gate 78 entries / 7 types · malformed rejected · empty-turn smoke. The §6.4 content-budget cap is now HIT (60/≈60) — the PRD's signal to stop authoring breadth and go playtest. currentMilestone stays M4 (active); no engine code touched this part. See docs/plans/M4_PART1_PLAN.md and docs/qa/QA_REVIEW_M4_PART1.md.",
  "phase": "M4 Content-complete city — breadth without repetition, the full first city. The launch Content Bible for one city: all regions & nodes, the target survivor pool with several companions, full encounter categories with chains & evolution, infection as staged identity, the radio network, a crafting/rooms/jobs economy, factions & inter-NPC relationships, depth screens, an adaptive audio mix with non-audio equivalents, difficulty modes, and the accessibility baseline complete — all content schema-validated in CI. Exit: MVP / public beta. Entry: M3 done and the Slice Fun Gate passed; content schemas frozen for authoring.",
  "currentMilestone": "M4",
  "milestones": [
@@ -352,15 +352,15 @@
    "id": "T43",
    "title": "M4 decision gates — ADR-0004 + cross-run memory + licensing",
    "milestone": "M4",
-   "status": "todo",
-   "note": "Resolve the decisions PRODUCTION §9 ties to M4 before they stall content/beta. ADR-0004 platform ordering (native / Steam / chat-bot sequence; web-first already set) — unblocks post-launch client work. Cross-run memory persistence (how much Living History carries between runs) — gates endings & meta-progression. Licensing selection (proprietary / source-available / open) — must land before any public beta distribution. Each a written ADR against its criteria; time-box, decide, and log so none silently drifts."
+   "status": "done",
+   "note": "Done 2026-07-16 (M4 Part 1): the three M4 decision gates resolved as written ADRs (PRODUCTION §9) so none stalls content/beta. ADR-0004 platform ordering — web-first RATIFIED as the sole launch surface through the M4 beta + M5 v1.0; the native/Steam/bot ORDERING formally deferred to the v1.0 launch gate (T69) with a named trigger (→ ADR-0004a), to be decided against beta telemetry not a guess; no second client built before v1.0 (WIP §6.6); interim lean (not a promise) is the bot as cheapest reach off the headless core. ADR-0005 cross-run memory (PRD Open Q6) — a bounded, local, per-profile Chronicle (endings + fallen/surviving survivors + a rolling window of Living-History beats, its own version + forward-only ladder) PLUS a capped enumerated set of light unlocks (starting-kit variants, seen recipes, cosmetic titles) chosen so none grants a mechanical head-start — the deterministic source M5 endings (T61/T62) read; retires PL-M2-06 for the cross-run layer; policy only, no engine code this part. ADR-0006 licensing (PRD Open Q8) — the M4 beta ships ALL-RIGHTS-RESERVED (the placeholder LICENSE stands as the real beta license, so the gate is closed and nothing stalls the beta); the final selection (open source / source-available / proprietary) is DEFERRED to the coupled T58 monetization decision with a named trigger, to be logged as ADR-0006a. Rationale: permissive licensing is a one-way door (shipped copies cannot be recalled), so the irreversible call is made AFTER the business model it constrains, not before it; T58 inherits a full option space and the modding/portfolio arguments for opening are recorded in the ADR to be weighed there. LICENSE unchanged. design/decisions/{0004-platform-ordering,0005-cross-run-memory,0006-licensing}.md authored + the README register updated; status ADR-0004 flipped to accepted and ADR-0005/0006 added. No code, no CI change."
   },
   {
    "id": "T44",
    "title": "Content Bible — the full first city (regions & nodes)",
    "milestone": "M4",
-   "status": "todo",
-   "note": "FR-MAP-01 / FR-SIM-02 at city scale. Author the full launch city: all regions (≈4–6) and ≈40–60 nodes with real per-node memory (loot %, damage, corpses, occupants, discoveries persisting all run), grouped into regions connected by routes — replacing the single Rivermouth slice region. Content-as-data (FR-CNT-01), schema-valid in CI (FR-CNT-02). Respects the §6.4 content-budget caps; a cap hit early is a signal to stop authoring and go playtest."
+   "status": "done",
+   "note": "Done 2026-07-16 (M4 Part 1): FR-MAP-01 / FR-SIM-02 at city scale — the single Rivermouth slice grows into the full first city. Six regions (region.rivermouth [start, expanded 6→8 nodes], region.downtown, region.the-terraces, region.mercy-hospital, region.ironworks, region.hillcrest) and 60 nodes — the top of the §6.4 ≈40–60 band — as ONE connected graph from the single start (node.rivermouth.transit-plaza) via 9 inter-region gateway routes, with region-to-region adjacency wired. Every node is content-as-data (FR-CNT-01): real five-question prose, a location kind (the FR-ECO-02 loot table), symmetric adjacency, per-run memory the engine seeds (searchPct/damage/corpses/blood/noise/fog/occupants/discoveries — persist all run, GDD VII), 14 claimable safehouses spread across the city, and walker/screamer/stalker seeding (the full roster is T46). Regions carry first-pass identity baselines (threat/density/loot/survivorActivity/power/water) — the M5 staged passes tune them. Authored via a validated generator so asymmetry, a dangling edge, or a disconnected node are impossible, then verified by the REAL engine buildRegionGraph (single start, symmetric, connected, known refs) + the schema gate. Rivermouth's six shipped nodes keep their exact prose/kind/flags — only city adjacency added — and the region keeps its loadContent-pinned baseline (threat 35, loot 70). An adversarial content-quality subagent audit ran (five-question test / kind fit / near-duplicates / accessibility / region identity): 5 fixes applied (ambulance-bay kind police→generic; a 'zombie dog' reframed to preserve the human-only undead canon; three motif de-duplications). content.test.ts's 5–8-node slice cap updated to the M4 city budget (40–65 nodes, 6 regions) and strengthened into a T44 guard (every region populated, cross-region routes exist, ≥5 safehouses). Engine tests read no shipped content, so the whole engine suite is untouched; the bigger world shifts Rivermouth's region-drift RNG from turn 2 (shared `region` stream), but every behavioral harness test holds. CI green in a clean sandbox: engine 349 · content-loader 9 · harness 48 · typecheck clean ×3 · schema gate 78 entries / 7 types · malformed rejected · empty-turn smoke exit 0. No engine code, no schema change, no RNG stream, no save-schema rung — pure content + one test-budget update. The §6.4 cap is now HIT (60/≈60): the signal to stop authoring breadth and go playtest before more M4 pours."
   },
   {
    "id": "T45",
@@ -564,8 +564,22 @@
    "id": "ADR-0004",
    "title": "Platform ordering (native/Steam/bot)",
    "resolveBy": "M4",
-   "status": "open",
-   "blocks": "Post-launch client work"
+   "status": "accepted",
+   "blocks": "Resolved 2026-07-16 (M4): web-first ratified as the sole launch surface; the native/Steam/bot ordering deferred to the v1.0 launch gate (T69) with a named trigger → ADR-0004a. Beta unblocked."
+  },
+  {
+   "id": "ADR-0005",
+   "title": "Cross-run memory persistence",
+   "resolveBy": "M4",
+   "status": "accepted",
+   "blocks": "Resolved 2026-07-16 (M4): a bounded, local per-profile Chronicle + a capped set of light unlocks (no mechanical head-start) — the deterministic source for M5 endings (T61/T62). Unblocks endings & meta-progression."
+  },
+  {
+   "id": "ADR-0006",
+   "title": "Licensing (proprietary/source-available/open)",
+   "resolveBy": "M4 beta",
+   "status": "accepted",
+   "blocks": "Resolved 2026-07-16 (M4): the beta ships all-rights-reserved (the placeholder LICENSE is its real license); the final license selection is deferred to the coupled T58 monetization decision under a named trigger (ADR-0006a). Unblocks public-beta distribution without walking the one-way door early."
   }
  ],
  "risks": [
@@ -724,6 +738,36 @@
    "id": "PL-M3-10",
    "from": "QA_REVIEW_M3_PART4 L-notes",
    "note": "Story VS simplifications to revisit: the arc's help branch is gated on the cache covering stashDraw, so a bare cache at plea time leaves refuse the only resolution (intended for the VS 'she came back for what you would not give', but a 'you have nothing to give' third path is a lever); the arc is authored engine-side (src/sim/story.ts, THE_LAST_CUSTOMER) with content/arcs mirroring the dials + carrying the surfaced prose (VS content/engine bridge, harness-guarded against drift) — reading dials FROM content is post-VS; the companion payoff (help Ruth -> recruit gate) is available but not surfaced as the arc's reward; and all arc dials (needThreshold 60, delayHours 12, stashDraw 2, raidUnits 3, barricadeHit 20, helpTrust +25, refuseTrust -35) are first-pass, tuned at the T42 Fun Gate / M5 balance."
+  },
+  {
+   "id": "PL-M4-01",
+   "from": "QA_REVIEW_M4_PART1 (content audit)",
+   "note": "The 6-kind loot enum (generic/store/medical/police/residential/industrial) is coarse for a full city — a fire station and a military/armory node both fall to `police`, a hospital ambulance bay to `generic`. Fine at city-VS scale; revisit a richer kind→loot-table mapping (or a per-node loot-profile field) when the T51 economy and the T17 tables grow."
+  },
+  {
+   "id": "PL-M4-02",
+   "from": "QA_REVIEW_M4_PART1 (content audit)",
+   "note": "Node zombie seeding is limited to walker/screamer/stalker (the M2 roster) until T46 ships the full type set; several city nodes carry these three as first-pass menace. Re-pass zombieTypes across the city when T46 lands so each district's signatures match its identity (FR-CBT-07)."
+  },
+  {
+   "id": "PL-M4-03",
+   "from": "M4 Part 1 T44",
+   "note": "Region baselines (threat/density/loot/survivorActivity/power/water) and the 60-node distribution are first-pass identity dials, not balanced against a real cross-city run — the M5 staged balance passes (T59/T60) move them; the M2 telemetry over the bigger map is the input."
+  },
+  {
+   "id": "PL-M4-04",
+   "from": "M4 Part 1 T44",
+   "note": "Inter-region travel is not surfaced as anything special yet — a gateway route reads like any other move. Which district am I entering and what is it known for is depth-screen / map-journal work (T54) and the fog/journal pass; author it so crossing a region boundary reads."
+  },
+  {
+   "id": "PL-M4-05",
+   "from": "M4 Part 1 T44 / §6.4 cap hit",
+   "note": "The city is authored but UNPLAYED at scale, and the §6.4 node cap is now hit (60/≈60) — the PRD's explicit signal to STOP authoring breadth and go playtest. A real traversal playtest of the full city (pacing across regions, does the drift/director read at city scale, is 60 nodes too many to hold in the head, do the gateways route well) should precede further M4 content pours."
+  },
+  {
+   "id": "PL-M4-06",
+   "from": "M4 Part 1 T44 (determinism note)",
+   "note": "Adding regions shifts Rivermouth's region-drift RNG from turn 2 (the shared `region` stream now draws once per region per tick), so multi-turn region values over shipped content differ from the M1–M3 slice — expected and harmless (all behavioral tests hold), but any FUTURE golden that pins exact region numbers must be regenerated against the city, not the slice. If per-run reproducibility of Rivermouth's drift across content growth is ever wanted, seed the region jitter per-region-id rather than sequentially."
   }
  ],
  "loopFeelCheck": {

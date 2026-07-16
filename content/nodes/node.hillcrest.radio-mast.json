@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.hillcrest.radio-mast",
+  "regionId": "region.hillcrest",
+  "name": "Radio Mast",
+  "description": "The campus transmitter shack under a steel mast, a rack of ham gear intact. Put power to it and you can reach the whole network — and be heard by it.",
+  "kind": "generic",
+  "claimable": true,
+  "adjacent": [
+    "node.hillcrest.faculty-housing",
+    "node.hillcrest.observatory"
+  ],
+  "notes": "The radio hook (M4 T50); claimable bunker; broadcast is risk and reward."
+}

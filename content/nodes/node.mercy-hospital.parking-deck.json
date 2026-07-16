@@ -1,0 +1,15 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.mercy-hospital.parking-deck",
+  "regionId": "region.mercy-hospital",
+  "name": "Parking Deck",
+  "description": "The hospital's multi-storey deck, staff cars still in their spots, a helipad on the roof where the last flight never came.",
+  "kind": "generic",
+  "walkers": 3,
+  "adjacent": [
+    "node.downtown.subway-entrance",
+    "node.mercy-hospital.ambulance-bay",
+    "node.mercy-hospital.evac-checkpoint"
+  ],
+  "notes": "Gateway from the subway/Downtown side; fuel + vantage + walkers."
+}

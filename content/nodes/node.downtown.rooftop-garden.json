@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.downtown.rooftop-garden",
+  "regionId": "region.downtown",
+  "name": "Rooftop Garden",
+  "description": "A hotel roof somebody turned into a vegetable garden before the end. High, quiet, hidden from the street, with soil that still grows things.",
+  "kind": "generic",
+  "claimable": true,
+  "adjacent": [
+    "node.downtown.department-store",
+    "node.downtown.meridian-tower"
+  ],
+  "notes": "Claimable + growable (feeds the M4 garden/economy); the calm high place."
+}

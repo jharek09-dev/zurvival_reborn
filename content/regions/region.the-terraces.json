@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/region.schema.json",
+  "id": "region.the-terraces",
+  "name": "The Terraces",
+  "description": "Hillside suburbs of open front doors and picked-over kitchens, where more of the living still hide than anywhere else. Loot spread thin across many homes; danger low but never zero.",
+  "baseline": {
+    "threat": 30,
+    "zombieDensity": 35,
+    "loot": 55,
+    "survivorActivity": 55,
+    "power": 40,
+    "water": 45
+  },
+  "adjacent": [
+    "region.downtown",
+    "region.hillcrest",
+    "region.mercy-hospital"
+  ],
+  "notes": "Residential ring: claimable homes, survivor holdouts (diplomacy/recruit hooks), food spread thin. The quiet-scavenge counterpoint to Downtown."
+}

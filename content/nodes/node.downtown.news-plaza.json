@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.downtown.news-plaza",
+  "regionId": "region.downtown",
+  "name": "News Plaza",
+  "description": "A civic square under a dead jumbotron, ringed by the shapes of a crowd that never dispersed. Open ground — and a scream here reaches every window.",
+  "kind": "generic",
+  "adjacent": [
+    "node.downtown.gridlock-bridge",
+    "node.downtown.meridian-tower",
+    "node.downtown.union-bank"
+  ],
+  "zombieTypes": [
+    "zombie.screamer"
+  ],
+  "notes": "Open downtown hub; screamer risk makes the crossing a real choice."
+}

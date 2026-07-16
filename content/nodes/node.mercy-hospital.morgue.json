@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/node.schema.json",
+  "id": "node.mercy-hospital.morgue",
+  "regionId": "region.mercy-hospital",
+  "name": "Morgue",
+  "description": "The basement cold rooms, pitch dark, every drawer hanging open. There is a shortcut through to the far stairs — if you can bear to feel your way past what is no longer in them.",
+  "kind": "medical",
+  "adjacent": [
+    "node.mercy-hospital.chapel-of-rest",
+    "node.mercy-hospital.icu-tower"
+  ],
+  "zombieTypes": [
+    "zombie.stalker"
+  ],
+  "notes": "Dread/story; a stalker den; a basement shortcut nobody wants to take."
+}
