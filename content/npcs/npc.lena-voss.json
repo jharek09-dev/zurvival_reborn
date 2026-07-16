@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.lena-voss",
+  "name": "Lena Voss",
+  "description": "A trauma nurse in scrubs stiff with dried work, hands rock-steady, meeting your eyes a beat too long as if daring you to ask what she's had to do.",
+  "disposition": "wary",
+  "homeNode": "node.mercy-hospital.ambulance-bay",
+  "background": "Ran the emergency room's trauma bay through the worst nights the hospital ever had — and the nights after.",
+  "personality": "Blunt, exhausted, and armoured in competence; she trusts skill and distrusts comfort.",
+  "secret": "When the ward was overrun and there was no moving the ones who couldn't walk, she made a choice she calls mercy and never says aloud.",
+  "notes": "T45 · Mercy Hospital. Skill: medical/trauma. Hook: a heavy, mature secret handled with restraint; her care is real and her guilt is buried deep."
+}

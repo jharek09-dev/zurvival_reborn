@@ -1,0 +1,8 @@
+{
+  "$schema": "../schemas/zombie.schema.json",
+  "id": "zombie.bloated",
+  "name": "Bloated",
+  "description": "Days dead and swollen tight with gas, skin drawn shiny over the swell. Slow, easy to outpace — and a terrible thing to put down where you are standing.",
+  "signature": "distended and glistening, taut with gas — best not burst up close",
+  "notes": "FR-CBT-07 (T46). No state-machine tag — it is walker-paced; its teeth are in combat (enemy.bloated: burstInfection). Killing it at your node, by blow or by shot, sprays an infectious wound (a bad thing to do up close), so you learn to slip past it. Human-only canon: a corpse gone to rot, not an animal."
+}

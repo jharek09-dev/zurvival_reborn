@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://zurvival.example/schemas/enemy.schema.json",
   "title": "Enemy",
-  "description": "A combat adversary type (FR-CBT-02). Static definition only: a live fight's remaining hit points and alert state live in GameState.combat, seeded from this definition when an encounter begins. M1 ships the lone walker; hordes and variety arrive in M2.",
+  "description": "A combat adversary type (FR-CBT-02). Static definition only: a live fight's remaining hit points and alert state live in GameState.combat, seeded from this definition when an encounter begins. M1 shipped the lone walker; T46 adds the type-distinct roster (Fresh, Crawler, Bloated, Riot). Each keys to a zombie.<slug> behaviour def; combat picks the most dangerous type present at a node. The engine holds the authoritative combat dials as constants (a bridge, as with loot/walker stats); these files mirror them for the schema gate and a harness drift-guard.",
   "type": "object",
   "required": ["id", "name", "description", "maxHp"],
   "additionalProperties": false,
@@ -12,6 +12,10 @@
     "name": { "type": "string", "minLength": 1, "description": "Player-facing name (ICU MessageFormat string)." },
     "description": { "type": "string", "minLength": 1, "description": "How the enemy reads in a combat Scene (ICU MessageFormat string)." },
     "maxHp": { "type": "integer", "minimum": 1, "maximum": 100, "description": "Hit points a fresh encounter with this enemy starts at." },
+    "armor": { "type": "integer", "minimum": 0, "maximum": 10, "description": "Flat melee damage mitigation (Riot, FR-CBT-07): each blunt strike is reduced by this much (floored at 0 net). A firearm punches through — armor never reduces a shot — so the right approach to an armored dead is a bullet or a wide berth. Defaults to 0." },
+    "burstInfection": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Severity of the infectious wound the type inflicts on the killer when it dies at the player's node (Bloated, FR-INJ / FR-CBT-07): a bad thing to put down up close. 0 (default) means no burst — most types." },
+    "graspWound": { "type": "string", "description": "Content id of the wound a fleeing player risks from this type on the way out (Crawler ankle-grab, FR-CBT-07): it makes slipping past costlier than past a plain walker. Absent means the type has no special parting wound." },
+    "initiative": { "type": "boolean", "description": "Strikes back reliably — the sound of speed (Fresh, FR-CBT-07): a fast dead answers every melee exchange instead of only landing a blow half the time. Defaults to false." },
     "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
   }
 }

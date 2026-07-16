@@ -10,8 +10,9 @@
     "node.mercy-hospital.chapel-of-rest",
     "node.mercy-hospital.emergency-room"
   ],
+  "walkers": 2,
   "zombieTypes": [
-    "zombie.screamer"
+    "zombie.bloated"
   ],
   "notes": "Research/story hook (feeds infection/cure arcs); gateway to Hillcrest's labs."
 }

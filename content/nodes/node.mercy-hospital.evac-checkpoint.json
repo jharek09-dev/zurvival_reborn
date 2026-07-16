@@ -5,14 +5,14 @@
   "name": "Evac Checkpoint",
   "description": "The Guard's last stand: sandbag walls, a drift of spent brass, a message board thick with photos and names. The evacuation left from here, and then it didn't.",
   "kind": "police",
-  "walkers": 3,
   "adjacent": [
     "node.mercy-hospital.ambulance-bay",
     "node.mercy-hospital.parking-deck",
     "node.the-terraces.fire-station"
   ],
+  "walkers": 3,
   "zombieTypes": [
-    "zombie.screamer"
+    "zombie.riot"
   ],
   "notes": "The fallen evacuation point (GDD VII story hook); ammo + story; gateway to the Terraces."
 }

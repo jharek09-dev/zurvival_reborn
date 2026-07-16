@@ -9,8 +9,9 @@
     "node.downtown.subway-entrance",
     "node.downtown.union-bank"
   ],
+  "walkers": 3,
   "zombieTypes": [
-    "zombie.screamer"
+    "zombie.riot"
   ],
   "notes": "Firearms + the evac-order story; the municipal-armory node."
 }

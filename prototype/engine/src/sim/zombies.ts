@@ -33,22 +33,47 @@ import { neighborsOf } from "../map/regionGraph.js";
 import { clampNoise } from "./noise.js";
 import { scaleByFort, SHELTER_DETECT_FLOOR_MAX } from "./shelter.js";
 
-/** The first three type ids (mirror `content/zombies/`). */
+/** The full roster of type ids (mirror `content/zombies/`). M2 shipped the first three; T46 the rest. */
 export const ZOMBIE_WALKER: ContentId = "zombie.walker";
 export const ZOMBIE_SCREAMER: ContentId = "zombie.screamer";
 export const ZOMBIE_STALKER: ContentId = "zombie.stalker";
+export const ZOMBIE_FRESH: ContentId = "zombie.fresh";
+export const ZOMBIE_CRAWLER: ContentId = "zombie.crawler";
+export const ZOMBIE_BLOATED: ContentId = "zombie.bloated";
+export const ZOMBIE_RIOT: ContentId = "zombie.riot";
 
-/** Behaviour tags per type — the engine-side bridge until the content table drives tuning (ADR-0002). */
+/**
+ * Senses/behaviour tags per type — the engine-side bridge until a content table drives tuning
+ * (ADR-0002, exactly as the loot tables and walker stats do; `content/zombies/` mirrors these for
+ * the schema gate and a harness drift-guard). These four tags drive the *state machine* (arousal +
+ * detection); the *combat* differences (armor, infectious burst, ankle-grab, initiative) live with
+ * the enemy table in `combat.ts`. A type may carry more than one.
+ */
 export interface ZombieBehaviour {
   /** On reaching investigating/chasing, deposit noise into neighbours (Screamer). */
   readonly rousesNeighbours: boolean;
   /** Hunts hard toward chasing at night when the player is near (Stalker). */
   readonly nightHunter: boolean;
+  /** Recently turned and fast: escalates arousal harder from a stimulus (Fresh — the sound of speed). */
+  readonly swift: boolean;
+  /** Keeps low and easy to miss: reads calmer than it is until the player is on top of it (Crawler). */
+  readonly lowProfile: boolean;
 }
+const BEHAVIOUR = (b: Partial<ZombieBehaviour>): ZombieBehaviour => ({
+  rousesNeighbours: false,
+  nightHunter: false,
+  swift: false,
+  lowProfile: false,
+  ...b,
+});
 export const ZOMBIE_BEHAVIOUR: { readonly [id: ContentId]: ZombieBehaviour } = {
-  [ZOMBIE_WALKER]: { rousesNeighbours: false, nightHunter: false },
-  [ZOMBIE_SCREAMER]: { rousesNeighbours: true, nightHunter: false },
-  [ZOMBIE_STALKER]: { rousesNeighbours: false, nightHunter: true },
+  [ZOMBIE_WALKER]: BEHAVIOUR({}),
+  [ZOMBIE_SCREAMER]: BEHAVIOUR({ rousesNeighbours: true }),
+  [ZOMBIE_STALKER]: BEHAVIOUR({ nightHunter: true }),
+  [ZOMBIE_FRESH]: BEHAVIOUR({ swift: true }),
+  [ZOMBIE_CRAWLER]: BEHAVIOUR({ lowProfile: true }),
+  [ZOMBIE_BLOATED]: BEHAVIOUR({}), // slow like a walker; its teeth are the death-burst (combat.ts)
+  [ZOMBIE_RIOT]: BEHAVIOUR({}), // walker-paced; its teeth are the armor (combat.ts)
 };
 
 // --- stimulus thresholds & bonuses (tunable) ------------------------------------------------
@@ -64,6 +89,17 @@ export const SCENT_BONUS = 15;
 /** A stalker's night-hunt bonus, and a screamer's per-neighbour noise deposit. */
 export const STALKER_NIGHT_BONUS = 30;
 export const SCREAM_NOISE = 20;
+/**
+ * A Fresh's speed: when the player is near, a swift node feels a stimulus surge, so it snaps to a
+ * higher rung than a plain node would — it reaches you fast. Not night-gated (unlike the Stalker).
+ */
+export const SWIFT_BONUS = 25;
+/**
+ * A Crawler's low profile: while the player is only nearby (not standing on it), it damps its own
+ * stimulus and reads quiet — you almost walk past it. Cancelled the moment the player is AT the node
+ * (it grabs your ankles then). Floors the stimulus at 0.
+ */
+export const LOWPROFILE_DAMPEN = 20;
 
 // --- the arousal ladder ---------------------------------------------------------------------
 
@@ -110,6 +146,12 @@ export function stimulusAt(state: GameState, nodeId: NodeId, node: NodeState, gr
   else if (playerAdjacent) s += PLAYER_ADJACENT_BONUS;
   if (playerNear && bleeding) s += SCENT_BONUS;
   if (night && playerNear && hasTag(node, "nightHunter")) s += STALKER_NIGHT_BONUS;
+  // A Fresh's speed (T46): with the player near, a swift node surges toward the player — the sound of
+  // speed — reaching chasing from a stimulus that would leave a plain node merely investigating.
+  if (playerNear && hasTag(node, "swift")) s += SWIFT_BONUS;
+  // A Crawler's low profile (T46): while the player is only *near* it, it stays quiet and reads calmer
+  // than it is (you almost miss it); the damp lifts the instant the player stands on it (it grabs then).
+  if (!playerHere && hasTag(node, "lowProfile")) s -= LOWPROFILE_DAMPEN;
   // A fortified shelter raises the detection floor (T38): it blunts the presence/scent/night-hunter draw on
   // the player's own base, scaled by fortification. Full fortification cancels the "player is here" bonus, so
   // a secure base goes dormant by day; a stalker at night is reduced, never nullified. Inert off the shelter.

@@ -24,7 +24,7 @@ import type { ActorId, GameState, NodeId, NPCState } from "../state/types.js";
 import type { Action, SceneChoice } from "../pipeline/contract.js";
 import { applyTrustEvent, canParley, canRecruit } from "./trust.js";
 import { FOOD_ITEM, WATER_ITEM, EAT_RELIEF, DRINK_RELIEF, RELIEF_OFFER_AT } from "./survival.js";
-import { recruit, companionsHere } from "./companions.js";
+import { recruit, companionsHere, canRecruitEligible, companionName, COMPANION_SHARE_TRUST } from "./companions.js";
 
 /** Time cost (hours) of each interaction. All > 0 so every interaction is a resolved turn (FR-CORE-03/04). */
 export const TALK_COST = 1;
@@ -94,7 +94,7 @@ export function encounterPeople(state: GameState): readonly SceneChoice[] {
         action: { type: "give-water", choiceId: `give-water:${id}`, timeCost: GIVE_COST, params: { npc: id } },
       });
     }
-    if (npc.met && canRecruit(npc)) {
+    if (npc.met && canRecruit(npc) && canRecruitEligible(state, npc)) {
       choices.push({
         id: `recruit:${id}`,
         label: `Ask ${npc.name} to join you`,
@@ -116,7 +116,7 @@ export function encounterPeople(state: GameState): readonly SceneChoice[] {
     if (carries(state, FOOD_ITEM) && c.condition.needs.hunger >= RELIEF_OFFER_AT) {
       choices.push({
         id: `give-food:${c.id}`,
-        label: `Share food with your companion`,
+        label: `Share food with ${companionName(c)}`,
         timeCost: GIVE_COST,
         action: { type: "give-food", choiceId: `give-food:${c.id}`, timeCost: GIVE_COST, params: { companion: c.id } },
       });
@@ -124,7 +124,7 @@ export function encounterPeople(state: GameState): readonly SceneChoice[] {
     if (carries(state, WATER_ITEM) && c.condition.needs.thirst >= RELIEF_OFFER_AT) {
       choices.push({
         id: `give-water:${c.id}`,
-        label: `Share water with your companion`,
+        label: `Share water with ${companionName(c)}`,
         timeCost: GIVE_COST,
         action: { type: "give-water", choiceId: `give-water:${c.id}`, timeCost: GIVE_COST, params: { companion: c.id } },
       });
@@ -176,7 +176,9 @@ function give(
     const c = state.actors[compId];
     if (c === undefined) return state;
     const needs = { ...c.condition.needs, [need]: clampPct(c.condition.needs[need] - relief) };
-    return { ...state, player, actors: { ...state.actors, [compId]: { ...c, condition: { ...c.condition, needs } } } };
+    // Feeding a companion earns trust (T45): care is how you unlock the harder standing orders. Clamped 0–100.
+    const trust = Math.max(0, Math.min(100, (c.trust ?? 0) + COMPANION_SHARE_TRUST));
+    return { ...state, player, actors: { ...state.actors, [compId]: { ...c, trust, condition: { ...c.condition, needs } } } };
   }
   return state;
 }

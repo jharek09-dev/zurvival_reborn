@@ -9,8 +9,9 @@
     "node.ironworks.fuel-depot",
     "node.ironworks.power-substation"
   ],
+  "walkers": 2,
   "zombieTypes": [
-    "zombie.screamer"
+    "zombie.bloated"
   ],
   "notes": "Water-purification/chem components; a standing environmental hazard."
 }

@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.nia",
+  "name": "Nia",
+  "description": "A dockhand coiling and recoiling the same length of rope by the canal, eyes going to the water every few seconds like she's timing something.",
+  "disposition": "desperate",
+  "homeNode": "node.ironworks.loading-canal",
+  "background": "Worked the loading canal and the river barges; she can read a current and handle a boat in the dark.",
+  "personality": "Restless, guarded, and pulled two ways — she wants out and can't quite take it.",
+  "secret": "She has a fuelled skiff hidden in the reeds and is deciding, a little more each day, whether to leave alone.",
+  "notes": "T45 · The Ironworks. Skill: boats/water. Hook: the hidden skiff is a real escape asset and a loyalty test (desert vs share)."
+}

@@ -1,0 +1,9 @@
+{
+  "$schema": "../schemas/zombie.schema.json",
+  "id": "zombie.crawler",
+  "name": "Crawler",
+  "description": "What is left when the legs are gone — it drags itself along the floor, low and quiet, and takes you by the ankle before you have seen it at all.",
+  "signature": "low to the ground, half a body dragging itself — the thing you almost step over",
+  "lowProfile": true,
+  "notes": "FR-CBT-07 (T46). The lowProfile tag drives the state machine (LOWPROFILE_DAMPEN): while the player is only near, it reads calmer than it is (you almost miss it); the damp lifts the instant you stand on it. Combat teeth (graspWound — an ankle sprain on the way out) live in enemy.crawler. Human-only canon: a person reduced to crawling, not an animal."
+}

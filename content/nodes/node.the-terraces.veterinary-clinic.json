@@ -5,10 +5,13 @@
   "name": "Veterinary Clinic",
   "description": "An animal hospital whose drug cabinet was built for large dogs and, near enough, for people. Someone tried to shelter here and did not finish.",
   "kind": "medical",
-  "walkers": 2,
   "adjacent": [
     "node.the-terraces.fire-station",
     "node.the-terraces.garden-center"
+  ],
+  "walkers": 2,
+  "zombieTypes": [
+    "zombie.bloated"
   ],
   "notes": "Secondary medical source; a grim little story left in place."
 }

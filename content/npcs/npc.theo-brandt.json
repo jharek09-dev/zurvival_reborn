@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.theo-brandt",
+  "name": "Theo Brandt",
+  "description": "A soft-spoken man with soil under his nails, tilting seed trays toward what little light gets over the parapet.",
+  "disposition": "friendly",
+  "homeNode": "node.downtown.rooftop-garden",
+  "background": "Ran the rooftop community garden above the coffee shop and never came down when the rest did.",
+  "personality": "Gentle and stubbornly hopeful, the kind who narrates his day to the tomatoes.",
+  "secret": "The last envelope of heirloom seed was his late husband's life's work, and giving any of it away feels like scattering him to strangers.",
+  "notes": "T45 · Downtown. Skill: cultivation/food. Hook: the seed is a genuine future (a base garden, T52) tangled in grief — sharing it is a real cost to him, not mere hoarding."
+}

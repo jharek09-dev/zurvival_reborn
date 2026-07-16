@@ -10,6 +10,7 @@
     "node.downtown.news-plaza",
     "node.downtown.rooftop-garden"
   ],
+  "walkers": 2,
   "zombieTypes": [
     "zombie.stalker"
   ],

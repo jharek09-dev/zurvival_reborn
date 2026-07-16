@@ -3,6 +3,7 @@
   "id": "zombie.walker",
   "name": "Walker",
   "description": "The baseline dead — slow, tireless, and dangerous only in numbers. A node of walkers with no special tag.",
+  "signature": "an aimless, unhurried shuffle — the common dead you learn to read and route around",
   "rousesNeighbours": false,
   "nightHunter": false,
   "notes": "The plain type. Its combat stats live in content/enemies/enemy.walker.json; this entry classifies the population layer (T25)."

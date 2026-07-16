@@ -5,12 +5,15 @@
   "name": "Department Store",
   "description": "Four floors of retail gone to looters and damp. Camping gear and winter coats survive on the top floor, past the dead escalators and whatever grazes the aisles.",
   "kind": "store",
-  "walkers": 4,
   "adjacent": [
     "node.downtown.food-court",
     "node.downtown.grand-pharmacy",
     "node.downtown.rooftop-garden",
     "node.the-terraces.strip-mall"
+  ],
+  "walkers": 4,
+  "zombieTypes": [
+    "zombie.fresh"
   ],
   "notes": "Bulk survival gear vs. a climb through a heavy walker floor."
 }

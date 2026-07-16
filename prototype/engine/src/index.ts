@@ -120,7 +120,15 @@ export {
   SLIP_NOISE,
   WALKER_ENEMY,
   WALKER_MAX_HP,
+  enemyForNode,
+  ENEMIES,
+  ENEMY_FOR_ZOMBIE,
+  ENEMY_FRESH,
+  ENEMY_CRAWLER,
+  ENEMY_BLOATED,
+  ENEMY_RIOT,
 } from "./combat/combat.js";
+export type { EnemyDef } from "./combat/combat.js";
 
 // Survival pressure — needs bite, wounds decline, neglect ends the run (T22, DESIGN §6 · FR-CORE-02/FR-INJ)
 export {
@@ -206,11 +214,17 @@ export {
   ZOMBIE_WALKER,
   ZOMBIE_SCREAMER,
   ZOMBIE_STALKER,
+  ZOMBIE_FRESH,
+  ZOMBIE_CRAWLER,
+  ZOMBIE_BLOATED,
+  ZOMBIE_RIOT,
   WANDER_AT,
   INVESTIGATE_AT,
   CHASE_AT,
   SCREAM_NOISE,
   STALKER_NIGHT_BONUS,
+  SWIFT_BONUS,
+  LOWPROFILE_DAMPEN,
   type ZombieBehaviour,
 } from "./sim/zombies.js";
 
@@ -331,7 +345,7 @@ export {
   RECRUIT_COST,
 } from "./sim/encounters.js";
 
-// Recruitable companions — graduate npcs→actors, follow the player, permanent remembered death (T36 · FR-NPC-03/04)
+// Recruitable companions — party cap, trust-gated orders, permanent remembered death (T36 + T45 · FR-NPC-03/04)
 export {
   recruit,
   tickCompanions,
@@ -339,8 +353,24 @@ export {
   isCompanion,
   companionIds,
   companionsHere,
+  companionName,
   COMPANION_FLAG,
+  PARTY_CAP,
+  ORDER_TRUST_MIN,
+  COMPANION_SHARE_TRUST,
+  partyIsFull,
+  canRecruitEligible,
+  rewardCompanionTrust,
+  orderOf,
+  companionOrderChoices,
+  isCompanionOrderAction,
+  resolveCompanionOrder,
+  SCAVENGE_HOURS_PER_UNIT,
+  SCAVENGE_ITEM,
+  SCAVENGE_EXTRA_DRAIN,
+  GUARD_UPKEEP_PER_HOUR,
 } from "./sim/companions.js";
+export type { CompanionOrder } from "./sim/companions.js";
 
 // Shelter — claim a base, fortify with loot+time, upkeep decay, the safety payoff (T37/T38 · FR-SHL-01/02)
 export {

@@ -1,0 +1,9 @@
+{
+  "$schema": "../schemas/enemies.schema.json",
+  "id": "enemy.crawler",
+  "name": "Crawler",
+  "description": "Legless and low, easy to finish once you have seen it — but it grabs for the ankle as you pass, and a bad grip leaves you limping.",
+  "maxHp": 2,
+  "graspWound": "wound.sprain",
+  "notes": "T46 · mirrors the engine ENEMIES table (combat.ts). Low hp (2) — a soft target in a straight fight. graspWound wound.sprain: slipping past it carries a higher catch chance and an ankle sprain rather than a random blow. Keyed to zombie.crawler (lowProfile)."
+}

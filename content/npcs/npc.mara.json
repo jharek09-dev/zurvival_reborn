@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.mara",
+  "name": "Mara",
+  "description": "A grad student barricaded behind a wall of lecture chairs, hugging a laptop bag to her chest and flinching at the door.",
+  "disposition": "wary",
+  "homeNode": "node.hillcrest.lecture-hall",
+  "background": "A doctoral student who was finishing her advisor's fieldwork when the campus was cordoned off.",
+  "personality": "Bright and brittle, jumping at shadows, talking too fast when she's frightened.",
+  "secret": "She left her advisor at the cordon to save his fieldwork, and tells herself, over and over, that the data was worth a life.",
+  "notes": "T45 · Hillcrest. Skill: research/lab. Hook: the drive she saved may be what the city is dying over (ties to Emeka/T49) — but her real secret is the choice she made to keep it."
+}

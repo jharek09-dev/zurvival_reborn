@@ -5,14 +5,14 @@
   "name": "Emergency Room",
   "description": "Triage tents still standing in the ambulance drive, the doors beyond them dark. This is where the city's sick came, and where it turned.",
   "kind": "medical",
-  "walkers": 4,
   "adjacent": [
     "node.mercy-hospital.ambulance-bay",
     "node.mercy-hospital.blood-bank",
     "node.mercy-hospital.pharmacy-wing"
   ],
+  "walkers": 4,
   "zombieTypes": [
-    "zombie.screamer"
+    "zombie.fresh"
   ],
   "notes": "High medical loot, the region's heaviest walker load; the outbreak's origin scene."
 }

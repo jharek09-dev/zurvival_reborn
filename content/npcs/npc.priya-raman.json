@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.priya-raman",
+  "name": "Priya Raman",
+  "description": "A woman in a dust-greyed blazer feeding banknotes into a cold stove one at a time, counting them out of habit as they curl and catch.",
+  "disposition": "neutral",
+  "homeNode": "node.downtown.union-bank",
+  "background": "Managed the Union Bank branch and stayed to guard a vault of money that will never be spent again.",
+  "personality": "Precise, composed, and sparing with her words — she counts before she trusts.",
+  "secret": "She forced the safe-deposit boxes open weeks ago and knows exactly what her neighbours were hiding.",
+  "notes": "T45 · Downtown. Skill: logistics/organization. Hook: the boxes hold leverage, heirlooms, and one thing someone will kill to recover."
+}

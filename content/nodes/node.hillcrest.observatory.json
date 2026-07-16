@@ -10,6 +10,7 @@
     "node.hillcrest.radio-mast",
     "node.hillcrest.reservoir"
   ],
+  "walkers": 2,
   "zombieTypes": [
     "zombie.stalker"
   ],

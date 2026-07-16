@@ -57,7 +57,14 @@ import {
 } from "../sim/shelter.js";
 import { stashChoices, isStashAction, resolveStashAction } from "../sim/stash.js";
 import { storyChoices, isStoryAction, resolveStoryAction, storyLine } from "../sim/story.js";
-import { companionsHere } from "../sim/companions.js";
+import {
+  companionsHere,
+  companionName,
+  companionOrderChoices,
+  isCompanionOrderAction,
+  resolveCompanionOrder,
+  orderOf,
+} from "../sim/companions.js";
 import { canParley } from "../sim/trust.js";
 
 /** Time cost, in in-game hours, of each core action (FR-CORE-03). */
@@ -185,6 +192,11 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   // appended after the survival verbs so the world-danger and self-care choices lead the list.
   for (const choice of encounterPeople(state)) choices.push(choice);
 
+  // Companion standing orders (T45 · FR-NPC-03): free management verbs to tell a companion at your side to
+  // follow / hold / scavenge / guard — the dangerous two gated on earned trust. Appended after the people
+  // block; inert unless a companion is with you.
+  for (const choice of companionOrderChoices(state)) choices.push(choice);
+
   // Drop a carried item to reclaim weight (T18 · FR-PLR-03) — the leave-behind lever. Surfaced only
   // when the pack is heavy (>= PACK_HEAVY): below that there's ample room, so drops would just clutter
   // the single-decision screen (FR-UI). One choice per non-unique stack, stable-ordered by type; free.
@@ -239,6 +251,7 @@ function applySearch(state: GameState): GameState {
 export function applyPlayerAction(state: GameState, graph: RegionGraph, action: Action): GameState {
   if (isCombatAction(action)) return resolveCombatAction(state, graph, action);
   if (isEncounterAction(action)) return resolveEncounterAction(state, action);
+  if (isCompanionOrderAction(action)) return resolveCompanionOrder(state, action);
   if (isShelterAction(action)) return resolveShelterAction(state, action);
   if (isStashAction(action)) return resolveStashAction(state, action);
   if (isStoryAction(action)) return resolveStoryAction(state, action);
@@ -379,9 +392,15 @@ function peopleLine(state: GameState): string | null {
   const here = state.player.location;
   const bits: string[] = [];
 
-  const companions = companionsHere(state, here);
-  if (companions.length === 1) bits.push("Your companion is at your side.");
-  else if (companions.length > 1) bits.push(`${companions.length} companions are with you.`);
+  // Companions with you, named, with their standing order read in words (T45 · closes the "your companion" gap).
+  for (const c of companionsHere(state, here)) {
+    const order = orderOf(c);
+    const doing =
+      order === "hold" ? " — holding here" :
+      order === "guard" ? " — guarding the base" :
+      order === "scavenge" ? " — ranging out for the base" : "";
+    bits.push(`${companionName(c)} is with you${doing}.`);
+  }
 
   for (const id of Object.keys(state.npcs).sort()) {
     const n = state.npcs[id]!;

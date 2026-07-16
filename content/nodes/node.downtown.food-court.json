@@ -5,10 +5,13 @@
   "name": "Food Court",
   "description": "A mall food court turned to rot and rats. Sealed dry goods and a first-aid box wait behind the counters, under a smell you won't forget.",
   "kind": "store",
-  "walkers": 4,
   "adjacent": [
     "node.downtown.department-store",
     "node.downtown.parking-structure"
+  ],
+  "walkers": 4,
+  "zombieTypes": [
+    "zombie.fresh"
   ],
   "notes": "Food loot vs. the heaviest walker press in Downtown."
 }

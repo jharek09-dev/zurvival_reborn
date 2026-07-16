@@ -1,0 +1,9 @@
+{
+  "$schema": "../schemas/zombie.schema.json",
+  "id": "zombie.fresh",
+  "name": "Fresh",
+  "description": "Newly turned and still fast — barely cooled, it moves before the stiffness takes it, closing the distance while you are still deciding.",
+  "signature": "barely turned — clothes still whole, movements quick and wet, closing before you are ready",
+  "swift": true,
+  "notes": "FR-CBT-07 (T46). The swift tag drives the state machine (SWIFT_BONUS): with the player near, its stimulus surges so it reaches chasing where a plain node would only investigate. Combat teeth (initiative — answers every melee exchange) live in enemy.fresh. Human-only canon: someone who turned within the hour."
+}

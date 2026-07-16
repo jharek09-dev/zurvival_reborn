@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.cass",
+  "name": "Cass",
+  "description": "A courier in fingerless gloves crouched by a chained-up bike, eyeing a path through the stalled cars, an empty delivery satchel still slung across her back.",
+  "disposition": "neutral",
+  "homeNode": "node.downtown.gridlock-bridge",
+  "background": "Bike messenger who knew every alley and service door in the downtown core before the streets seized up.",
+  "personality": "Wiry, quick, and allergic to sitting still — she thinks in shortcuts.",
+  "secret": "She never made her last drop — a letter to a house she reached too late — and can't decide whether to burn it or keep carrying it.",
+  "notes": "T45 · Downtown. Skill: navigation/routes. Hook: her mental map of the city is real FR-NPC-06 location knowledge; the undelivered letter is a small personal thread."
+}

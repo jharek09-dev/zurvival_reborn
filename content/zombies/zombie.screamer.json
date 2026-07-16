@@ -3,6 +3,7 @@
   "id": "zombie.screamer",
   "name": "Screamer",
   "description": "Harmless on its own, but its shriek calls the neighbourhood down on you — a nest you must silence before it wakes the block.",
+  "signature": "hollow-cheeked, jaw slack and working, chest heaving before the sound comes — the tell arrives before the scream does",
   "rousesNeighbours": true,
   "nightHunter": false,
   "notes": "FR-CBT-07. When its node reaches investigating/chasing, the T25 machine deposits SCREAM_NOISE into every adjacent node so the alarm cascades."

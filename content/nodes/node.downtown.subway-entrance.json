@@ -10,6 +10,7 @@
     "node.downtown.parking-structure",
     "node.mercy-hospital.parking-deck"
   ],
+  "walkers": 2,
   "zombieTypes": [
     "zombie.stalker"
   ],
