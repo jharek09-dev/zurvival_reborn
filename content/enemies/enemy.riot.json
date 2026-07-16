@@ -1,0 +1,9 @@
+{
+  "$schema": "../schemas/enemies.schema.json",
+  "id": "enemy.riot",
+  "name": "Armored dead",
+  "description": "Helmet, visor, layered plate — it died in riot gear and still wears it. Blunt strikes skid off; it takes a firearm through the gaps, or the patience to leave it be.",
+  "maxHp": 5,
+  "armor": 1,
+  "notes": "T46 · mirrors the engine ENEMIES table (combat.ts). maxHp 5 + armor 1: melee (1-2) is blunted to 0-1 net, so putting it down by hand is slow and costly; a firearm ignores armor (FIRE_DMG 3, two shots). The right approach is a bullet or a wide berth (FR-CBT-07). Keyed to zombie.riot."
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.emeka-okonkwo",
+  "name": "Emeka Okonkwo",
+  "description": "A professor at a whiteboard crowded with his own outbreak equations, erasing and rederiving the same curve as though hunting an error he prays he made.",
+  "disposition": "neutral",
+  "homeNode": "node.hillcrest.faculty-housing",
+  "background": "Taught epidemiology up at the university and modelled outbreaks that always used to stay on paper.",
+  "personality": "Clipped, precise, and self-contained — he states the hard number plainly and keeps everything else behind it.",
+  "secret": "He recognised what the infection was days before the first broadcast and said nothing, praying he was wrong.",
+  "notes": "T45 · Hillcrest. Skill: medical/epidemiology (infection theme, T49). Hook: he understands the disease better than anyone — and carries the guilt of his silence."
+}

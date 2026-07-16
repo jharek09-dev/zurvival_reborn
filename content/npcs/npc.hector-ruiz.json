@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.hector-ruiz",
+  "name": "Hector Ruiz",
+  "description": "A broad-shouldered man behind the foreman's desk with the blinds shut against the foundry floor, working a slow burn scar across one palm.",
+  "disposition": "desperate",
+  "homeNode": "node.ironworks.foreman-office",
+  "background": "Ran the foundry floor for twenty years and knew every worker on it by their walk.",
+  "personality": "Steady and paternal on the surface, hollowed out underneath — he keeps busy so he doesn't have to sit with it.",
+  "secret": "He sent his crew back onto the floor for the equipment when the alarms went, and he came out and they did not.",
+  "notes": "T45 · The Ironworks. Skill: industrial/leadership. Hook: survivor's guilt; the foundry (a live screamer node) is where it happened."
+}

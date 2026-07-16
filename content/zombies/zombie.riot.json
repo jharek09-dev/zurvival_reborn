@@ -1,0 +1,8 @@
+{
+  "$schema": "../schemas/zombie.schema.json",
+  "id": "zombie.riot",
+  "name": "Riot Dead",
+  "description": "It died in the line and never took the gear off — helmet, visor, layered plate. Your blows land and skid away; it comes on regardless, patient behind the armor of the last bad day.",
+  "signature": "still in riot plate and helmet — blows skid off the shell; a bullet finds the gaps",
+  "notes": "FR-CBT-07 (T46). No state-machine tag — walker-paced; its teeth are in combat (enemy.riot: armor 1). Blunt strikes are blunted to near-nothing, so the right approach is a firearm (which pierces) or a wide berth. Human-only canon: a fallen officer or soldier in the armor they died in."
+}

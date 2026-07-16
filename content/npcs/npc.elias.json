@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.elias",
+  "name": "Father Elias",
+  "description": "A thin priest in a filthy cassock lighting the last of the votive candles one by one, mouthing a service to a chapel with no congregation left.",
+  "disposition": "desperate",
+  "homeNode": "node.the-terraces.corner-chapel",
+  "background": "Parish priest of the corner chapel who buried more of his flock in three weeks than in thirty years.",
+  "personality": "Gaunt, gentle, and running on fumes and habit — he gives comfort he no longer feels.",
+  "secret": "His faith went out somewhere in the burying, and he keeps the services going only because they are the one thing holding the last few people to each other.",
+  "notes": "T45 · The Terraces. Skill: counsel/morale. Hook: the lapsed-faith beat is a quiet arc; the chapel is a gathering point."
+}

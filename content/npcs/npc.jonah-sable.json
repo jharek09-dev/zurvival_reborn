@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.jonah-sable",
+  "name": "Jonah Sable",
+  "description": "A young man lit by the dials of a jury-rigged transmitter, headphones on one ear, still cueing records for a signal that goes out over a dead city.",
+  "disposition": "friendly",
+  "homeNode": "node.hillcrest.radio-mast",
+  "background": "Ran the graveyard shift on campus radio and never signed off — he keeps the mast broadcasting on scavenged power.",
+  "personality": "Bright, talkative, and desperate to be heard; he fills silence because silence frightens him.",
+  "secret": "No one has answered his broadcasts in a long time, and he has started scripting the replies himself to keep going.",
+  "notes": "T45 · Hillcrest. Skill: radio/comms (T50 radio network). Hook: the invented replies are a heartbreak and a mystery — is anyone really out there?"
+}

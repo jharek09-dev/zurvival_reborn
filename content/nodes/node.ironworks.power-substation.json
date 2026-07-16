@@ -10,5 +10,9 @@
     "node.ironworks.chemical-plant",
     "node.ironworks.foundry"
   ],
+  "walkers": 2,
+  "zombieTypes": [
+    "zombie.riot"
+  ],
   "notes": "Gateway to Downtown; the power-infrastructure decision node."
 }

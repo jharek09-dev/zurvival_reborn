@@ -167,6 +167,20 @@ export interface Survivor {
   readonly id: ActorId;
   /** Content id of the handcrafted survivor definition. */
   readonly type: ContentId;
+  /**
+   * Survivor's name, carried over from {@link NPCState.name} at recruitment (T45) so party prose can
+   * name them without a content lookup (closes the M3 "your companion" gap). Optional and tolerated as
+   * absent — a pre-T45 companion (only ever a test fixture) simply falls back to a generic label, so no
+   * save-schema bump is needed.
+   */
+  readonly name?: string;
+  /**
+   * Trust toward the player, carried over from {@link NPCState.trust} at recruitment (T45). Governs which
+   * standing orders the companion will take (the dangerous ones are gated on it — a companion you have
+   * not earned enough won't range out to scavenge or hold the line). Optional/tolerated-absent for the
+   * same reason as {@link name}: no schema rung.
+   */
+  readonly trust?: number;
   readonly condition: CharacterState;
   readonly location: NodeId | null;
   readonly groupId: GroupId | null;

@@ -1,0 +1,9 @@
+{
+  "$schema": "../schemas/enemies.schema.json",
+  "id": "enemy.bloated",
+  "name": "Bloated one",
+  "description": "Swollen and slow, no trouble to hit. The trouble is the killing: it ruptures where it falls, and you are standing right there.",
+  "maxHp": 4,
+  "burstInfection": 40,
+  "notes": "T46 · mirrors the engine ENEMIES table (combat.ts). burstInfection 40: putting it down at your node — melee or firearm — inflicts a bite-severity infectious wound (wound.bite) that drives the T22 infection track. The lesson is to slip past, not to kill it in your face. Keyed to zombie.bloated."
+}

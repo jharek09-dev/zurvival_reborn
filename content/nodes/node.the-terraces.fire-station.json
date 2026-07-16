@@ -11,8 +11,9 @@
     "node.the-terraces.maple-street",
     "node.the-terraces.veterinary-clinic"
   ],
+  "walkers": 2,
   "zombieTypes": [
-    "zombie.screamer"
+    "zombie.riot"
   ],
   "notes": "The GDD Rule-of-Three exemplar (loud raid / quiet tools / survivors inside); claimable, tools for crafting."
 }

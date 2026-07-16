@@ -10,6 +10,7 @@
     "node.hillcrest.library-stacks",
     "node.mercy-hospital.blood-bank"
   ],
+  "walkers": 2,
   "zombieTypes": [
     "zombie.screamer"
   ],

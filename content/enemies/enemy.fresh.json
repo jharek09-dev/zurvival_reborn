@@ -1,0 +1,9 @@
+{
+  "$schema": "../schemas/enemies.schema.json",
+  "id": "enemy.fresh",
+  "name": "Fresh one",
+  "description": "A recently-turned dead, still quick on its feet. No tougher than a walker to put down — but it answers every blow, so a melee fight costs you more.",
+  "maxHp": 3,
+  "initiative": true,
+  "notes": "T46 · mirrors the engine ENEMIES table (combat.ts). Same hp as a walker; initiative:true means it retaliates on every melee exchange (not the walker coin-flip), so trading blows is dangerous — a shot or a slip is safer. Keyed to zombie.fresh (swift arousal)."
+}

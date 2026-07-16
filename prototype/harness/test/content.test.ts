@@ -8,6 +8,9 @@ import {
   isDiscovered,
   isVisited,
   THE_LAST_CUSTOMER,
+  ZOMBIE_BEHAVIOUR,
+  ENEMIES,
+  ENEMY_FOR_ZOMBIE,
   type NodeDef,
   type NPCDef,
   type RegionDef,
@@ -113,5 +116,93 @@ describe("shipped content — the authored arc (T40 · FR-STORY-01)", () => {
     expect(arc.consequences.delayHours).toBe(THE_LAST_CUSTOMER.delayHours);
     expect(arc.consequences.cold.raidUnits).toBe(THE_LAST_CUSTOMER.raidUnits);
     expect(arc.consequences.cold.barricadeHit).toBe(THE_LAST_CUSTOMER.barricadeHit);
+  });
+});
+
+/**
+ * Integration (T46): the full zombie roster is complete, its behaviour/combat dials mirror the engine's
+ * authoritative tables (no content/engine drift), every type ships a non-audio signature (FR-AUD-06), and
+ * the city actually seeds the new types as live threats (walkers > 0), closing PL-M2-02 / PL-M4-02.
+ */
+describe("shipped content — the full zombie roster (T46 · FR-CBT-06/07 · FR-AUD-06)", () => {
+  interface ZombieDef { id: string; name: string; description: string; signature?: string; rousesNeighbours?: boolean; nightHunter?: boolean; swift?: boolean; lowProfile?: boolean; }
+  interface EnemyDef { id: string; name: string; description: string; maxHp: number; armor?: number; burstInfection?: number; graspWound?: string; initiative?: boolean; }
+  const zombies = loadDefs<ZombieDef>("zombies");
+  const enemies = loadDefs<EnemyDef>("enemies");
+  const nodes = loadDefs<NodeDef>("nodes");
+
+  it("ships the complete 7-type roster (walker + screamer + stalker + the T46 four)", () => {
+    const ids = new Set(zombies.map((z) => z.id));
+    for (const id of ["zombie.walker", "zombie.screamer", "zombie.stalker", "zombie.fresh", "zombie.crawler", "zombie.bloated", "zombie.riot"]) {
+      expect(ids.has(id)).toBe(true);
+    }
+    // engine behaviour table and shipped content agree 1:1 — no orphan either way.
+    expect(new Set(Object.keys(ZOMBIE_BEHAVIOUR))).toEqual(ids);
+  });
+
+  it("every zombie type ships a non-audio signature so the game reads with sound off (FR-AUD-06)", () => {
+    for (const z of zombies) expect(typeof z.signature === "string" && z.signature.length > 0).toBe(true);
+  });
+
+  it("zombie behaviour tags mirror the engine (no drift)", () => {
+    for (const z of zombies) {
+      const b = ZOMBIE_BEHAVIOUR[z.id]!;
+      expect(b).toBeDefined();
+      expect(!!z.rousesNeighbours).toBe(b.rousesNeighbours);
+      expect(!!z.nightHunter).toBe(b.nightHunter);
+      expect(!!z.swift).toBe(b.swift);
+      expect(!!z.lowProfile).toBe(b.lowProfile);
+    }
+  });
+
+  it("enemy combat dials mirror the engine's authoritative table (no drift)", () => {
+    for (const e of enemies) {
+      const d = ENEMIES[e.id]!;
+      expect(d).toBeDefined();
+      expect(e.maxHp).toBe(d.maxHp);
+      expect(e.armor ?? 0).toBe(d.armor);
+      expect(e.burstInfection ?? 0).toBe(d.burstInfection);
+      expect(e.graspWound ?? null).toBe(d.graspWound);
+      expect(!!e.initiative).toBe(d.initiative);
+    }
+  });
+
+  it("each combat-distinct type is seeded somewhere in the city as a live threat (walkers > 0)", () => {
+    for (const z of Object.keys(ENEMY_FOR_ZOMBIE)) {
+      const live = nodes.some((n) => (n.zombieTypes ?? []).includes(z) && (n.walkers ?? 0) > 0);
+      expect(live, `${z} has no live node`).toBe(true);
+    }
+  });
+});
+
+/**
+ * Integration (T45): the survivor pool has grown to a reviewable beta subset — a spread of named,
+ * fully-fleshed characters across the whole city, including the GDD-named Dana.
+ */
+describe("shipped content — the survivor pool (T45 · FR-NPC-01)", () => {
+  const npcs = loadDefs<NPCDef & { background?: string; personality?: string; secret?: string }>("npcs");
+  const regions = loadDefs<RegionDef>("regions");
+
+  it("ships a beta-subset pool (≥15) toward the ~60–100 v1 target", () => {
+    expect(npcs.length).toBeGreaterThanOrEqual(15);
+  });
+
+  it("every survivor is a real character — background, personality, and a secret", () => {
+    for (const n of npcs) {
+      expect(typeof n.background === "string" && n.background!.length > 0, `${n.id} background`).toBe(true);
+      expect(typeof n.personality === "string" && n.personality!.length > 0, `${n.id} personality`).toBe(true);
+      expect(typeof n.secret === "string" && n.secret!.length > 0, `${n.id} secret`).toBe(true);
+    }
+  });
+
+  it("the pool is spread across every region of the city", () => {
+    const homed = new Set(npcs.map((n) => n.homeNode).filter((h): h is string => typeof h === "string").map((h) => h.split(".")[1]));
+    for (const r of regions) expect(homed.has(r.id.split(".")[1]!), `${r.id} has no survivor`).toBe(true);
+  });
+
+  it("ships the GDD-named Dana, and a variety of dispositions", () => {
+    expect(npcs.some((n) => n.id === "npc.dana")).toBe(true);
+    const dispositions = new Set(npcs.map((n) => n.disposition));
+    expect(dispositions.size).toBeGreaterThanOrEqual(3);
   });
 });

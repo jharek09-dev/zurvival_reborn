@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.gus",
+  "name": "Gus",
+  "description": "A big man in a rent-a-cop uniform planted on a stairwell landing, a fire axe across his knees and a padlocked door at his back.",
+  "disposition": "hostile",
+  "homeNode": "node.mercy-hospital.parking-deck",
+  "background": "Night security for the hospital parking structure who appointed himself warden the moment the staff stopped coming.",
+  "personality": "Territorial, blustering, and frightened under the swagger — he mistakes menace for strength.",
+  "secret": "The locked room behind him is stacked with the pharmacy's controlled drugs, and he means to be the man everyone has to come to.",
+  "notes": "T45 · Mercy Hospital. Skill: security/muscle. Hook: the drug stash makes him a hostile power to fight, rob, or bring low — recruit-ineligible while hostile (T45 guard)."
+}

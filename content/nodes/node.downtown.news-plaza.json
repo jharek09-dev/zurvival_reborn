@@ -10,6 +10,7 @@
     "node.downtown.meridian-tower",
     "node.downtown.union-bank"
   ],
+  "walkers": 2,
   "zombieTypes": [
     "zombie.screamer"
   ],

@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.dana",
+  "name": "Dana",
+  "description": "A woman rebuilding a seized-up lathe by feel, sleeves down to the wrists in the heat, offering her first name and nothing before it.",
+  "disposition": "wary",
+  "homeNode": "node.ironworks.machine-shop",
+  "background": "Turned up at the machine shop knowing exactly how every tool worked and volunteering nothing about where she learned.",
+  "personality": "Terse, capable, and closed as a fist — she answers questions with work.",
+  "secret": "She won't say what she did before, because the skills keeping her alive out here are the ones that put her away.",
+  "notes": "T45 · The Ironworks. GDD-named ('Dana who won't say what she did before'). Skill: mechanical/fabrication. Hook: the withheld past is her whole arc."
+}

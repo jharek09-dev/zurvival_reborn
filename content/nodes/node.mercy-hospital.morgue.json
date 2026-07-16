@@ -9,8 +9,9 @@
     "node.mercy-hospital.chapel-of-rest",
     "node.mercy-hospital.icu-tower"
   ],
+  "walkers": 2,
   "zombieTypes": [
-    "zombie.stalker"
+    "zombie.bloated"
   ],
   "notes": "Dread/story; a stalker den; a basement shortcut nobody wants to take."
 }

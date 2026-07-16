@@ -10,6 +10,7 @@
     "node.hillcrest.dormitory",
     "node.hillcrest.science-labs"
   ],
+  "walkers": 2,
   "zombieTypes": [
     "zombie.stalker"
   ],

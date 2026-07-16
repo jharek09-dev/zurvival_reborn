@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.orin",
+  "name": "Orin",
+  "description": "A hospital porter in scrubs and rubber boots, writing on a strip of tape by lantern-light before he wheels another covered gurney out to the yard.",
+  "disposition": "neutral",
+  "homeNode": "node.mercy-hospital.chapel-of-rest",
+  "background": "Worked the hospital's mortuary and portering the graveyard shift; he has moved more of the dead than anyone left alive.",
+  "personality": "Quiet, unhurried, and oddly at peace among the dead — courteous to the living, tender with the gone.",
+  "secret": "He will not let one of them go into the ground unnamed — he matches each unclaimed face to a scar, a ring, a half-remembered visit, until he knows who they were.",
+  "notes": "T45 · Mercy Hospital. Skill: mortuary/medical logistics. Hook: restoring names to the anonymous dead is a Humanity/memorial thread; he knows the hospital's dead ends and drug stores."
+}

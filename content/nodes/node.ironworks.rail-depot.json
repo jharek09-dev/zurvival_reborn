@@ -5,10 +5,13 @@
   "name": "Rail Depot",
   "description": "A marshalling yard of dead locomotives and stacked containers. The line runs down to the harbor one way and up toward the hills the other.",
   "kind": "industrial",
-  "walkers": 2,
   "adjacent": [
     "node.ironworks.foundry",
     "node.rivermouth.rail-yard"
+  ],
+  "walkers": 2,
+  "zombieTypes": [
+    "zombie.crawler"
   ],
   "notes": "Gateway to Rivermouth (the harbor rail yard); the industrial spine."
 }

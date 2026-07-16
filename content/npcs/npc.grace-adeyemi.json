@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/npc.schema.json",
+  "id": "npc.grace-adeyemi",
+  "name": "Grace Adeyemi",
+  "description": "A teacher wiping down desks no child will sit at, a class register zipped inside her coat where she can feel it against her ribs.",
+  "disposition": "friendly",
+  "homeNode": "node.the-terraces.community-school",
+  "background": "Taught the third grade at the community school and turned her classroom into a shelter for whoever the street sent her.",
+  "personality": "Warm, unshakeably calm, and quietly relentless about keeping people together.",
+  "secret": "She keeps the class register current and cannot bring herself to draw a line through the children who did not come back.",
+  "notes": "T45 · The Terraces. Skill: teaching/morale (GDD teacher archetype). Hook: the register is a memorial-wall thread (Humanity system)."
+}

@@ -9,5 +9,9 @@
     "node.hillcrest.observatory",
     "node.hillcrest.waterworks"
   ],
+  "walkers": 2,
+  "zombieTypes": [
+    "zombie.bloated"
+  ],
   "notes": "Major clean-water source; the payoff is gated behind exposure."
 }
