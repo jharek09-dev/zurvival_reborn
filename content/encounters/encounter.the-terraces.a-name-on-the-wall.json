@@ -44,9 +44,29 @@
               "note": "passed the name on the wall by"
             }
           ]
+        },
+        {
+          "id": "mark",
+          "label": "Cut your own name beneath theirs, and a heading",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "adjustHumanity",
+              "delta": 1
+            },
+            {
+              "kind": "adjustMind",
+              "morale": 4
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "added a name to the wall for whoever comes next"
+            }
+          ]
         }
       ]
     }
   ],
-  "notes": "Reading sets chain.terraces.name-seen now and schedules chain.terraces.time-passed for +24h; both gate the payoff."
+  "notes": "Reading sets chain.terraces.name-seen now and schedules chain.terraces.time-passed for +24h; both gate the payoff. The third approach (mark) is a humane trace with no chain effect — FR-CNT-04 Rule of Three at this location."
 }

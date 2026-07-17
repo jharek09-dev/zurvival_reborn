@@ -1,0 +1,48 @@
+{
+  "id": "encounter.common.the-stray",
+  "category": "environmental",
+  "title": "The stray",
+  "premise": "A living thing, keeping its distance.",
+  "repeatable": true,
+  "cooldownHours": 96,
+  "tags": ["living-thing"],
+  "requirements": {
+    "nodeKinds": ["residential", "generic"]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "A dog, ribs like a xylophone, watching you from half a street off. Not sick — just starving, and still alive. Its tail moves once, uncertain, and stops.",
+      "choices": [
+        {
+          "id": "feed",
+          "label": "Set down a little food and step back",
+          "timeCost": 1,
+          "requirements": { "carriesItem": "item.canned-food" },
+          "effects": [
+            { "kind": "takeItem", "item": "item.canned-food", "quantity": 1 },
+            { "kind": "adjustMind", "morale": 10 },
+            { "kind": "adjustHumanity", "delta": 1 }
+          ]
+        },
+        {
+          "id": "coax",
+          "label": "Crouch and wait, and let it decide",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "adjustMind", "morale": 3, "stress": -3 }
+          ]
+        },
+        {
+          "id": "leave",
+          "label": "You can't feed yourself and a dog — go",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "morale": -3 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "living-thing. Feeding spends a real ration for a big morale lift (offered only when you carry food); crouching is a smaller, free comfort; leaving is the pragmatic ache. Living animals persist — reinforces the human-only-undead canon."
+}

@@ -1,0 +1,47 @@
+{
+  "id": "encounter.common.still-warm",
+  "category": "exploration",
+  "title": "Still warm",
+  "premise": "Another scavenger, minutes ahead of you.",
+  "repeatable": true,
+  "cooldownHours": 96,
+  "tags": ["scavenger-sign"],
+  "requirements": {
+    "nodeKinds": ["store", "medical", "residential"]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "They were here, and not long ago: a wrapper still folding itself open, drawers gone through with a haste you recognise. You are sharing this city with the living, and the living are competition.",
+      "choices": [
+        {
+          "id": "track",
+          "label": "Read which way they went",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "setFlag", "flag": "saw.recent-scavenger" },
+            { "kind": "adjustMind", "stress": 3 }
+          ]
+        },
+        {
+          "id": "away",
+          "label": "Whoever they are, go the other way",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "stress": 2 }
+          ]
+        },
+        {
+          "id": "hail",
+          "label": "Risk a low call — maybe they'll trade, not fight",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "addNoise", "amount": 10 },
+            { "kind": "adjustMind", "morale": 4, "stress": 6 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "scavenger-sign. Tracking is intel at the price of nerves; leaving is free but uneasy; hailing gambles a spike of exposure (noise + stress) against a flicker of hope. No one actually appears — the tension is the beat."
+}

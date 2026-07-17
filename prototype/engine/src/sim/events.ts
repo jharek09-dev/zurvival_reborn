@@ -41,11 +41,13 @@ import type {
   NodeState,
   Phase,
   RegionId,
+  RngState,
   ScheduledEvent,
 } from "../state/types.js";
 import { HUMANITY_BASELINE } from "../state/types.js";
 import type { Action, SceneChoice } from "../pipeline/contract.js";
 import type { RegionGraph } from "../map/types.js";
+import { drawInt } from "../rng/streams.js";
 import { addItemBounded } from "./inventory.js";
 import { depleteStash, stashUnits } from "./stash.js";
 import { depositNoiseAt } from "./noise.js";
@@ -165,10 +167,39 @@ export interface EncounterDef {
   readonly repeatable?: boolean;
   /** Done-flag scope: "node" (once per node, default) or "run" (once per run). */
   readonly scope?: "node" | "run";
-  /** Reserved for T48 cooldown suppression; not enforced here. */
+  /**
+   * Theme/kind labels (T48 · FR-ENC-01) — the recombination + diversity handle. Selection down-weights a
+   * repeatable sharing a tag with something that fired recently, so thematically-similar beats (two
+   * false-alarms, two stranger-pleas) don't cluster even when their ids differ. Free-form; no engine
+   * meaning beyond grouping. Absent ⇒ untagged (maximally diverse).
+   */
+  readonly tags?: readonly string[];
+  /**
+   * Base selection weight for the ambient (repeatable) tier (T48 · FR-ENC-02); default {@link BASE_WEIGHT}.
+   * Higher ⇒ more likely when several repeatables are eligible, before the recency/tag-diversity scaling.
+   * Ignored for a one-shot (the scripted tier is deterministic-by-fit, never weighted).
+   */
+  readonly weight?: number;
+  /**
+   * Cooldown (hours) before a **repeatable** encounter may fire again (T48 · FR-ENC-02) — ENFORCED: a
+   * repeatable whose last `encounter.begin` beat (Living History) is within this window is ineligible.
+   * The core anti-repeat lever; set it ≥ the recency window so a re-fire never reads as verbatim. No
+   * effect on a one-shot (the done-flag already blocks re-fire).
+   */
   readonly cooldownHours?: number;
   readonly notes?: string;
 }
+
+// --- T48 selection constants (weighting + cooldowns · FR-ENC-01/02) ---------------------------
+
+/** The named RNG stream the weighted ambient pick draws from — independent of loot/combat/etc. (T5). */
+export const ENCOUNTER_STREAM = "encounter";
+/** Default base weight for a repeatable ambient encounter (author override via `weight`). */
+export const BASE_WEIGHT = 10;
+/** Hours-since-last-fire saturates here when weighting — a week; a fresh/never-seen beat reads maximally stale. */
+export const STALE_CAP_HOURS = 168;
+/** The widest cooldown the schema allows (336h) — bounds the per-turn history look-back for cooldown/recency. */
+export const COOLDOWN_MAX_HOURS = 336;
 
 // --- the active-encounter slot (rides reserved player.quests — no save-schema rung) -----------
 
@@ -249,6 +280,71 @@ function removeUnits(inventory: readonly InventoryEntry[], type: string, count: 
     }
   }
   return out;
+}
+
+// --- cooldowns & recency: read from the Living History, never stored (T48 · FR-ENC-02) --------
+//
+// Every engage already logs an `encounter.begin` beat (subjects [id, node], data {encounter, category})
+// stamped {day, hour, turn}. That IS the cooldown/recency store — so T48 adds NO save-schema rung and
+// stays save-lossless (history round-trips). The scan is bounded: history is time-ordered, so we walk
+// backward and stop the moment a beat falls outside the widest window we care about (COOLDOWN_MAX_HOURS).
+
+/** Absolute hour-of-run — the monotone clock cooldowns/recency compare against (day·24 + hour). */
+function absHourAt(day: number, hour: number): number {
+  return day * 24 + hour;
+}
+function absNow(state: GameState): number {
+  return absHourAt(state.meta.day, state.meta.hour);
+}
+
+interface FireBeat {
+  readonly id: string;
+  readonly abs: number;
+}
+
+/** The `encounter.begin` beats within `windowHours` of now, most-recent first (bounded backward scan). */
+function recentFires(state: GameState, windowHours: number): readonly FireBeat[] {
+  const now = absNow(state);
+  const hist = state.history;
+  const out: FireBeat[] = [];
+  for (let i = hist.length - 1; i >= 0; i--) {
+    const ev = hist[i]!;
+    const abs = absHourAt(ev.day, ev.hour);
+    if (now - abs > windowHours) break; // older beats can't matter — history only moves forward in time
+    if (ev.type !== "encounter.begin") continue;
+    const raw =
+      typeof ev.data === "object" && ev.data !== null && "encounter" in ev.data
+        ? (ev.data as { encounter: unknown }).encounter
+        : ev.subjects[0];
+    const id = typeof raw === "string" ? raw : "";
+    if (id.length > 0) out.push({ id, abs });
+  }
+  return out;
+}
+
+/** Most-recent fire (abs hour) per encounter id, from a most-recent-first fires list. */
+function lastFireById(fires: readonly FireBeat[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const f of fires) if (!m.has(f.id)) m.set(f.id, f.abs); // first seen scanning back = most recent
+  return m;
+}
+
+/** Most-recent fire (abs hour) per tag — each fired id's tags resolved from the in-hand pool. */
+function lastFireByTag(fires: readonly FireBeat[], pool: readonly EncounterDef[]): Map<string, number> {
+  const tagsOf = new Map<string, readonly string[]>(pool.map((d) => [d.id, d.tags ?? []]));
+  const m = new Map<string, number>();
+  for (const f of fires) {
+    for (const t of tagsOf.get(f.id) ?? []) if (!m.has(t)) m.set(t, f.abs);
+  }
+  return m;
+}
+
+/** Is a repeatable still inside its own cooldown window (per the history beats)? One-shots never are. */
+function onCooldown(def: EncounterDef, now: number, lastById: Map<string, number>): boolean {
+  const cd = Math.max(0, Math.trunc(def.cooldownHours ?? 0));
+  if (cd <= 0) return false;
+  const last = lastById.get(def.id);
+  return last !== undefined && now - last < cd;
 }
 
 // --- Humanity (FR-ENC-06 · GDD "The Humanity system") -----------------------------------------
@@ -428,8 +524,9 @@ const REQUIREMENT_WEIGHT: { readonly [key: string]: number } = {
 
 /**
  * A "specificity" score — summed requirement-key weights — so a node/flag-targeted evolution or chain
- * encounter outranks a broad region/phase ambient one at the same node. Deterministic (ties fall to id
- * order); T48 replaces this with the weighted-pool + cooldown model.
+ * encounter outranks a broad region/phase ambient one. Deterministic (ties fall to id order). T48 keeps
+ * this as the ordering *within the scripted (one-shot) tier*; the ambient (repeatable) tier is ordered
+ * by the weighted-pool + cooldown model ({@link chooseEncounter}) instead.
  */
 function specificity(def: EncounterDef): number {
   if (def.requirements === undefined) return 0;
@@ -438,23 +535,105 @@ function specificity(def: EncounterDef): number {
 
 // --- selection (pipeline stage 13) ------------------------------------------------------------
 
-/** Every encounter eligible to fire at the player's node right now (requirements + one-shot guard). */
+/**
+ * Every encounter eligible to fire at the player's node right now. A **one-shot** is gated by its
+ * done-flag (T47); a **repeatable** is additionally gated by its `cooldownHours` (T48 · FR-ENC-02) —
+ * dropped while its last `encounter.begin` beat sits inside the window. Requirements are AND-checked
+ * last. No repeatable in the pool ⇒ the cooldown pass is a no-op and this returns exactly what T47 did.
+ */
 export function eligibleEncounters(state: GameState, graph: RegionGraph): readonly EncounterDef[] {
   const nodeId = state.player.location;
   const node = state.nodes[nodeId];
   if (node === undefined) return [];
   const kind = graph.nodes[nodeId]?.kind;
+  const now = absNow(state);
+  const lastById = lastFireById(recentFires(state, COOLDOWN_MAX_HOURS));
   return encounterPool(graph).filter((def) => {
-    if (def.repeatable !== true && state.player.flags[doneFlagKey(def, nodeId)] === true) return false;
+    if (def.repeatable !== true) {
+      if (state.player.flags[doneFlagKey(def, nodeId)] === true) return false;
+    } else if (onCooldown(def, now, lastById)) {
+      return false;
+    }
     return matchesRequirement(state, def.requirements, node, nodeId, kind);
   });
 }
 
-/** The one encounter to fire — most specific, ties broken by id — or null when none is eligible. */
+/** Partition the eligible set into the scripted (one-shot) tier and the ambient (repeatable) tier. */
+function eligibleTiers(state: GameState, graph: RegionGraph): { oneShot: EncounterDef[]; ambient: EncounterDef[] } {
+  const oneShot: EncounterDef[] = [];
+  const ambient: EncounterDef[] = [];
+  for (const d of eligibleEncounters(state, graph)) (d.repeatable === true ? ambient : oneShot).push(d);
+  return { oneShot, ambient };
+}
+
+/** The most-specific-then-id pick over a set — the deterministic fit ordering (scripted tier). */
+function bestByFit(defs: readonly EncounterDef[]): EncounterDef | null {
+  if (defs.length === 0) return null;
+  return [...defs].sort((a, b) => specificity(b) - specificity(a) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0]!;
+}
+
+/**
+ * The deterministic *fit view* of what would fire — scripted tier if any, else the best-fit repeatable.
+ * Kept pure (no RNG) for tests/tools and as the scripted-tier resolver; the runtime pick that actually
+ * weights the ambient tier is {@link chooseEncounter}. For a one-shot-only pool (every T47 fixture /
+ * shipped encounter) this is byte-identical to the T47 selector.
+ */
 export function selectEncounter(state: GameState, graph: RegionGraph): EncounterDef | null {
-  const eligible = eligibleEncounters(state, graph);
-  if (eligible.length === 0) return null;
-  return [...eligible].sort((a, b) => specificity(b) - specificity(a) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0]!;
+  const { oneShot, ambient } = eligibleTiers(state, graph);
+  return bestByFit(oneShot.length > 0 ? oneShot : ambient);
+}
+
+/** Integer selection weight for a repeatable: base, scaled up by id-freshness and (2×) tag-diversity. */
+function weightOf(
+  def: EncounterDef,
+  now: number,
+  lastById: Map<string, number>,
+  lastByTag: Map<string, number>,
+): number {
+  const base = Math.max(1, Math.trunc(def.weight ?? BASE_WEIGHT));
+  const lastId = lastById.get(def.id);
+  const idScore = lastId === undefined ? STALE_CAP_HOURS : Math.min(STALE_CAP_HOURS, now - lastId);
+  let tagScore = STALE_CAP_HOURS; // untagged ⇒ maximally diverse
+  for (const t of def.tags ?? []) {
+    const lt = lastByTag.get(t);
+    const s = lt === undefined ? STALE_CAP_HOURS : Math.min(STALE_CAP_HOURS, now - lt);
+    if (s < tagScore) tagScore = s; // the most-recently-fired shared tag dominates → suppress the theme
+  }
+  return base * (1 + idScore + 2 * tagScore);
+}
+
+/** Weighted-random pick over ≥2 eligible repeatables, drawing once from the `encounter` stream. */
+function weightedPick(state: GameState, graph: RegionGraph, ambient: readonly EncounterDef[]): { def: EncounterDef; rng: RngState } {
+  const now = absNow(state);
+  const fires = recentFires(state, COOLDOWN_MAX_HOURS);
+  const lastById = lastFireById(fires);
+  const lastByTag = lastFireByTag(fires, encounterPool(graph));
+  const sorted = [...ambient].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)); // stable, seed-independent order
+  const weights = sorted.map((d) => weightOf(d, now, lastById, lastByTag));
+  const total = weights.reduce((a, b) => a + b, 0);
+  const { rng, value: roll } = drawInt(state.rng, state.meta.seed, ENCOUNTER_STREAM, 0, total - 1);
+  let acc = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    acc += weights[i]!;
+    if (roll < acc) return { def: sorted[i]!, rng };
+  }
+  return { def: sorted[sorted.length - 1]!, rng };
+}
+
+/**
+ * The runtime selection (T48 · FR-ENC-02), threading the RNG. **Tiered**: an eligible scripted (one-shot)
+ * beat is picked deterministically by fit with **no draw** (a chain payoff / evolution beat is never
+ * randomized or crowded out — so every prior golden is byte-identical); only when the eligible set is
+ * *all* repeatable does the ambient model run — a single candidate returns **without drawing** (stream
+ * untouched), ≥2 draw one weighted pick favouring fresh + tag-diverse content. Returns the picked def
+ * (or null) and the possibly-advanced RngState; `rng === state.rng` whenever no draw happened.
+ */
+export function chooseEncounter(state: GameState, graph: RegionGraph): { def: EncounterDef | null; rng: RngState } {
+  const { oneShot, ambient } = eligibleTiers(state, graph);
+  if (oneShot.length > 0) return { def: bestByFit(oneShot), rng: state.rng };
+  if (ambient.length === 0) return { def: null, rng: state.rng };
+  if (ambient.length === 1) return { def: ambient[0]!, rng: state.rng };
+  return weightedPick(state, graph, ambient);
 }
 
 /**
@@ -470,10 +649,13 @@ export function evaluateEvents(state: GameState, graph: RegionGraph | undefined)
   // come first. Encounters fire on quiet nodes; a multi-stage one that turns violent seeds walkers and
   // ends, handing off to that prompt next turn.
   if (node === undefined || node.walkers > 0) return state;
-  const def = selectEncounter(state, graph);
-  if (def === null || def.stages.length === 0) return state;
+  const { def, rng } = chooseEncounter(state, graph);
+  // No draw ⇒ rng === state.rng ⇒ strictly inert (empty pool, nothing eligible, or a single candidate),
+  // so every prior run stays byte-identical; a real weighted pick only advances the `encounter` stream.
+  if (def === null || def.stages.length === 0) return rng === state.rng ? state : { ...state, rng };
+  const withRng = rng === state.rng ? state : { ...state, rng };
   const active: ActiveEncounter = { encounter: def.id, stage: def.stages[0]!.id, node: state.player.location };
-  const engaged = setActive(state, active);
+  const engaged = setActive(withRng, active);
   return appendBeat(engaged, beat(engaged, "encounter.begin", [def.id, active.node], { encounter: def.id, category: def.category }));
 }
 

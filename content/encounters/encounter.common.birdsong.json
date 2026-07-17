@@ -1,0 +1,47 @@
+{
+  "id": "encounter.common.birdsong",
+  "category": "environmental",
+  "title": "Birdsong",
+  "premise": "A place life has quietly taken back.",
+  "repeatable": true,
+  "cooldownHours": 96,
+  "tags": ["living-thing"],
+  "requirements": {
+    "nodeKinds": ["generic", "residential"],
+    "phases": ["dawn", "morning"]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "Green has come up through a split in the tarmac, and there are birds in it — actual birds, bickering over something, wholly indifferent to you. For a little while it is only a morning, and nothing else.",
+      "choices": [
+        {
+          "id": "sit",
+          "label": "Sit a while and let it be ordinary",
+          "timeCost": 2,
+          "effects": [
+            { "kind": "adjustMind", "stress": -12, "morale": 4 }
+          ]
+        },
+        {
+          "id": "mark",
+          "label": "Mark it — a good place to breathe, later",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "revealDiscovery", "discovery": "disc.city.quiet-green" },
+            { "kind": "adjustMind", "stress": -3 }
+          ]
+        },
+        {
+          "id": "on",
+          "label": "You don't have the hours to spare — press on",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "stress": 2 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "living-thing, dawn/morning. Sitting is real recovery for real time; marking banks the spot for less relief; pressing on saves the time but the tension stays wound. FR-ENC-01 phase-fitted ambient."
+}

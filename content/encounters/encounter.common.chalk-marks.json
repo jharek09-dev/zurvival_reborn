@@ -1,0 +1,48 @@
+{
+  "id": "encounter.common.chalk-marks",
+  "category": "exploration",
+  "title": "Chalk marks",
+  "premise": "Someone's private code on the brick.",
+  "repeatable": true,
+  "cooldownHours": 96,
+  "tags": ["scavenger-sign"],
+  "requirements": {
+    "nodeKinds": ["industrial", "store", "police"]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "Chalk on the corner brick — a system, clearly: arrows and slashes and a circled X, left by someone who expected to read it again. You can guess at half of it. This way clear. That way not. Here already stripped.",
+      "choices": [
+        {
+          "id": "heed",
+          "label": "Trust the marks and route by them",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "stress": -2 },
+            { "kind": "logHistory", "event": "encounter.note", "note": "routed by another scavenger's chalk, on faith" }
+          ]
+        },
+        {
+          "id": "study",
+          "label": "Work the whole code out — it could be worth knowing",
+          "timeCost": 2,
+          "effects": [
+            { "kind": "setFlag", "flag": "know.scavenger-code" },
+            { "kind": "adjustMind", "morale": 3 }
+          ]
+        },
+        {
+          "id": "scrub",
+          "label": "Scrub them out so no one tracks you by them",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "setFlag", "flag": "covered.your-trail" },
+            { "kind": "adjustMind", "stress": -2 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "scavenger-sign. Heeding is a small settle taken on faith (the marks could be wrong); studying spends real time for a lasting flag; scrubbing spends an hour to actually cover your trail (the safety the label promises) and settle a little."
+}

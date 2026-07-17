@@ -1,0 +1,48 @@
+{
+  "id": "encounter.common.the-uncovered",
+  "category": "environmental",
+  "title": "The uncovered",
+  "premise": "The weather has laid a body bare again.",
+  "repeatable": true,
+  "cooldownHours": 120,
+  "tags": ["the-dead"],
+  "requirements": {
+    "nodeKinds": ["generic", "industrial", "police"]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "Someone covered them, once — a sheet, weighted at the corners with broken brick. The wind has since done its patient work, and now a grey hand lies open to the sky. They were a person. Somebody knelt here and tried.",
+      "choices": [
+        {
+          "id": "cover",
+          "label": "Weight the sheet down again",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "adjustHumanity", "delta": 2 },
+            { "kind": "adjustMind", "stress": -3 }
+          ]
+        },
+        {
+          "id": "search",
+          "label": "Go through their pockets first",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "adjustHumanity", "delta": -4 },
+            { "kind": "adjustMind", "morale": -4 },
+            { "kind": "logHistory", "event": "encounter.note", "note": "searched the uncovered body; found only the doing of it" }
+          ]
+        },
+        {
+          "id": "leave",
+          "label": "It isn't your work to do — walk on",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "stress": 2 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "the-dead cluster. Deliberately no material loot — searching finds nothing, so the choice is purely moral: honour, disturb, or ignore. Not exploitable as a loot faucet. Human-only."
+}

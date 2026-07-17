@@ -1,0 +1,46 @@
+{
+  "id": "encounter.common.across-the-street",
+  "category": "social",
+  "title": "Across the street",
+  "premise": "Two survivors, neither stopping.",
+  "repeatable": true,
+  "cooldownHours": 120,
+  "tags": ["passing-stranger"],
+  "requirements": {
+    "nodeKinds": ["generic", "residential", "store"]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "A figure keeping to the far wall, moving the way you move now — low, quick, checking corners. They clock you at the same moment you clock them. For a held breath, the whole street is the question of what each of you is.",
+      "choices": [
+        {
+          "id": "hand",
+          "label": "Show an empty hand, and pass",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "stress": 3, "morale": 4 }
+          ]
+        },
+        {
+          "id": "down",
+          "label": "Head down, keep your line, give nothing",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "stress": 2 }
+          ]
+        },
+        {
+          "id": "warn",
+          "label": "Let them see you're armed, so they keep off",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "stress": -2, "morale": -4 },
+            { "kind": "adjustHumanity", "delta": -1 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "passing-stranger, social. A wordless human moment: peace costs nothing and steadies you; the neutral pass is free but taut; the threat display buys a little safety at the cost of what it makes you (Humanity). Human-only, no combat."
+}

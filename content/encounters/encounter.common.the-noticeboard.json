@@ -1,0 +1,47 @@
+{
+  "id": "encounter.common.the-noticeboard",
+  "category": "story",
+  "title": "The noticeboard",
+  "premise": "The city's last messages, layered over each other.",
+  "repeatable": true,
+  "cooldownHours": 96,
+  "tags": ["city-voices"],
+  "requirements": {
+    "nodeKinds": ["residential", "store", "medical"]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "A public board, papered three deep with the last weeks of the old world: missing faces, meeting times that never came, a phone number ringed twice in biro. Someone has written across all of it, later, in heavy marker: WE WENT NORTH.",
+      "choices": [
+        {
+          "id": "read",
+          "label": "Read them all — learn the shape of what happened here",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "adjustMind", "morale": -4, "stress": -2 },
+            { "kind": "logHistory", "event": "encounter.note", "note": "read the noticeboard's last messages" }
+          ]
+        },
+        {
+          "id": "take",
+          "label": "Pocket the ringed number in case it ever matters",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "setFlag", "flag": "note.a-number-that-might-matter" },
+            { "kind": "adjustMind", "stress": 3 }
+          ]
+        },
+        {
+          "id": "leave",
+          "label": "Move on; you've read enough of these",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "morale": -1 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "city-voices cluster. Reading spends time for a small steadying under the grief; the number is a hook that sits as unease; leaving is free but flat. FR-ENC-01/02 ambient."
+}

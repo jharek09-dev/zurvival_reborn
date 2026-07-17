@@ -19,9 +19,11 @@
       "description": "One stage for a single-decision encounter; more for a multi-stage flow (FR-ENC-04). advanceStage moves between them.",
       "items": { "$ref": "#/$defs/stage" }
     },
-    "repeatable": { "type": "boolean", "description": "Default false ⇒ one-shot (a done-flag blocks re-fire). A repeatable encounter relies on state-gating (cooldowns are T48)." },
+    "repeatable": { "type": "boolean", "description": "Default false ⇒ one-shot scripted beat (a done-flag blocks re-fire; picked deterministically by fit). true ⇒ ambient content in the T48 weighted+cooldown tier — set cooldownHours + tags to keep it from repeating verbatim." },
     "scope": { "enum": ["node", "run"], "description": "One-shot done-flag scope: once per node (default) or once per run." },
-    "cooldownHours": { "type": "integer", "minimum": 0, "maximum": 336, "description": "Reserved for T48 cooldown suppression; not enforced by the T47 engine." },
+    "tags": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }, "description": "T48 · FR-ENC-01 recombination/diversity labels. Selection down-weights a repeatable sharing a tag with something fired recently, so similar beats don't cluster. Free-form kebab-case; no engine meaning beyond grouping." },
+    "weight": { "type": "integer", "minimum": 1, "maximum": 1000, "description": "T48 · FR-ENC-02 base selection weight for the ambient (repeatable) tier; default 10. Higher ⇒ more likely when several repeatables are eligible, before recency/tag-diversity scaling. Ignored for a one-shot." },
+    "cooldownHours": { "type": "integer", "minimum": 0, "maximum": 336, "description": "T48 · FR-ENC-02 — ENFORCED for a repeatable: it can't re-fire while its last engage sits within this many hours (read from the Living History). Set ≥ 48 (the recency window) so a re-fire never reads as verbatim. No effect on a one-shot." },
     "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
   },
   "$defs": {

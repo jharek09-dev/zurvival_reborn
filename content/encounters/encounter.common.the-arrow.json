@@ -1,0 +1,46 @@
+{
+  "id": "encounter.common.the-arrow",
+  "category": "story",
+  "title": "The arrow",
+  "premise": "A direction sprayed on a wall — and an argument about it.",
+  "repeatable": true,
+  "cooldownHours": 96,
+  "tags": ["city-voices"],
+  "requirements": {
+    "nodeKinds": ["generic", "industrial", "police"]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "An arrow the length of your arm, sprayed on the concrete, and a single word under it: SANCTUARY. Beneath that, in a different hand on a different day, someone has added: THERE IS NO SANCTUARY.",
+      "choices": [
+        {
+          "id": "hope",
+          "label": "Choose to believe the arrow",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "morale": 6, "stress": 4 }
+          ]
+        },
+        {
+          "id": "doubt",
+          "label": "Believe the correction instead",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "morale": -5, "stress": -3 }
+          ]
+        },
+        {
+          "id": "note",
+          "label": "Fix the direction in memory and decide later",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "revealDiscovery", "discovery": "disc.city.sanctuary-rumour" },
+            { "kind": "logHistory", "event": "encounter.note", "note": "marked the sanctuary arrow to decide on later" }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "city-voices. Hope buys morale at the price of a dangerous expectation; doubt is bleak but calming; noting spends a beat and banks a codex hook (disc, T54). No free-lunch option."
+}
