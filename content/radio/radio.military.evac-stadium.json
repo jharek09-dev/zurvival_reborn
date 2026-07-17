@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/radio.schema.json",
+  "id": "radio.military.evac-stadium",
+  "signalType": "military",
+  "channel": 7,
+  "label": "Army staging, gate C",
+  "onsetDay": 1,
+  "regionId": "region.hillcrest",
+  "reach": "citywide",
+  "description": "The SCR-09 evac broadcast: a military staging point at the Hillcrest strongpoint. It reads LIVE while Hillcrest holds, FAILING as its threat climbs past the engine's MILITARY_FAILING_AT, and goes to DEAD AIR once the region has fallen (REGION_FALL_AT) — 'a station goes dark when its region falls' (GDD XIII). The evac is real while it lasts; get there before the perimeter breaks.",
+  "messages": {
+    "live": "...perimeter at the Hillcrest ground holds. Evacuation staging at gate C. If you can hear this and you are uninfected, make your way in before dark. Do not approach after nightfall. Repeating...",
+    "failing": "...we are taking contact at the east wall. Gate C is still open — if you are coming, come now, we cannot say how long we hold. Repeating, come now...",
+    "dead": "the loop cuts out three words into a sentence and does not come back. Whatever gate C was, it is behind them now."
+  },
+  "notes": "regionId=region.hillcrest (baseline threat 40 ⇒ LIVE at start; falls as threat drifts up). First-pass dials; voice pass owed."
+}

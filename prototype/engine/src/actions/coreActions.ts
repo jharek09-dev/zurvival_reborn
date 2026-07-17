@@ -82,6 +82,7 @@ import {
   perceptionDistortion,
   infectionOutcomeLine,
 } from "../sim/infection.js";
+import { radioChoices, isRadioAction, resolveRadioAction, radioLine, radioPool } from "../sim/radio.js";
 
 /** Time cost, in in-game hours, of each core action (FR-CORE-03). */
 export const MOVE_COST = 2;
@@ -222,6 +223,11 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   // block; inert unless a companion is with you.
   for (const choice of companionOrderChoices(state)) choices.push(choice);
 
+  // The radio network (T50 · FR-STY-03): listen to the wider world's signals, or broadcast and reveal
+  // yourself (a loud, unknown-audience risk). Gated on carrying a scavenged radio, so inert for every
+  // prior run; offered only in this quiet explore branch — a fight / walkers / active encounter pre-empt it.
+  for (const choice of radioChoices(state)) choices.push(choice);
+
   // Drop a carried item to reclaim weight (T18 · FR-PLR-03) — the leave-behind lever. Surfaced only
   // when the pack is heavy (>= PACK_HEAVY): below that there's ample room, so drops would just clutter
   // the single-decision screen (FR-UI). One choice per non-unique stack, stable-ordered by type; free.
@@ -282,6 +288,7 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
   if (isStashAction(action)) return resolveStashAction(state, action);
   if (isStoryAction(action)) return resolveStoryAction(state, action);
   if (isInfectionAction(action)) return resolveInfectionAction(state, action);
+  if (isRadioAction(action)) return resolveRadioAction(state, graph, action);
   switch (action.type) {
     case "move": {
       const to = action.params?.["to"];
@@ -290,7 +297,9 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
     case "search": {
       const searched = applySearch(state);
       const kind = graph.nodes[state.player.location]?.kind;
-      return resolveSearchLoot(searched, state.player.location, kind);
+      // The scavenged radio (T50) is findable only when the radio system is active (a signals pool is
+      // registered) — additive, so a radio-less run's loot draws are byte-identical (see loot.ts).
+      return resolveSearchLoot(searched, state.player.location, kind, radioPool(graph).length > 0);
     }
     case "drop": {
       const item = action.params?.["item"];
@@ -495,12 +504,16 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   const halluc = lead === null ? perceptionDistortion(state) : null;
   // Honest, no-number feedback on a cure/quarantine taken THIS turn (did it clear / ease / merely hold?).
   const cure = infectionOutcomeLine(state);
+  // The radio (T50 · FR-STY-03): on a listen turn, the on-air digest of the wider world; on a broadcast
+  // turn, the "you put your voice out" read + its seeded outcome. Null on any non-radio turn, so an
+  // ordinary scene is untouched. Re-derived, so a listen reflects the world as it is right now.
+  const radio = radioLine(state, graph);
   const people = peopleLine(state);
   const shelter = shelterLine(state);
   const story = storyLine(state);
   const moral = humanityBand(state);
   const atmosphere = atmosphereLine(state);
-  const narration = [event, lead, halluc, cure, people, shelter, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
+  const narration = [event, lead, halluc, cure, radio, people, shelter, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
 
   return { turn, day, hour, phase, location: here, narration, choices: availableActions(state, graph) };
 }

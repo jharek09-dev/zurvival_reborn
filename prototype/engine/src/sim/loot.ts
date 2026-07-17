@@ -35,11 +35,25 @@ export const LOOT_TABLES: { readonly [kind: string]: readonly string[] } = {
   industrial: ["item.scrap", "item.fuel", "item.tools", "item.batteries"],
 };
 
+/**
+ * The scavenged radio (T50) is appended to these tables ONLY when the radio system is active (a signals
+ * pool is registered on the run) — a `floor(f*len)` pick shifts every index when a table grows, so
+ * mutating the shared tables would silently change loot draws in radio-less runs and break their
+ * byte-identity. Gating it on the pool keeps every prior/radio-less run drawing exactly as before.
+ */
+export const RADIO_LOOT_ITEM = "item.radio";
+const RADIO_LOOT_KINDS: ReadonlySet<string> = new Set(["store", "residential", "industrial"]);
+
 const clampPct = (n: number): number => Math.max(0, Math.min(100, Math.trunc(n)));
 
-/** The item pool for a node kind, falling back to the generic table for an unknown/absent kind. */
-export function lootTableFor(kind: string | undefined): readonly string[] {
-  return (kind !== undefined && LOOT_TABLES[kind]) || LOOT_TABLES["generic"]!;
+/**
+ * The item pool for a node kind, falling back to the generic table for an unknown/absent kind. With
+ * `includeRadio` (only when the radio system is active), the scavenged radio is appended to the
+ * store/residential/industrial tables so it becomes findable — additively, never in a radio-less run.
+ */
+export function lootTableFor(kind: string | undefined, includeRadio = false): readonly string[] {
+  const base = (kind !== undefined && LOOT_TABLES[kind]) || LOOT_TABLES["generic"]!;
+  return includeRadio && kind !== undefined && RADIO_LOOT_KINDS.has(kind) ? [...base, RADIO_LOOT_ITEM] : base;
 }
 
 /**
@@ -58,7 +72,7 @@ export function searchYieldCap(regionLoot: number, searchPct: number): number {
  * by exactly what was taken (finite + depleting), and drops one plausible item into the inventory.
  * A depleted region or a picked-clean node yields nothing. Pure; consumes the `loot` RNG stream.
  */
-export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string | undefined): GameState {
+export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string | undefined, includeRadio = false): GameState {
   const node = state.nodes[nodeId];
   if (node === undefined) return state;
   const region = state.regions[node.regionId];
@@ -69,7 +83,7 @@ export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string
 
   const drawn = drawInt(state.rng, state.meta.seed, "loot", 1, cap);
   const take = Math.min(region.loot, drawn.value);
-  const pick = drawPick(drawn.rng, state.meta.seed, "loot", lootTableFor(kind));
+  const pick = drawPick(drawn.rng, state.meta.seed, "loot", lootTableFor(kind, includeRadio));
 
   // Weight cap (T18 · FR-PLR-03): pocket the find only if it fits. A full pack leaves it in the
   // world and the region is NOT debited — carrying is finite, so a full pack stops draining the well.

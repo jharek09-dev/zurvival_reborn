@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/radio.schema.json",
+  "id": "radio.ham.ironworks-operator",
+  "signalType": "ham",
+  "channel": 19,
+  "label": "the old man on nineteen",
+  "onsetDay": 1,
+  "regionId": "region.ironworks",
+  "reach": "local",
+  "description": "A lone ham operator broadcasting out of the Ironworks — a real person trading news, rumor, and the occasional lie (GDD XIII). A local signal: reachable and FAINT from adjacent Rivermouth, clear once you are in the Ironworks. Goes silent when the Ironworks is overrun. The leads he passes are honest-sounding prose here; turning them into resolvable, variably-reliable leads is the FR-STY-05 rumor system (deferred).",
+  "messages": {
+    "live": "...for anyone still listening, this is the old man on nineteen. Word from the hill: the pharmacy off the terraces still had stock two days back, but the whole block's gone loud since — go careful, or don't go. I'll be here as long as the batteries and I both last.",
+    "dead": "Nineteen's been dead a while now. The old man said he'd be here as long as his batteries lasted. I suppose they didn't."
+  },
+  "notes": "reach=local, regionId=region.ironworks (adjacent to the rivermouth start ⇒ audible FAINT from turn 1, LIVE once in-region). A 'real person' relaying leads/rumor/lies (FR-STY-05 seam)."
+}

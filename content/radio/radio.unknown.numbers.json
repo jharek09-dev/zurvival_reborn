@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/radio.schema.json",
+  "id": "radio.unknown.numbers",
+  "signalType": "unknown",
+  "channel": 12,
+  "label": "Numbers station",
+  "onsetDay": 1,
+  "reach": "citywide",
+  "description": "The SCR-09 CH 12 number station — a woman counting, then silence, nightly. Automated and unexplained (GDD XIII 'automated and unknown signals'). It never changes and never dies; it simply reads FAINT by day and comes in clear at night. Ambiguity is the point — the game never says what it is for.",
+  "messages": {
+    "live": "A woman's voice, flat and unhurried, reading a string of numbers into the dark — nine, four, seven, one, seven... a long pause... and then, without inflection, she begins again."
+  },
+  "notes": "signalType=unknown, no anomaly ⇒ the engine reads it FAINT by day / LIVE at night (phase). No dead message — it never goes silent. Protect the ambiguity (GDD 'never explain everything')."
+}

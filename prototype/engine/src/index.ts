@@ -224,6 +224,42 @@ export {
   type StageCure,
 } from "./sim/infection.js";
 
+// The radio network — emergency/military/civilian/ham/unknown signals that evolve with world state;
+// listen (cheap) + broadcast (loud, unknown audience); one reserved anomaly (T50 · FR-STY-03 · GDD XIII)
+export {
+  radioPool,
+  signalOf,
+  hasRadio,
+  signalStatus,
+  effectiveStatus,
+  signalAudible,
+  readSignal,
+  audibleSignals,
+  radioChoices,
+  isRadioAction,
+  resolveRadioAction,
+  radioLine,
+  renderSignalRead,
+  RADIO_ITEM,
+  RADIO_STREAM,
+  LISTEN_COST,
+  BROADCAST_COST,
+  BROADCAST_NOISE,
+  BROADCAST_OUTCOMES,
+  POWER_DEAD_AT,
+  MILITARY_FAILING_AT,
+  REGION_FALL_AT,
+  REGION_SILENT_AT,
+  ANOMALY_THREAT,
+  type SignalType,
+  type SignalReach,
+  type SignalMessages,
+  type SignalDef,
+  type SignalStatus,
+  type SignalStrength,
+  type SignalRead,
+} from "./sim/radio.js";
+
 // Weight-limited inventory — the pack that forces a leave-behind (T18, DESIGN §6 · FR-PLR-03)
 export {
   CARRY_CAPACITY,

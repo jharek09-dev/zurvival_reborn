@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/radio.schema.json",
+  "id": "radio.emergency.eas",
+  "signalType": "emergency",
+  "channel": 1,
+  "label": "the old alert loop",
+  "onsetDay": 1,
+  "reach": "citywide",
+  "lifespanDays": 11,
+  "description": "The automated Emergency Alert loop — the sound of the old world running down (GDD XIII). It plays from run start on backup power; it goes to dead air once the grid drops below the engine's POWER_DEAD_AT, or once its shelf life (lifespanDays) elapses, whichever comes first. A recorded loop: it never changes, only ages and then stops.",
+  "messages": {
+    "live": "This is not a test. A public health emergency has been declared for the entire metropolitan area. Remain indoors. Do not approach anyone displaying signs of infection. Await instructions on this frequency. This message will repeat.",
+    "dead": "the carrier tone holds for a moment longer, then even that is gone — the loop has finally run down."
+  },
+  "notes": "Emergency signals read their status from world.powerGrid (weather drains it, T27) and lifespanDays; first-pass dials in sim/radio.ts. Voice/casting pass owed before beta (PL-M4-12 pattern)."
+}

@@ -43,6 +43,7 @@ export const ITEM_WEIGHTS: { readonly [type: string]: number } = {
   "item.lighter": 1,
   "item.batteries": 1,
   "item.scrap": 2,
+  "item.radio": 3, // a scavenged hand-crank/transistor receiver (T50) — carryable, not free (first-pass dial)
   "item.canned-food": 3,
   "item.water": 3,
   "item.blanket": 6,
