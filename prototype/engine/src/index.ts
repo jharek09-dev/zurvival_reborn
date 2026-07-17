@@ -292,6 +292,36 @@ export {
   type WorkshopRow,
 } from "./sim/economy.js";
 
+// Shelter jobs & room capabilities — assign a companion at the base to a room's job (garden/kitchen/salvage/
+// infirmary/generator) that produces or consumes the shared stash on your turns and off-screen; the base
+// feeds its residents; craftable rooms unlock capability (T52 · FR-SHL-03/04 · GDD XI). Inert without a pool.
+export {
+  jobPool,
+  jobOf,
+  jobsActive,
+  jobIdOf,
+  buildableJobs,
+  jobChoices,
+  isJobAction,
+  resolveJobAction,
+  tickShelterOps,
+  offscreenShelterUpkeep,
+  jobLine,
+  DEFAULT_HOURS_PER_CYCLE,
+  GEN_POWER_PER_CYCLE,
+  WATCH_UPKEEP_PER_CYCLE,
+  WALL_WEAKENED_NOTE_AT,
+  RESIDENT_FEED_AT,
+  RESIDENT_FEED_RELIEF,
+  STASH_SPOIL_HOURS,
+  KITCHEN_ROOM,
+  WATCHTOWER_ROOM,
+  RADIO_ROOM,
+  JOB_FLAG_PREFIX,
+  type JobIO,
+  type JobDef,
+} from "./sim/jobs.js";
+
 // Weight-limited inventory — the pack that forces a leave-behind (T18, DESIGN §6 · FR-PLR-03)
 export {
   CARRY_CAPACITY,

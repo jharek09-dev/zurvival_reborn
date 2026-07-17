@@ -22,6 +22,7 @@ import { registerArcs } from "../sim/story.js";
 import type { EncounterDef } from "../sim/events.js";
 import type { SignalDef } from "../sim/radio.js";
 import type { RecipeDef } from "../sim/economy.js";
+import type { JobDef } from "../sim/jobs.js";
 import type { NodeDef, RegionDef, RegionGraph } from "./types.js";
 
 /** Clamp to a 0–100 integer; content baselines are already ints, this guards bad data. */
@@ -109,8 +110,9 @@ export function startRun(
   encounterDefs: readonly EncounterDef[] = [],
   signalDefs: readonly SignalDef[] = [],
   recipeDefs: readonly RecipeDef[] = [],
+  jobDefs: readonly JobDef[] = [],
 ): RunStart {
-  const graph = buildRegionGraph(regionDefs, nodeDefs, encounterDefs, signalDefs, recipeDefs);
+  const graph = buildRegionGraph(regionDefs, nodeDefs, encounterDefs, signalDefs, recipeDefs, jobDefs);
   const base = createInitialState({ ...opts, startLocation: graph.startNodeId });
 
   const regions = seedRegionState(regionDefs);

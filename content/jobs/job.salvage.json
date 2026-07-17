@@ -1,0 +1,13 @@
+{
+  "$schema": "../schemas/job.schema.json",
+  "id": "job.salvage",
+  "label": "Salvage the ruins",
+  "worldEffect": "The wrecks nearby are stripped for usable scrap.",
+  "room": "room.workshop",
+  "produces": {
+    "item": "item.scrap",
+    "qty": 1
+  },
+  "hoursPerCycle": 6,
+  "description": "The safety loop's base source (FR-SHL-03). A resident at the workshop banks scrap into the stash \u2014 the material fortifying and most crafts spend, so the base can shore itself up without you carrying every plank home."
+}

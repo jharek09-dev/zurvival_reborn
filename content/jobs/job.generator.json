@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/job.schema.json",
+  "id": "job.generator",
+  "label": "Run the generator",
+  "worldEffect": "The generator runs, holding the lights and the cold against the dark.",
+  "room": "room.generator",
+  "consumes": {
+    "item": "item.fuel",
+    "qty": 1
+  },
+  "holdsPower": true,
+  "hoursPerCycle": 6,
+  "description": "The power loop's base sink (FR-SHL-03 \u00b7 PL-M4-29). Burns fuel from the stash to hold world.powerGrid up \u2014 which keeps the fridge cold (stash fresh food from spoiling) and slows the carried-food clock. The one job that spends the thinnest resource to protect the others."
+}

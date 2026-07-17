@@ -274,9 +274,43 @@ export function audibleSignals(state: GameState, graph: RegionGraph | undefined)
 
 // --- the seam: choices / dispatch / resolution ------------------------------------------------
 
+/**
+ * The room whose presence at the shelter shields a broadcast (T52 · PL-M4-25) — a proper radio room with a
+ * directional set puts your voice out without lighting up your own node. A string literal (not an import
+ * from jobs.ts) to keep the radio module dependency-light; the id is content, mirrored by the room recipe.
+ */
+export const RADIO_SHELTER_ROOM = "room.radio";
+
+/**
+ * Is the player standing in their own shelter with a radio room built? Then a broadcast is *shielded*: the
+ * loud node deposit is dropped, so broadcasting no longer draws the dead to your door (PL-M4-25). No prior
+ * run has any room, so this is byte-identical for every pre-T52 broadcast (always the loud path).
+ */
+function broadcastShielded(state: GameState): boolean {
+  const sid = state.player.shelterId;
+  return sid !== null && sid === state.player.location && (state.nodes[sid]?.rooms.includes(RADIO_SHELTER_ROOM) ?? false);
+}
+
 /** The radio actions offered from the current state, in stable order. Empty unless carrying a receiver. */
 export function radioChoices(state: GameState): readonly SceneChoice[] {
   if (!hasRadio(state)) return [];
+  const shielded = broadcastShielded(state);
+  const broadcast: SceneChoice = shielded
+    ? {
+        // Shielded from the radio room: your voice carries, your position does not (no loud deposit).
+        id: "broadcast",
+        label: "Broadcast from the radio room — your voice carries, your position does not",
+        timeCost: BROADCAST_COST,
+        action: { type: "broadcast", choiceId: "broadcast", timeCost: BROADCAST_COST },
+      }
+    : {
+        // The one known cost is stated up front (it's loud); the audience is the honest unknown (SCR-09).
+        id: "broadcast",
+        label: "Broadcast — reveal yourself (loud; who hears is unknown)",
+        timeCost: BROADCAST_COST,
+        // Loud, like a firearm: stage 6 deposits this at the player's node and the dead re-path to it (T26).
+        action: { type: "broadcast", choiceId: "broadcast", timeCost: BROADCAST_COST, params: { noise: BROADCAST_NOISE } },
+      };
   return [
     {
       id: "listen-radio",
@@ -284,14 +318,7 @@ export function radioChoices(state: GameState): readonly SceneChoice[] {
       timeCost: LISTEN_COST,
       action: { type: "listen-radio", choiceId: "listen-radio", timeCost: LISTEN_COST },
     },
-    {
-      // The one known cost is stated up front (it's loud); the audience is the honest unknown (SCR-09).
-      id: "broadcast",
-      label: "Broadcast — reveal yourself (loud; who hears is unknown)",
-      timeCost: BROADCAST_COST,
-      // Loud, like a firearm: stage 6 deposits this at the player's node and the dead re-path to it (T26).
-      action: { type: "broadcast", choiceId: "broadcast", timeCost: BROADCAST_COST, params: { noise: BROADCAST_NOISE } },
-    },
+    broadcast,
   ];
 }
 

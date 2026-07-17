@@ -84,6 +84,7 @@ import {
 } from "../sim/infection.js";
 import { radioChoices, isRadioAction, resolveRadioAction, radioLine, radioPool } from "../sim/radio.js";
 import { economyChoices, isEconomyAction, resolveEconomyAction, economyLine, economyActive } from "../sim/economy.js";
+import { jobChoices, isJobAction, resolveJobAction, jobLine, jobIdOf, jobOf } from "../sim/jobs.js";
 
 /** Time cost, in in-game hours, of each core action (FR-CORE-03). */
 export const MOVE_COST = 2;
@@ -234,6 +235,12 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   // shelter with the parts, so inert for every prior run; offered only in this quiet explore branch.
   for (const choice of economyChoices(state, graph)) choices.push(choice);
 
+  // Shelter jobs (T52 · FR-SHL-03/04): assign a companion at the base to a room's job (garden / kitchen /
+  // salvage / infirmary / generator) so it produces or consumes the stash over time, or take one off duty.
+  // Gated on an active job pool AND standing in your own shelter with a room built and a companion present,
+  // so inert for every prior run; free base management like the T45 order and T39 stash verbs.
+  for (const choice of jobChoices(state, graph)) choices.push(choice);
+
   // Drop a carried item to reclaim weight (T18 · FR-PLR-03) — the leave-behind lever. Surfaced only
   // when the pack is heavy (>= PACK_HEAVY): below that there's ample room, so drops would just clutter
   // the single-decision screen (FR-UI). One choice per non-unique stack, stable-ordered by type; free.
@@ -296,6 +303,7 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
   if (isInfectionAction(action)) return resolveInfectionAction(state, action);
   if (isRadioAction(action)) return resolveRadioAction(state, graph, action);
   if (isEconomyAction(action)) return resolveEconomyAction(state, graph, action);
+  if (isJobAction(action)) return resolveJobAction(state, graph, action);
   switch (action.type) {
     case "move": {
       const to = action.params?.["to"];
@@ -432,14 +440,18 @@ function npcNeedRead(n: NPCState): string {
  * not make it. Null when no one is here. Self-sufficient from state (names/disposition/needs); the client
  * enriches a first meeting with the content description (T35+/T41). Screen-reader-safe — all words.
  */
-function peopleLine(state: GameState): string | null {
+function peopleLine(state: GameState, graph: RegionGraph | undefined): string | null {
   const here = state.player.location;
   const bits: string[] = [];
 
-  // Companions with you, named, with their standing order read in words (T45 · closes the "your companion" gap).
+  // Companions with you, named, with their standing order — or their shelter job (T52) — read in words
+  // (T45 · closes the "your companion" gap). A job read takes precedence over the plain "holding here".
   for (const c of companionsHere(state, here)) {
+    const jobId = jobIdOf(c);
+    const job = jobId !== null ? jobOf(graph, jobId) : undefined;
     const order = orderOf(c);
     const doing =
+      job !== undefined ? ` — set to ${job.label.toLowerCase()} for the base` :
       order === "hold" ? " — holding here" :
       order === "guard" ? " — guarding the base" :
       order === "scavenge" ? " — ranging out for the base" : "";
@@ -520,12 +532,16 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   // was made or restored; on the turn fresh food spoils, the loss. Null on any other turn, so an ordinary
   // scene is untouched.
   const economy = economyLine(state, graph);
-  const people = peopleLine(state);
+  // Shelter jobs (T52 · FR-SHL-03/04): on a turn a companion is assigned/pulled off a job, or a turn the
+  // base's jobs produced / fed its people / lost food to spoilage, an honest words-only "daily report".
+  // Null on any other turn, so an ordinary scene is untouched.
+  const jobs = jobLine(state, graph);
+  const people = peopleLine(state, graph);
   const shelter = shelterLine(state);
   const story = storyLine(state);
   const moral = humanityBand(state);
   const atmosphere = atmosphereLine(state);
-  const narration = [event, lead, halluc, cure, radio, economy, people, shelter, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
+  const narration = [event, lead, halluc, cure, radio, economy, jobs, people, shelter, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
 
   return { turn, day, hour, phase, location: here, narration, choices: availableActions(state, graph) };
 }

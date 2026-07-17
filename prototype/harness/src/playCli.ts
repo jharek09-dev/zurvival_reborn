@@ -30,7 +30,7 @@ import {
 import { applyAction, availableActions, sceneOf } from "../../engine/src/index.js";
 import { parseCommand, renderScene, saveState } from "./play.js";
 import { isRunOver } from "../../engine/src/index.js";
-import type { EncounterDef, SignalDef, RecipeDef } from "../../engine/src/index.js";
+import type { EncounterDef, SignalDef, RecipeDef, JobDef } from "../../engine/src/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const contentDir = join(here, "..", "..", "..", "content");
@@ -55,14 +55,18 @@ function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; 
   // workbench. Like the encounter and radio pools, golden transcript generators don't register it, so
   // they stay byte-stable (the economy is inert without a recipe pool).
   const recipes = load<RecipeDef>("recipes");
+  // The shelter-job pool (T52): registered so the playable client can assign companions to base jobs and
+  // the base runs while you're away. Like the pools above, golden transcript generators don't register it,
+  // so they stay byte-stable (the whole jobs system is inert without a job pool).
+  const jobs = load<JobDef>("jobs");
   const resumeIdx = argv.indexOf("--resume");
   if (resumeIdx !== -1 && argv[resumeIdx + 1]) {
     const savePath = argv[resumeIdx + 1]!;
     const state = loadGame(readFileSync(savePath, "utf8"));
-    return { state, graph: buildRegionGraph(regions, nodes, encounters, signals, recipes), savePath };
+    return { state, graph: buildRegionGraph(regions, nodes, encounters, signals, recipes, jobs), savePath };
   }
   const seed = argv[2] && !argv[2].startsWith("--") ? argv[2] : "rivermouth-demo";
-  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes, npcs, [], encounters, signals, recipes);
+  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes, npcs, [], encounters, signals, recipes, jobs);
   return { state, graph, savePath: DEFAULT_SAVE };
 }
 

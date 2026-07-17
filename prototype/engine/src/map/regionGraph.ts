@@ -16,6 +16,7 @@ import type { NodeId } from "../state/types.js";
 import type { EncounterDef } from "../sim/events.js";
 import type { SignalDef } from "../sim/radio.js";
 import type { RecipeDef } from "../sim/economy.js";
+import type { JobDef } from "../sim/jobs.js";
 import { MapError, type NodeDef, type RegionDef, type RegionGraph } from "./types.js";
 
 /** Index an array of defs by id, rejecting duplicates. */
@@ -43,6 +44,7 @@ export function buildRegionGraph(
   encounterDefs: readonly EncounterDef[] = [],
   signalDefs: readonly SignalDef[] = [],
   recipeDefs: readonly RecipeDef[] = [],
+  jobDefs: readonly JobDef[] = [],
 ): RegionGraph {
   if (nodeDefs.length === 0) throw new MapError("no nodes: a region graph needs at least one node");
 
@@ -102,6 +104,7 @@ export function buildRegionGraph(
     ...(encounterDefs.length > 0 ? { encounters: encounterDefs } : {}),
     ...(signalDefs.length > 0 ? { signals: signalDefs } : {}),
     ...(recipeDefs.length > 0 ? { recipes: recipeDefs } : {}),
+    ...(jobDefs.length > 0 ? { jobs: jobDefs } : {}),
   };
 }
 

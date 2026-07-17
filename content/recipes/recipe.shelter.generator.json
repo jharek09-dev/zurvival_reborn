@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.shelter.generator",
+  "category": "shelter",
+  "label": "Generator",
+  "worldEffect": "A fuel generator wired into the shelter \u2014 light and power, for as long as the fuel lasts.",
+  "inputs": [
+    {
+      "item": "item.scrap",
+      "qty": 2
+    },
+    {
+      "item": "item.tools",
+      "qty": 1
+    },
+    {
+      "item": "item.fuel",
+      "qty": 1
+    }
+  ],
+  "installsRoom": "room.generator",
+  "room": "room.workshop",
+  "timeCost": 8,
+  "description": "Installs room.generator, unlocking job.generator (burn fuel to hold world.powerGrid up, PL-M4-29). Needs the workshop to build \u2014 the base's advanced power room (FR-SHL-04 \u00b7 GDD XI)."
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.shelter.radio-room",
+  "category": "shelter",
+  "label": "Radio room",
+  "worldEffect": "A proper set with a directional aerial \u2014 a voice that carries without giving your position away.",
+  "inputs": [
+    {
+      "item": "item.scrap",
+      "qty": 2
+    },
+    {
+      "item": "item.batteries",
+      "qty": 2
+    }
+  ],
+  "installsRoom": "room.radio",
+  "room": "room.workshop",
+  "timeCost": 6,
+  "description": "Installs room.radio \u2014 a passive: broadcasting from your shelter no longer lights up your own node (PL-M4-25). Needs the workshop to build; you must still carry a receiver to use the radio (FR-SHL-04 \u00b7 GDD XIII)."
+}

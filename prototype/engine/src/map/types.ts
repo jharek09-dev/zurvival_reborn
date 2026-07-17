@@ -15,6 +15,7 @@ import type { NodeId, RegionId } from "../state/types.js";
 import type { EncounterDef } from "../sim/events.js";
 import type { SignalDef } from "../sim/radio.js";
 import type { RecipeDef } from "../sim/economy.js";
+import type { JobDef } from "../sim/jobs.js";
 
 /** A region's static definition — mirrors `content/schemas/region.schema.json`. */
 export interface RegionDef {
@@ -87,6 +88,14 @@ export interface RegionGraph {
    * prior run stays byte-identical. Never serialized.
    */
   readonly recipes?: readonly RecipeDef[];
+  /**
+   * The run's registered shelter-job pool (M4 task T52) — transient content the client loaded from
+   * `content/jobs/`, carried here so the jobs interpreter reaches it the same way the recipe pool does.
+   * Optional and defaulting to empty: a graph built without it leaves the whole shelter-jobs system inert
+   * (no assign-job verbs, no production tick, no base feeding, no off-screen upkeep), so every prior run
+   * stays byte-identical. Never serialized.
+   */
+  readonly jobs?: readonly JobDef[];
 }
 
 /**
