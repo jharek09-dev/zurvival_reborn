@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/radio.schema.json",
+  "id": "radio.unknown.anomaly",
+  "signalType": "unknown",
+  "label": "· · ·",
+  "onsetDay": 1,
+  "reach": "citywide",
+  "anomaly": true,
+  "description": "The reserved anomaly — 'the signal that shouldn't exist' (GDD XIII / SCR-09). It breaks the screen's rules exactly once, and nothing else ever does: it carries no channel, it addresses the listener directly, and its timestamp is impossible. The engine gates it hard — audible only in a fallen district (or a city-wide spike) at night, and only ONCE per run. If a player never goes deep enough into the end of the world, they never hear it at all. Protect the ambiguity: it is never explained.",
+  "messages": {
+    "live": "Between the stations, where there should be nothing, a voice — quiet, and close, and reading no numbers at all. It says: you have come back before. You will come back again. We can wait. We have done nothing but wait. The dial's timestamp reads a date four days from now, and then the band is only static, as if it had never been there."
+  },
+  "notes": "anomaly=true, no channel. Gated in sim/radio.ts to a reachable-but-rare condition: phase night AND (max(globalThreat, current-region threat) >= ANOMALY_THREAT (60) OR powerGrid <= ANOMALY_BLACKOUT (25)) AND not already heard this run. Rendered BARE (no channel/pill/age, unquoted) — the one line that breaks the row format; nothing else does. Ties into the 'truth' layer (GDD XIII) and cross-run memory (ADR-0005) — a deeper wiring is later content."
+}

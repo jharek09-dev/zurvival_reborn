@@ -14,6 +14,7 @@
 
 import type { NodeId } from "../state/types.js";
 import type { EncounterDef } from "../sim/events.js";
+import type { SignalDef } from "../sim/radio.js";
 import { MapError, type NodeDef, type RegionDef, type RegionGraph } from "./types.js";
 
 /** Index an array of defs by id, rejecting duplicates. */
@@ -39,6 +40,7 @@ export function buildRegionGraph(
   regionDefs: readonly RegionDef[],
   nodeDefs: readonly NodeDef[],
   encounterDefs: readonly EncounterDef[] = [],
+  signalDefs: readonly SignalDef[] = [],
 ): RegionGraph {
   if (nodeDefs.length === 0) throw new MapError("no nodes: a region graph needs at least one node");
 
@@ -89,11 +91,15 @@ export function buildRegionGraph(
     );
   }
 
-  // The encounter pool is transient content (T47) — attached only when the client registers one, so a
-  // graph built without it leaves the encounter system inert (every prior run byte-identical).
-  return encounterDefs.length === 0
-    ? { regions, nodes, startNodeId }
-    : { regions, nodes, startNodeId, encounters: encounterDefs };
+  // The encounter pool (T47) and radio signal pool (T50) are transient content — attached only when the
+  // client registers one, so a graph built without them leaves those systems inert (every prior run
+  // byte-identical). Each field is present only when non-empty, so an unregistered pool stays undefined.
+  const graph: RegionGraph = { regions, nodes, startNodeId };
+  return {
+    ...graph,
+    ...(encounterDefs.length > 0 ? { encounters: encounterDefs } : {}),
+    ...(signalDefs.length > 0 ? { signals: signalDefs } : {}),
+  };
 }
 
 /** Breadth-first set of node ids reachable from `from` over the graph's edges. */

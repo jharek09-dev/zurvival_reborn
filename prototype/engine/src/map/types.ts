@@ -13,6 +13,7 @@
 
 import type { NodeId, RegionId } from "../state/types.js";
 import type { EncounterDef } from "../sim/events.js";
+import type { SignalDef } from "../sim/radio.js";
 
 /** A region's static definition — mirrors `content/schemas/region.schema.json`. */
 export interface RegionDef {
@@ -69,6 +70,14 @@ export interface RegionGraph {
    * so every prior run stays byte-identical. Never serialized (like the rest of the graph).
    */
   readonly encounters?: readonly EncounterDef[];
+  /**
+   * The run's registered radio signal pool (M4 task T50) — transient content the client loaded from
+   * `content/radio/`, carried here so the radio interpreter reaches it the same way the node graph and
+   * the encounter pool do. Optional and defaulting to empty: a graph built without it leaves the radio
+   * system inert (the listen/broadcast verbs never appear), so every prior run stays byte-identical.
+   * Never serialized.
+   */
+  readonly signals?: readonly SignalDef[];
 }
 
 /**

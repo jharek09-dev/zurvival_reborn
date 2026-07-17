@@ -30,7 +30,7 @@ import {
 import { applyAction, availableActions, sceneOf } from "../../engine/src/index.js";
 import { parseCommand, renderScene, saveState } from "./play.js";
 import { isRunOver } from "../../engine/src/index.js";
-import type { EncounterDef } from "../../engine/src/index.js";
+import type { EncounterDef, SignalDef } from "../../engine/src/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const contentDir = join(here, "..", "..", "..", "content");
@@ -48,14 +48,17 @@ function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; 
   // The data-driven encounter pool (T47): registered so the playable client speaks in scenes. Golden
   // transcript generators (playSlice/gen-slice) deliberately don't register it, staying byte-stable.
   const encounters = load<EncounterDef>("encounters");
+  // The radio signal pool (T50): registered so the playable client can tune the wider world's network.
+  // Like the encounter pool, golden transcript generators don't register it, so they stay byte-stable.
+  const signals = load<SignalDef>("radio");
   const resumeIdx = argv.indexOf("--resume");
   if (resumeIdx !== -1 && argv[resumeIdx + 1]) {
     const savePath = argv[resumeIdx + 1]!;
     const state = loadGame(readFileSync(savePath, "utf8"));
-    return { state, graph: buildRegionGraph(regions, nodes, encounters), savePath };
+    return { state, graph: buildRegionGraph(regions, nodes, encounters, signals), savePath };
   }
   const seed = argv[2] && !argv[2].startsWith("--") ? argv[2] : "rivermouth-demo";
-  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes, npcs, [], encounters);
+  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes, npcs, [], encounters, signals);
   return { state, graph, savePath: DEFAULT_SAVE };
 }
 

@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/radio.schema.json",
+  "id": "radio.military.checkpoint",
+  "signalType": "military",
+  "channel": 4,
+  "label": "Checkpoint Delta, the bridges",
+  "onsetDay": 1,
+  "regionId": "region.downtown",
+  "reach": "citywide",
+  "description": "A military checkpoint that held the river bridges in the Downtown Core — the 'often already fallen by the time you arrive' military signal (GDD XIII). The Core starts overrun (baseline threat 70 >= REGION_FALL_AT), so it reads DEAD AIR from the moment you first scan the band, and the dead-latch keeps it dark even if the district later quiets. If a run somehow tunes it while the Core still holds, it reads live/failing instead — a contested frontline.",
+  "messages": {
+    "live": "Checkpoint Delta, Downtown Core, holding the river bridges. Papers and a clean bill of health to pass. We are not taking wounded. Do not test us after dark.",
+    "failing": "...Delta is compromised. We are falling back across the bridge. Do not — repeat, do NOT — try to reach this position. Find another way out.",
+    "dead": "Checkpoint Delta held the river bridges, once. Now there is nothing on Channel 4 but the hiss between stations."
+  },
+  "notes": "regionId=region.downtown (baseline 70 >= REGION_FALL_AT 65 ⇒ DEAD from the start — the already-fallen military beat, latched). No onsetThreat (that 'new signal appears after a global event' mechanism is unit-tested in radio.test.ts and shipped, in spirit, by the anomaly). First-pass thresholds (MILITARY_FAILING_AT 45 / REGION_FALL_AT 65); untuned vs a real cross-city run (M5 T59/T60)."
+}

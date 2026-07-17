@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/radio.schema.json",
+  "title": "Radio signal",
+  "description": "One signal on the radio network (FR-STY-03 · GDD Part XIII · wireframe SCR-09). Static, content-as-data definition of a broadcast the survivor can pick up on a scavenged receiver. The engine (sim/radio.ts) is a generic interpreter — no per-signal branching — that DERIVES a signal's live/failing/faint/dead status from world + region + day state, so the network evolves as the world does. This file only supplies the identity (family, channel, reach, onset) and the message a status plays; the mechanical dials (thresholds, costs, noise) live in the engine. A signal's live condition is never stored — it is re-derived every read, so the save stays lossless.",
+  "type": "object",
+  "required": ["id", "signalType", "label", "onsetDay", "reach", "messages"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "Optional editor hint pointing at this schema." },
+    "id": {
+      "type": "string",
+      "pattern": "^radio(\\.[a-z0-9]+(?:[-_][a-z0-9]+)*)+$",
+      "description": "Stable content id of the form radio.<family>.<slug>, e.g. \"radio.military.evac-stadium\"."
+    },
+    "signalType": {
+      "type": "string",
+      "enum": ["emergency", "military", "civilian", "ham", "unknown"],
+      "description": "The GDD XIII signal family. Drives how the engine derives the signal's status from world state."
+    },
+    "channel": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 999,
+      "description": "The dial channel (\"CH 7\"). Omit for a signal with no honest channel — only the anomaly does this."
+    },
+    "label": { "type": "string", "minLength": 1, "description": "The who — \"MILITARY · CHANNEL 7\", \"Numbers station\" (ICU string)." },
+    "onsetDay": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The in-game day this signal began transmitting — the aging reference (\"a recorded loop, three days old\"). A signal is not audible before its onset day."
+    },
+    "regionId": {
+      "type": "string",
+      "pattern": "^region\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+      "description": "The region whose fate drives a military/civilian/ham signal (its station goes dark when the region falls). Also the anchor for a `local` signal's reach. Omit for a placeless citywide signal (emergency, the number station)."
+    },
+    "reach": {
+      "type": "string",
+      "enum": ["citywide", "local"],
+      "description": "How far the signal carries on a portable receiver. `citywide` is audible anywhere; `local` only in or next to its `regionId` (a radio room, T52, would widen this)."
+    },
+    "lifespanDays": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "An emergency loop's shelf life: it falls silent this many days past onset even if the grid still holds (the old world running down). Emergency signals only."
+    },
+    "onsetThreat": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "A signal that only APPEARS once world.globalThreat reaches this — \"a new signal appears after a global event\" (GDD XIII). Omit for a signal present from onsetDay."
+    },
+    "anomaly": {
+      "type": "boolean",
+      "description": "The reserved \"signal that shouldn't exist\" (SCR-09). Audible only under a rare engine gate (deep threat, at night, once per run) and breaks the screen's rules exactly once. At most one signal sets this."
+    },
+    "messages": {
+      "type": "object",
+      "required": ["live"],
+      "additionalProperties": false,
+      "description": "The prose a signal plays, keyed by derived status. The engine picks the variant; it never invents prose.",
+      "properties": {
+        "live": { "type": "string", "minLength": 1, "description": "The message while the signal is transmitting normally (also the fallback for `failing`/`faint`)." },
+        "failing": { "type": "string", "minLength": 1, "description": "A military station holding but slipping — its region's threat is climbing. Falls back to `live` if absent." },
+        "dead": { "type": "string", "minLength": 1, "description": "What remains once the signal goes silent — the honest DEAD-AIR row (\"went quiet Day 5, mid-sentence\"). A generic dead-air line is used if absent." }
+      }
+    },
+    "description": { "type": "string", "description": "What the signal is and how it behaves (author/design reference)." },
+    "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
+  }
+}

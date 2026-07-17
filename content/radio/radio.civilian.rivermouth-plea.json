@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/radio.schema.json",
+  "id": "radio.civilian.rivermouth-plea",
+  "signalType": "civilian",
+  "channel": 3,
+  "label": "a voice near the ferry landing",
+  "onsetDay": 1,
+  "regionId": "region.rivermouth",
+  "reach": "local",
+  "description": "The SCR-09 CH 3 'Anyone…?' — real people near the river with needs and no answers. A local signal, clearest in Rivermouth (the start region) and reachable from next door. Goes silent — mid-sentence — once Rivermouth is overrun (REGION_SILENT_AT): the dead-air row stays listed, and the silence is content.",
+  "messages": {
+    "live": "Is anyone hearing this? There's a few of us — families, kids — holed up near the old ferry landing. We've got a door that holds but we're low on water. If anyone's out there, if anyone's coming... please. We'll keep this open.",
+    "dead": "This channel went quiet mid-sentence, some days back — a door that held, a voice that didn't. No one has answered it since."
+  },
+  "notes": "reach=local, regionId=region.rivermouth (start region ⇒ LIVE in-region from turn 1). A real-person signal; a variably-reliable, resolvable lead out of it is the FR-STY-05 rumor system (deferred)."
+}
