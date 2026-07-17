@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.survival.warm-clothing",
+  "category": "survival",
+  "label": "Warm clothing",
+  "worldEffect": "Layered clothing sewn from scavenged cloth, for the cold nights.",
+  "inputs": [
+    {
+      "item": "item.cloth",
+      "qty": 3
+    }
+  ],
+  "output": {
+    "item": "item.warm-clothing",
+    "qty": 1
+  },
+  "timeCost": 2,
+  "description": "Known from the start. Warm clothing is the GDD X survival craft for the cold; the cloth cost makes the body loop and the clothing loop compete for the same scavenged scraps.",
+  "notes": " worldEffect describes the made object; the warmth/cold effect lands with the weather-exposure system (deferred, PL)."
+}

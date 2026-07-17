@@ -54,6 +54,22 @@ export const DRINK_COST = 1;
 export const TREAT_COST = 2;
 export const EAT_RELIEF = 45;
 export const DRINK_RELIEF = 55;
+/**
+ * Perishable and spoiled food are eatable too (M4 task T51 · FR-ECO-04/05) — fresh food is *better* food
+ * (a reason to eat it before it rots), spoiled food a thin, desperate meal (what a rotted ration is worth).
+ * Only canned food exists in a pre-economy run, so `eat` is byte-identical there. Fresh/spoiled enter play
+ * only via economy-active loot / the spoilage tick, so these branches never fire on a prior golden run.
+ */
+export const FRESH_EAT_RELIEF = 60;
+export const SPOILED_EAT_RELIEF = 20;
+/** Hunger relief per food id (canned stays {@link EAT_RELIEF} — the byte-identity anchor). */
+const FOOD_RELIEF: { readonly [item: string]: number } = {
+  [FOOD_ITEM]: EAT_RELIEF,
+  "item.food-fresh": FRESH_EAT_RELIEF,
+  "item.food-spoiled": SPOILED_EAT_RELIEF,
+};
+/** What `eat` reaches for, in order: fresh first (before it rots), then a shelf-stable can, then the spoiled last resort. */
+const FOOD_PRIORITY: readonly string[] = ["item.food-fresh", FOOD_ITEM, "item.food-spoiled"];
 /** Care a matching medical item applies to a wound; a generic item applies the lesser amount. */
 export const TREAT_CARE = 25;
 export const TREAT_CARE_GENERIC = 10;
@@ -153,7 +169,9 @@ export function updateCondition(state: GameState, action: Action): GameState {
 
 // --- eat / drink / treat --------------------------------------------------------------------
 
-export const canEat = (s: GameState): boolean => carries(s, FOOD_ITEM) && s.player.condition.needs.hunger >= RELIEF_OFFER_AT;
+/** The food the player would eat right now (fresh first, then canned, then spoiled), or null if carrying none. */
+const foodOnHand = (s: GameState): string | null => FOOD_PRIORITY.find((f) => carries(s, f)) ?? null;
+export const canEat = (s: GameState): boolean => foodOnHand(s) !== null && s.player.condition.needs.hunger >= RELIEF_OFFER_AT;
 export const canDrink = (s: GameState): boolean => carries(s, WATER_ITEM) && s.player.condition.needs.thirst >= RELIEF_OFFER_AT;
 
 /** A medical item the player carries that best treats their worst wound, or null. */
@@ -168,11 +186,18 @@ export function treatmentItem(state: GameState): { readonly item: string; readon
 }
 export const canTreat = (s: GameState): boolean => treatmentItem(s) !== null;
 
-/** Eat one ration: spend a food item to buy hunger down. Inert if not carrying food. Pure. */
+/**
+ * Eat one ration: spend a food item to buy hunger down. Reaches for the most perishable food first (fresh
+ * before it rots, then a shelf-stable can, then spoiled as a last resort), each with its own relief. Inert
+ * if not carrying food. A pre-economy pack holds only cans, so this eats a can for {@link EAT_RELIEF} —
+ * byte-identical to before. Pure.
+ */
 export function eat(state: GameState): GameState {
-  if (!carries(state, FOOD_ITEM)) return state;
-  const inventory = consume(state, FOOD_ITEM);
-  const needs = { ...state.player.condition.needs, hunger: clampPct(state.player.condition.needs.hunger - EAT_RELIEF) };
+  const food = foodOnHand(state);
+  if (food === null) return state;
+  const inventory = consume(state, food);
+  const relief = FOOD_RELIEF[food] ?? EAT_RELIEF;
+  const needs = { ...state.player.condition.needs, hunger: clampPct(state.player.condition.needs.hunger - relief) };
   return { ...state, player: { ...state.player, inventory, condition: { ...state.player.condition, needs } } };
 }
 

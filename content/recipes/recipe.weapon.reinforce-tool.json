@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.weapon.reinforce-tool",
+  "category": "weapon",
+  "label": "Reinforced tool",
+  "worldEffect": "A tool rebuilt to hold an edge — worth keeping alive.",
+  "inputs": [
+    {
+      "item": "item.scrap",
+      "qty": 2
+    },
+    {
+      "item": "item.tools",
+      "qty": 1
+    }
+  ],
+  "output": {
+    "item": "item.tool-reinforced",
+    "qty": 1
+  },
+  "mintsArtifact": true,
+  "startDurability": 100,
+  "room": "room.workshop",
+  "timeCost": 3,
+  "description": "Mints a durability ARTIFACT (FR-ECO-07): it wears with use in a fight and is kept alive by repair, not replaced. Needs the workshop room. The reason durability and repair exist."
+}

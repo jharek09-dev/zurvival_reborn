@@ -211,6 +211,36 @@ function migrateV8toV9(state: GameState): GameState {
   };
 }
 
+/**
+ * v9 -> v10 (task T51): the crafting economy arrived. The player now carries an `economy` slice (learned
+ * blueprints + the carried-food spoilage clock) and every node carries a `rooms` list (crafting rooms
+ * installed there). v9 states have neither; a forward-only rung adds both at their inert empties
+ * (`economy: {blueprints: [], freshness: null}`, every node `rooms: []`) and stamps `meta.version` to 10.
+ * Empty is the safe default — a pre-economy run has learned nothing, carries no fresh food, and has built
+ * no rooms — so every historical run migrates losslessly and behaves identically. Pure and total; one
+ * N->N+1 rung, per the ADR-0003 / T7 ladder.
+ */
+function migrateV9toV10(state: GameState): GameState {
+  const src = state as unknown as {
+    readonly player: Record<string, unknown>;
+    readonly nodes: Record<string, Record<string, unknown>>;
+  };
+  const player =
+    "economy" in src.player
+      ? src.player
+      : { ...src.player, economy: { blueprints: [], freshness: null } };
+  const nodes: Record<string, unknown> = {};
+  for (const [id, node] of Object.entries(src.nodes)) {
+    nodes[id] = "rooms" in node ? node : { ...node, rooms: [] };
+  }
+  return {
+    ...state,
+    meta: { ...state.meta, version: 10 },
+    player: player as unknown as GameState["player"],
+    nodes: nodes as GameState["nodes"],
+  };
+}
+
 const MIGRATIONS: { readonly [fromVersion: number]: SaveMigration } = {
   1: (save) => ({ ...save, saveSchemaVersion: 2, state: migrateV1toV2(save.state) }),
   2: (save) => ({ ...save, saveSchemaVersion: 3, state: migrateV2toV3(save.state) }),
@@ -220,6 +250,7 @@ const MIGRATIONS: { readonly [fromVersion: number]: SaveMigration } = {
   6: (save) => ({ ...save, saveSchemaVersion: 7, state: migrateV6toV7(save.state) }),
   7: (save) => ({ ...save, saveSchemaVersion: 8, state: migrateV7toV8(save.state) }),
   8: (save) => ({ ...save, saveSchemaVersion: 9, state: migrateV8toV9(save.state) }),
+  9: (save) => ({ ...save, saveSchemaVersion: 10, state: migrateV9toV10(save.state) }),
 };
 
 /** Two-digit zero-pad for the summary clock (pure, allocation-light). */

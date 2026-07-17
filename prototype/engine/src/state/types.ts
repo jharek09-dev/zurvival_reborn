@@ -15,7 +15,7 @@
  */
 
 /** Bump on any breaking change to this shape; checked on load (DESIGN §9). */
-export const SAVE_SCHEMA_VERSION = 9;
+export const SAVE_SCHEMA_VERSION = 10;
 
 /**
  * Neutral starting `Player.humanity` (M4 task T47 · GDD "The Humanity system"). 0–100 int, never shown
@@ -148,6 +148,30 @@ export interface InventoryEntry {
   readonly itemId?: ItemInstanceId;
 }
 
+/**
+ * The player's crafting economy (M4 task T51 · FR-ECO-04..07 · GDD Part X). Plain JSON, integer-only.
+ * Everything the economy *produces or spends* rides shapes that already exist (`inventory`/`stash` for
+ * items, `items` for durability artifacts, `NodeState.rooms` for the workbench); this slice holds only
+ * the two facts nothing else can derive: what recipes the player has *learned*, and how fresh the food
+ * in the pack still is. Added at save schema v10; an empty value is inert (a pre-economy run is
+ * byte-identical), which is the safe migration default.
+ */
+export interface EconomyState {
+  /**
+   * Learned crafting-recipe unlocks — content ids. A recipe carrying a `blueprint` requirement is
+   * craftable only once that id is here; blueprints are found in the world as an `item.blueprint.*` and
+   * added by studying it. Basic survival recipes carry no blueprint and are known from the start.
+   */
+  readonly blueprints: readonly ContentId[];
+  /**
+   * Hours until the carried `item.food-fresh` stack spoils (FR-ECO-05). `null` when no fresh food is
+   * carried. Set to `FRESH_SHELF_LIFE` when fresh food is first taken, decremented each hour — faster
+   * once the grid fails — and at `0` the stack turns to `item.food-spoiled`. Only fresh food ever feels
+   * this; canned food is shelf-stable, so a pack of cans is untouched.
+   */
+  readonly freshness: number | null;
+}
+
 export interface Player {
   readonly condition: CharacterState;
   readonly inventory: readonly InventoryEntry[];
@@ -182,6 +206,12 @@ export interface Player {
    * (T53). Added at save schema v8 with a forward-only rung (migrateV7toV8).
    */
   readonly humanity: number;
+  /**
+   * The crafting economy (M4 task T51 · FR-ECO-04..07). Learned blueprints + the carried-food spoilage
+   * clock. Added at save schema v10 with a forward-only rung (migrateV9toV10); `{blueprints: [],
+   * freshness: null}` is the inert default a pre-economy run reads.
+   */
+  readonly economy: EconomyState;
 }
 
 /** A tracked survivor: companion or named NPC (GDD XII). */
@@ -346,6 +376,13 @@ export interface NodeState {
    * (`lastVisit !== null`): a discovered node may never have been entered.
    */
   readonly discovered: boolean;
+  /**
+   * Crafting rooms installed here (M4 task T51 · FR-ECO-06 · GDD Part XI) — content ids like
+   * `room.workshop` / `room.medical`, built by a shelter-category recipe (`installsRoom`) and required
+   * by others (`room`). Only ever non-empty on the claimed shelter node. Empty on every node until
+   * built (schema v10); a pre-economy run reads `[]`, so node memory is byte-identical.
+   */
+  readonly rooms: readonly ContentId[];
 }
 
 /**

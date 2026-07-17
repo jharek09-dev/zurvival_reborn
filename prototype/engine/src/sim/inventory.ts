@@ -50,6 +50,20 @@ export const ITEM_WEIGHTS: { readonly [type: string]: number } = {
   "item.tools": 6,
   "item.fuel": 6,
   "item.pistol": 8,
+  // The crafting economy (T51 · FR-ECO-04..07). Components + perishables enter via economy-active loot;
+  // the rest are crafted outputs. Adding lookup keys is byte-identity-safe (weight is a derived lookup, not
+  // an RNG-indexed array) and these items only ever exist in an economy-active run.
+  "item.cloth": 1,
+  "item.charcoal": 1,
+  "item.blueprint.antibiotics": 1, // a folded schematic — light to carry, studied to learn the recipe
+  "item.blueprint.molotov": 1,
+  "item.food-fresh": 3, // perishable food — spoils over time, faster once the grid fails (FR-ECO-05)
+  "item.food-spoiled": 3, // what fresh food becomes; still carried (compost / a desperate meal), never useful food
+  "item.water-dirty": 3, // must be purified before it counts as safe `item.water` (FR-ECO-05)
+  "item.torch": 2,
+  "item.warm-clothing": 3,
+  "item.molotov": 2,
+  "item.tool-reinforced": 6, // a minted durability artifact — worn by use, kept alive by repair (FR-ECO-07)
 };
 
 /** Weight of one unit of `type` (unknown ids fall back to {@link DEFAULT_ITEM_WEIGHT}). */

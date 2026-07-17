@@ -1,0 +1,24 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.survival.torch",
+  "category": "survival",
+  "label": "Torch",
+  "worldEffect": "A bundled, fuel-soaked torch you can carry lit.",
+  "inputs": [
+    {
+      "item": "item.cloth",
+      "qty": 1
+    },
+    {
+      "item": "item.fuel",
+      "qty": 1
+    }
+  ],
+  "output": {
+    "item": "item.torch",
+    "qty": 1
+  },
+  "timeCost": 1,
+  "description": "A survival basic — known from the start. Fire/tools/light is one of the GDD X survival crafts.",
+  "notes": " worldEffect describes the made object; the light/night-danger effect lands with its system (deferred, PL)."
+}

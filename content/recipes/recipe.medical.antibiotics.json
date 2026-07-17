@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.medical.antibiotics",
+  "category": "medical",
+  "label": "Crude antibiotics",
+  "worldEffect": "A brewed long shot against a wound that's turning.",
+  "inputs": [
+    {
+      "item": "item.antiseptic",
+      "qty": 1
+    },
+    {
+      "item": "item.charcoal",
+      "qty": 1
+    }
+  ],
+  "output": {
+    "item": "item.antibiotics",
+    "qty": 1
+  },
+  "blueprint": "blueprint.antibiotics",
+  "room": "room.medical",
+  "timeCost": 4,
+  "description": "Gated three ways (FR-ECO-06): the blueprint (a clinic find, studied), the medical bay (a built room), and the components. The GDD's 'crude antibiotics' — not a cure button, a chance."
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.shelter.workshop",
+  "category": "shelter",
+  "label": "Workshop",
+  "worldEffect": "A workbench in the corner — where repairs and heavier crafts happen.",
+  "inputs": [
+    {
+      "item": "item.scrap",
+      "qty": 3
+    },
+    {
+      "item": "item.tools",
+      "qty": 1
+    }
+  ],
+  "installsRoom": "room.workshop",
+  "timeCost": 6,
+  "description": "A shelter recipe whose product is a ROOM (FR-ECO-06 · GDD XI). Installs room.workshop at the shelter node, unlocking the repair and reinforce-tool recipes. The bench of SCR-10."
+}

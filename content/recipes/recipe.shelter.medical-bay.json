@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.shelter.medical-bay",
+  "category": "shelter",
+  "label": "Medical bay",
+  "worldEffect": "A clean corner for treating wounds and brewing medicine.",
+  "inputs": [
+    {
+      "item": "item.scrap",
+      "qty": 2
+    },
+    {
+      "item": "item.cloth",
+      "qty": 2
+    }
+  ],
+  "installsRoom": "room.medical",
+  "timeCost": 6,
+  "description": "Installs room.medical, unlocking crude antibiotics. Rooms are how 'gated by the right room' (GDD XI) reaches the crafting gate without a separate content type."
+}

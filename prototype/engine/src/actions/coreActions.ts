@@ -83,6 +83,7 @@ import {
   infectionOutcomeLine,
 } from "../sim/infection.js";
 import { radioChoices, isRadioAction, resolveRadioAction, radioLine, radioPool } from "../sim/radio.js";
+import { economyChoices, isEconomyAction, resolveEconomyAction, economyLine, economyActive } from "../sim/economy.js";
 
 /** Time cost, in in-game hours, of each core action (FR-CORE-03). */
 export const MOVE_COST = 2;
@@ -228,6 +229,11 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   // prior run; offered only in this quiet explore branch — a fight / walkers / active encounter pre-empt it.
   for (const choice of radioChoices(state)) choices.push(choice);
 
+  // The crafting economy (T51 · FR-ECO-04..07): craft / repair / purify at the workbench, or study a
+  // carried blueprint. Gated on an active recipe pool AND (for the bench verbs) standing in your own
+  // shelter with the parts, so inert for every prior run; offered only in this quiet explore branch.
+  for (const choice of economyChoices(state, graph)) choices.push(choice);
+
   // Drop a carried item to reclaim weight (T18 · FR-PLR-03) — the leave-behind lever. Surfaced only
   // when the pack is heavy (>= PACK_HEAVY): below that there's ample room, so drops would just clutter
   // the single-decision screen (FR-UI). One choice per non-unique stack, stable-ordered by type; free.
@@ -289,6 +295,7 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
   if (isStoryAction(action)) return resolveStoryAction(state, action);
   if (isInfectionAction(action)) return resolveInfectionAction(state, action);
   if (isRadioAction(action)) return resolveRadioAction(state, graph, action);
+  if (isEconomyAction(action)) return resolveEconomyAction(state, graph, action);
   switch (action.type) {
     case "move": {
       const to = action.params?.["to"];
@@ -298,8 +305,9 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
       const searched = applySearch(state);
       const kind = graph.nodes[state.player.location]?.kind;
       // The scavenged radio (T50) is findable only when the radio system is active (a signals pool is
-      // registered) — additive, so a radio-less run's loot draws are byte-identical (see loot.ts).
-      return resolveSearchLoot(searched, state.player.location, kind, radioPool(graph).length > 0);
+      // registered); the economy items (T51 — components / blueprints / fresh food / dirty water) only
+      // when a recipe pool is. Both additive and gated, so a run with neither draws byte-identically (loot.ts).
+      return resolveSearchLoot(searched, state.player.location, kind, radioPool(graph).length > 0, economyActive(graph));
     }
     case "drop": {
       const item = action.params?.["item"];
@@ -508,12 +516,16 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   // turn, the "you put your voice out" read + its seeded outcome. Null on any non-radio turn, so an
   // ordinary scene is untouched. Re-derived, so a listen reflects the world as it is right now.
   const radio = radioLine(state, graph);
+  // The economy (T51 · FR-ECO-04..07): on a craft/repair/purify/study turn, an honest one-line read of what
+  // was made or restored; on the turn fresh food spoils, the loss. Null on any other turn, so an ordinary
+  // scene is untouched.
+  const economy = economyLine(state, graph);
   const people = peopleLine(state);
   const shelter = shelterLine(state);
   const story = storyLine(state);
   const moral = humanityBand(state);
   const atmosphere = atmosphereLine(state);
-  const narration = [event, lead, halluc, cure, radio, people, shelter, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
+  const narration = [event, lead, halluc, cure, radio, economy, people, shelter, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
 
   return { turn, day, hour, phase, location: here, narration, choices: availableActions(state, graph) };
 }

@@ -30,7 +30,7 @@ import {
 import { applyAction, availableActions, sceneOf } from "../../engine/src/index.js";
 import { parseCommand, renderScene, saveState } from "./play.js";
 import { isRunOver } from "../../engine/src/index.js";
-import type { EncounterDef, SignalDef } from "../../engine/src/index.js";
+import type { EncounterDef, SignalDef, RecipeDef } from "../../engine/src/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const contentDir = join(here, "..", "..", "..", "content");
@@ -51,14 +51,18 @@ function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; 
   // The radio signal pool (T50): registered so the playable client can tune the wider world's network.
   // Like the encounter pool, golden transcript generators don't register it, so they stay byte-stable.
   const signals = load<SignalDef>("radio");
+  // The crafting-recipe pool (T51): registered so the playable client can craft/repair/purify at the
+  // workbench. Like the encounter and radio pools, golden transcript generators don't register it, so
+  // they stay byte-stable (the economy is inert without a recipe pool).
+  const recipes = load<RecipeDef>("recipes");
   const resumeIdx = argv.indexOf("--resume");
   if (resumeIdx !== -1 && argv[resumeIdx + 1]) {
     const savePath = argv[resumeIdx + 1]!;
     const state = loadGame(readFileSync(savePath, "utf8"));
-    return { state, graph: buildRegionGraph(regions, nodes, encounters, signals), savePath };
+    return { state, graph: buildRegionGraph(regions, nodes, encounters, signals, recipes), savePath };
   }
   const seed = argv[2] && !argv[2].startsWith("--") ? argv[2] : "rivermouth-demo";
-  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes, npcs, [], encounters, signals);
+  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes, npcs, [], encounters, signals, recipes);
   return { state, graph, savePath: DEFAULT_SAVE };
 }
 

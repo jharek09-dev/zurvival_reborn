@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.purify.filter",
+  "category": "purify",
+  "label": "Charcoal filter",
+  "worldEffect": "A charcoal-and-cloth filter — clean water without burning fuel.",
+  "inputs": [
+    {
+      "item": "item.charcoal",
+      "qty": 1
+    },
+    {
+      "item": "item.cloth",
+      "qty": 1
+    }
+  ],
+  "purifyFrom": "item.water-dirty",
+  "purifyTo": "item.water",
+  "timeCost": 1,
+  "description": "The SCR-10 'Water filter — 1 charcoal · 1 cloth' path: a fuel-free alternative to boiling that spends components instead. Known from the start; a real economy choice (fuel vs charcoal+cloth)."
+}

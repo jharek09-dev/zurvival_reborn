@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/recipe.schema.json",
+  "title": "Crafting recipe",
+  "description": "One recipe on the workbench (FR-ECO-04..07 · GDD Part X/XI · wireframe SCR-10). Static, content-as-data definition of something the survivor can make, build, repair, or purify. The engine (sim/economy.ts) is a generic interpreter — no per-recipe branching: it consumes every `input`, applies the ONE payload the recipe carries (an item `output`, an `installsRoom`, a `repairs` restore, or a `purifyFrom`/`purifyTo` conversion), spends `timeCost` hours, and logs a beat. Time is the real price (SCR-10). A recipe is gated by a learned `blueprint` (omit ⇒ known from the start), a built `room` (omit ⇒ craftable in the bare shelter), and its `inputs`. Mechanical dials (spoilage rate, durability wear) live in the engine; this file supplies the recipe.",
+  "type": "object",
+  "required": ["id", "category", "label", "worldEffect", "inputs", "timeCost"],
+  "additionalProperties": false,
+  "$defs": {
+    "itemId": {
+      "type": "string",
+      "pattern": "^item(\\.[a-z0-9]+(?:[-_][a-z0-9]+)*)+$",
+      "description": "An item content id, e.g. \"item.bandage\" or \"item.blueprint.molotov\"."
+    },
+    "io": {
+      "type": "object",
+      "required": ["item", "qty"],
+      "additionalProperties": false,
+      "properties": {
+        "item": { "$ref": "#/$defs/itemId" },
+        "qty": { "type": "integer", "minimum": 1, "description": "Units of the item — a whole, positive count." }
+      }
+    }
+  },
+  "properties": {
+    "$schema": { "type": "string", "description": "Optional editor hint pointing at this schema." },
+    "id": {
+      "type": "string",
+      "pattern": "^recipe\\.(medical|weapon|shelter|survival|repair|purify)\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+      "description": "Stable content id of the form recipe.<category>.<slug>, e.g. \"recipe.medical.bandage\"."
+    },
+    "category": {
+      "type": "string",
+      "enum": ["medical", "weapon", "shelter", "survival", "repair", "purify"],
+      "description": "The GDD X recipe family. medical/weapon/shelter/survival produce (or build); repair restores an artifact; purify converts dirty water safe."
+    },
+    "label": { "type": "string", "minLength": 1, "description": "The row name shown on the workbench (SCR-10 \"Reinforced plank\")." },
+    "worldEffect": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What it does IN THE WORLD, in plain words — \"Boards the east window\", not \"+5 integrity\". Surfaced as prose; never a number (FR-UI-02)."
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/io" },
+      "description": "The full known cost — the mono line of the SCR-10 row. Every input is consumed on craft. At least one (nothing is free; time is also a cost, see timeCost)."
+    },
+    "output": {
+      "$ref": "#/$defs/io",
+      "description": "The item this recipe produces (medical/survival/weapon). Omit for a room-installing, repair, or purify recipe."
+    },
+    "mintsArtifact": {
+      "type": "boolean",
+      "description": "A weapon recipe whose `output` is a tracked durability ARTIFACT (an ItemInstance that wears with use and can be repaired), not a plain stack. Requires `output`."
+    },
+    "startDurability": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Starting durability (0–100) for a minted artifact. Defaults to 100 (full). mintsArtifact only."
+    },
+    "installsRoom": {
+      "type": "string",
+      "pattern": "^room\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+      "description": "A shelter recipe whose product is a ROOM installed at the shelter node (e.g. \"room.workshop\"), unlocking recipes gated on that room. shelter category."
+    },
+    "repairs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "A repair recipe: restore a carried durability artifact by this many points (capped at 100), appending a provenance line to its story. repair category."
+    },
+    "purifyFrom": {
+      "$ref": "#/$defs/itemId",
+      "description": "A purify recipe: the dirty item id converted (e.g. \"item.water-dirty\"). Pairs with purifyTo. purify category."
+    },
+    "purifyTo": {
+      "$ref": "#/$defs/itemId",
+      "description": "A purify recipe's safe product (e.g. \"item.water\"). Pairs with purifyFrom. purify category."
+    },
+    "blueprint": {
+      "type": "string",
+      "pattern": "^blueprint\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+      "description": "A learned unlock this recipe needs (found in the world as an \"item.blueprint.<slug>\" and studied). Omit ⇒ the recipe is known from the start (survival basics)."
+    },
+    "room": {
+      "type": "string",
+      "pattern": "^room\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+      "description": "A built room this recipe needs to run (e.g. \"room.workshop\"). Omit ⇒ craftable in the bare shelter, no room required."
+    },
+    "timeCost": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Hours the craft costs — the real price (SCR-10). At least 1, so every craft is a resolved, world-advancing turn."
+    },
+    "noise": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Noise the craft deposits at the node (a loud make, like a firearm). Omit or 0 for a quiet craft."
+    },
+    "description": { "type": "string", "description": "What the recipe is and why it exists (author/design reference)." },
+    "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
+  }
+}

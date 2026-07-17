@@ -21,6 +21,7 @@ import { spawnNpcs, type NPCDef } from "../sim/npcs.js";
 import { registerArcs } from "../sim/story.js";
 import type { EncounterDef } from "../sim/events.js";
 import type { SignalDef } from "../sim/radio.js";
+import type { RecipeDef } from "../sim/economy.js";
 import type { NodeDef, RegionDef, RegionGraph } from "./types.js";
 
 /** Clamp to a 0–100 integer; content baselines are already ints, this guards bad data. */
@@ -78,6 +79,9 @@ export function seedNodeState(nodeDefs: readonly NodeDef[]): { readonly [id: str
       zombieState: "dormant",
       zombieTypes: def.zombieTypes ? [...def.zombieTypes] : [],
       discovered: false,
+      // Crafting rooms (T51) start empty on every node; only the claimed shelter ever gains any, built
+      // by a shelter-category recipe. Empty here keeps a pre-economy run's node memory byte-identical.
+      rooms: [],
     };
   }
   return out;
@@ -104,8 +108,9 @@ export function startRun(
   arcIds: readonly string[] = [],
   encounterDefs: readonly EncounterDef[] = [],
   signalDefs: readonly SignalDef[] = [],
+  recipeDefs: readonly RecipeDef[] = [],
 ): RunStart {
-  const graph = buildRegionGraph(regionDefs, nodeDefs, encounterDefs, signalDefs);
+  const graph = buildRegionGraph(regionDefs, nodeDefs, encounterDefs, signalDefs, recipeDefs);
   const base = createInitialState({ ...opts, startLocation: graph.startNodeId });
 
   const regions = seedRegionState(regionDefs);

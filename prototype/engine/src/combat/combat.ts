@@ -31,6 +31,7 @@ import { neighborsOf } from "../map/regionGraph.js";
 import { discoverAround } from "../map/fogOfWar.js";
 import { drawFloat, drawInt, drawPick } from "../rng/streams.js";
 import { inflictNamedWound } from "../sim/wounds.js";
+import { wearWeaponOnStrike } from "../sim/economy.js";
 import { weatherDetectionDelta } from "../sim/weather.js";
 import { phaseConcealment } from "../sim/timeOfDay.js";
 
@@ -298,7 +299,10 @@ function resolveStrike(state: GameState): GameState {
   const dmg = drawInt(state.rng, state.meta.seed, "combat", MELEE_DMG_MIN, MELEE_DMG_MAX);
   const dealt = Math.max(0, dmg.value - def.armor);
   const hp = combat.hp - dealt;
-  const withRng = { ...state, rng: dmg.rng };
+  // A melee strike wears an equipped durability artifact (T51 · FR-ECO-07 — the safety-loop sink, and the
+  // reason to repair rather than replace). Inert on every prior run: no current item has non-null
+  // durability and the start equipment is empty, so this passes the state through unchanged.
+  const withRng = wearWeaponOnStrike({ ...state, rng: dmg.rng });
   if (hp <= 0) return killEnemy(withRng, def);
   const bruised: GameState = { ...withRng, combat: { ...combat, hp, alerted: true } };
   return enemyRetaliate(bruised, def);
