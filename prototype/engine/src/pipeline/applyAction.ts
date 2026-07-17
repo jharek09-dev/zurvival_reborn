@@ -34,6 +34,7 @@ import { recordHistory, appendHistory } from "../sim/history.js";
 import { evaluateArcs, resolveDueStoryEvents } from "../sim/story.js";
 import { evaluateEvents, resolveDueEncounterEvents } from "../sim/events.js";
 import { tickSpoilage } from "../sim/economy.js";
+import { tickShelterOps } from "../sim/jobs.js";
 import { diffSystems } from "../telemetry/turnAudit.js";
 import type { Action, Scene, SceneChoice, TurnResult } from "./contract.js";
 
@@ -102,12 +103,18 @@ const simCtx = (ctx: TurnContext): SimContext => {
 };
 
 /** Stage 5: advance the people — every living survivor's needs drift (T33), then the party companions
- * drift, follow the player, and can die (T36). Was a no-op; the stage name and the 14-stage order are
- * unchanged, only the body graduated. Both ticks are inert on a zero-hour turn / an empty pool. */
+ * drift, follow the player, and can die (T36), then the shelter runs its jobs and feeds its residents from
+ * the stash (T52). Was a no-op; the stage name and the 14-stage order are unchanged, only the body
+ * graduated. Every tick is inert on a zero-hour turn / an empty pool — and the shelter-ops tick is dark
+ * without a job pool, so every prior run stays byte-identical (exactly as T51 added spoilage to stage 4). */
 const updateCompanions: StageFn = (ctx) => {
   const hours = Math.max(0, Math.trunc(ctx.action.timeCost ?? 0));
   const withNpcs = tickNpcs(ctx.state, hours);
-  return { ...ctx, state: tickCompanions(withNpcs, hours) };
+  // The base runs its jobs and feeds its residents FIRST, then the party drifts and (starving) can die —
+  // so a base with food in the cache keeps its people alive rather than losing them a beat before it feeds
+  // them (PL-M3-01). Inert without a job pool, so tickCompanions sees the identical input on every prior run.
+  const withOps = tickShelterOps(withNpcs, ctx.graph, hours);
+  return { ...ctx, state: tickCompanions(withOps, hours) };
 };
 
 /** Stage 6: decay/deposit node noise (T14), apply shelter fortification upkeep + noise muffle (T38), then

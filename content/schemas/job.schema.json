@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/job.schema.json",
+  "title": "Shelter job",
+  "description": "One assignable job at the base (FR-SHL-03/04 · GDD Part XI). Static, content-as-data definition of work a resident companion does at a room. The engine (sim/jobs.ts) is a generic interpreter — no per-job branching: each cycle it debits `consumes` from the shared stash (skipping the cycle if it is short — a job never drives the stash negative), then either credits `produces` to the stash or, for a `holdsPower` job, raises world.powerGrid. A job runs only where its `room` is built (the FR-SHL-04 capability gate) and only while its assigned worker is a companion present at the shelter. Mechanical dials (feed thresholds, power gain, spoilage rates) live in the engine; this file supplies the job. The whole system is inert without a job pool, so every prior run is byte-identical.",
+  "type": "object",
+  "required": ["id", "label", "worldEffect", "room"],
+  "additionalProperties": false,
+  "$defs": {
+    "itemId": {
+      "type": "string",
+      "pattern": "^item(\\.[a-z0-9]+(?:[-_][a-z0-9]+)*)+$",
+      "description": "An item content id, e.g. \"item.food-fresh\" or \"item.scrap\"."
+    },
+    "io": {
+      "type": "object",
+      "required": ["item", "qty"],
+      "additionalProperties": false,
+      "properties": {
+        "item": { "$ref": "#/$defs/itemId" },
+        "qty": { "type": "integer", "minimum": 1, "description": "Units of the item moved per cycle — a whole, positive count." }
+      }
+    }
+  },
+  "properties": {
+    "$schema": { "type": "string", "description": "Optional editor hint pointing at this schema." },
+    "id": {
+      "type": "string",
+      "pattern": "^job\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+      "description": "Stable content id of the form job.<slug>, e.g. \"job.garden\"."
+    },
+    "label": { "type": "string", "minLength": 1, "description": "The assignment row name shown to the player (\"Tend the garden\")." },
+    "worldEffect": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What the job does IN THE WORLD, in plain words — \"Rooftop beds give up a little fresh food\", not \"+1 food/cycle\". Surfaced as prose; never a number (FR-UI-02)."
+    },
+    "room": {
+      "type": "string",
+      "pattern": "^room\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+      "description": "The room that unlocks this job (FR-SHL-04) — the job is offered and worked only where this room is built (e.g. \"room.garden\"). Built by a shelter-category recipe (installsRoom)."
+    },
+    "consumes": {
+      "$ref": "#/$defs/io",
+      "description": "Drawn from the shared stash per cycle (a kitchen consumes fresh food; the generator, fuel). Omit for a pure producer. A cycle is skipped when the stash is short — a job never drives it negative."
+    },
+    "produces": {
+      "$ref": "#/$defs/io",
+      "description": "Banked into the shared stash per cycle (the garden's fresh food, the workshop's scrap). Omit for a hold-power job."
+    },
+    "holdsPower": {
+      "type": "boolean",
+      "description": "The generator: burn `consumes` to raise world.powerGrid instead of banking a `produces` item — the power loop's base sink, and it keeps the fridge cold."
+    },
+    "upkeepsBarricades": {
+      "type": "boolean",
+      "description": "The watch: a resident on the watchtower keeps the shelter's barricades up each cycle (the upkeep job shape), holding the wall against the T38 decay instead of banking a `produces` item."
+    },
+    "hoursPerCycle": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Hours of work one cycle takes — the real price and the first-pass balance dial. Defaults to 6 (DEFAULT_HOURS_PER_CYCLE). A tick completes trunc(hours / hoursPerCycle) cycles."
+    },
+    "description": { "type": "string", "description": "What the job is and why it exists (author/design reference)." },
+    "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
+  }
+}

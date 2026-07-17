@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.shelter.watchtower",
+  "category": "shelter",
+  "label": "Watchtower",
+  "worldEffect": "A raised post over the barricade, where a lookout can keep watch.",
+  "inputs": [
+    {
+      "item": "item.scrap",
+      "qty": 3
+    }
+  ],
+  "installsRoom": "room.watchtower",
+  "timeCost": 6,
+  "description": "Installs room.watchtower \u2014 halves off-screen barricade decay passively (a lookout slows the rot, PL-M3-05) AND unlocks job.watch (post a resident to actively keep the wall up). Buildable in the bare shelter (FR-SHL-04)."
+}

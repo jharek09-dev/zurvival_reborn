@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/job.schema.json",
+  "id": "job.infirmary",
+  "label": "Roll dressings",
+  "worldEffect": "Clean cloth is boiled and rolled into bandages.",
+  "room": "room.medical",
+  "consumes": {
+    "item": "item.cloth",
+    "qty": 1
+  },
+  "produces": {
+    "item": "item.bandage",
+    "qty": 1
+  },
+  "hoursPerCycle": 6,
+  "description": "The health loop's base source (FR-SHL-03). A resident at the medical bay turns scavenged cloth into dressings the whole shelter can draw on."
+}

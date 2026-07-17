@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/job.schema.json",
+  "id": "job.kitchen",
+  "label": "Cook and preserve",
+  "worldEffect": "Fresh food is cooked down and put up in cans to keep.",
+  "room": "room.kitchen",
+  "consumes": {
+    "item": "item.food-fresh",
+    "qty": 1
+  },
+  "produces": {
+    "item": "item.canned-food",
+    "qty": 1
+  },
+  "hoursPerCycle": 4,
+  "description": "Turns the garden's perishable yield into shelf-stable food (FR-SHL-03). The kitchen ROOM also refrigerates the cache (stash fresh food stops spoiling while it stands, PL-M4-29); this JOB is the active preserve."
+}

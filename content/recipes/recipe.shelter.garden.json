@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.shelter.garden",
+  "category": "shelter",
+  "label": "Rooftop garden",
+  "worldEffect": "Planters and beds where something green can grow.",
+  "inputs": [
+    {
+      "item": "item.scrap",
+      "qty": 2
+    },
+    {
+      "item": "item.water",
+      "qty": 2
+    }
+  ],
+  "installsRoom": "room.garden",
+  "timeCost": 6,
+  "description": "Installs room.garden, unlocking job.garden (a resident grows fresh food into the stash). A basic room \u2014 buildable in the bare shelter (FR-SHL-04 \u00b7 GDD XI)."
+}

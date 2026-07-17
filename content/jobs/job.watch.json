@@ -1,0 +1,10 @@
+{
+  "$schema": "../schemas/job.schema.json",
+  "id": "job.watch",
+  "label": "Stand watch",
+  "worldEffect": "A lookout on the wall keeps the barricades shored up.",
+  "room": "room.watchtower",
+  "upkeepsBarricades": true,
+  "hoursPerCycle": 6,
+  "description": "The upkeep job (FR-SHL-03 \u00b7 GDD XI's 'guard'). A resident posted to the watchtower holds the shelter's barricades against the T38 decay \u2014 a base you can leave defended, not just quieter. The watchtower ROOM already halves off-screen decay passively; posting a watcher actively keeps the wall up."
+}

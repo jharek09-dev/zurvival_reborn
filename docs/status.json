@@ -1,5 +1,5 @@
 {
- "updated": "2026-07-17 (M4 Part 7 — T51: the economy). Resource loops, spoilage, crafting, repairs (FR-ECO-04..07 · GDD Part X/XI · wireframe SCR-10). One content-driven crafting/repair/spoilage system closes all four resource loops — body (food spoilage + fresh food now eatable), safety (gear durability wears, repair restores), health (crafted medical), power (fuel burn in crafting/purification) — so every option debits a real resource, time included. Recipes are content (content/recipes/*.json, the T47/T50 generic-interpreter idiom) on a transient graph.recipes pool, gated by blueprints, components, and rooms; the whole system is dark without a recipe pool, so every prior run is byte-identical (proven vs the pre-T51 baseline across 13 seeds). Repair-over-replace grows an artifact's provenance (SCR-10). Save schema v9→v10 (one forward-only rung, inert empties). CI green: engine 497 / content-loader 9 / harness 99 / schema gate 146 entries across 11 types / malformed rejected. Two-subagent adversarial audit — 1 BLOCKER + 8 findings, all fixed. Next: T52 (shelter depth — jobs & craftable rooms).",
+ "updated": "2026-07-17 (M4 Part 8 - T52: shelter depth - jobs & craftable rooms). FR-SHL-03/04 - GDD Part XI. One content-driven jobs system makes the base a second loop that runs on its own: assign a resident companion to a room's job (garden/kitchen/salvage/infirmary/generator/watch) and it produces or consumes the shared stash on your turns AND while you're away (advanceWorld), so the base feeds its own people off the cache (closes PL-M3-01, a base loop not a pack drain). Craftable rooms each unlock a real capability (a job, the fridge, off-screen decay-halving, or a shielded broadcast - FR-SHL-04). Off-screen shelter upkeep lands (barricades decay while you're gone, PL-M3-05; companion orders tick off-screen, PL-M4-08 half); the community fridge + a fuel-burning generator that holds powerGrid up close PL-M4-29; a radio room shields a broadcast (PL-M4-25). Jobs ride a transient graph.jobs pool and move only existing items, so the whole system is dark without a job pool - every prior run byte-identical (proven cross-tree, 12 seeds, no save rung: assignment is a companion flag, stays v10). CI green: engine 533 / content-loader 9 / harness 106 / schema gate 157 entries across 12 types / malformed rejected. Two-subagent adversarial audit - 0 blockers, 7 findings all fixed. Next: T53 (factions & inter-NPC relationships).",
  "phase": "M4 Content-complete city — breadth without repetition, the full first city. The launch Content Bible for one city: all regions & nodes, the target survivor pool with several companions, full encounter categories with chains & evolution, infection as staged identity, the radio network, a crafting/rooms/jobs economy, factions & inter-NPC relationships, depth screens, an adaptive audio mix with non-audio equivalents, difficulty modes, and the accessibility baseline complete — all content schema-validated in CI. Exit: MVP / public beta. Entry: M3 done and the Slice Fun Gate passed; content schemas frozen for authoring.",
  "currentMilestone": "M4",
  "milestones": [
@@ -415,8 +415,8 @@
    "id": "T52",
    "title": "Shelter depth — jobs & craftable rooms",
    "milestone": "M4",
-   "status": "todo",
-   "note": "FR-SHL-03/04, building on the M3 claim/fortify/shared-stash. Assignable jobs that run while the player is away, producing/consuming from the shared stash (03) — the base becomes a loop, not just a pack drain (closes PL-M3-01); and craftable rooms (kitchen/medical/workshop/radio/watchtower/garden) that unlock capability (04). Off-screen shelter upkeep lands here (closes PL-M3-05). Deterministic, save-lossless."
+   "status": "done",
+   "note": "Done 2026-07-17 (M4 Part 8): FR-SHL-03/04, shelter depth. New sim/jobs.ts interprets content/jobs/*.json generically (the T47/T50/T51 idiom) over a transient graph.jobs pool; the seam (jobChoices/isJobAction/resolveJobAction/jobLine) wires into coreActions like economy, gated on an active job pool AND (for assign) standing in your own shelter with a room built and a companion present - inert otherwise, so every prior run is byte-identical (proven cross-tree vs the pre-T52 baseline across 12 seeds, NO normalization needed - T52 adds no save field on a pool-less run). Assign a resident companion (free assign-job verb, the T45 order idiom - a job:<id> flag, NO save rung, stays v10) to a room's job; tickShelterOps runs it in pipeline stage 5 AND in advanceWorld, so on-turn and off-screen do the same. SIX jobs / four shapes: produce-only (garden->food-fresh), consume->produce (kitchen fresh->canned; infirmary cloth->bandage; salvage->scrap), hold-power (generator burns fuel to raise world.powerGrid), upkeep (watch keeps barricades up). A job short of its input STALLS (never negative stash); a hold-power/upkeep job at a full grid/wall stalls before burning its input. FR-SHL-04: five new shelter recipes (garden/kitchen/watchtower/generator/radio) reuse the T51 recipe schema (installsRoom, no new room type) - every workable room now DOES something (a job, the fridge, decay-halving, or a shielded broadcast). Closes PL-M3-01 (the base feeds its residents from the stash, fresh food first, BEFORE the drift/death pass - a stocked base keeps people alive off the pack); PL-M3-05 + PL-M4-08 off-screen half (advanceWorld gated on jobsActive drifts the party + runs orders, runs jobs, feeds residents, decays barricades - halved under a watchtower, held by a posted watch); PL-M4-29 (the fridge: stash food-fresh spoils only when the grid is failing AND no kitchen/generator keeps it cold; the generator holds powerGrid up); PL-M4-25 (a radio room drops the loud broadcast node-noise). NO new RNG stream, NO loot-table growth (jobs move only existing items). Content: job.schema.json + 6 jobs take the gate 11->12 types. CI: engine 533 / content-loader 9 / harness 106 / schema gate 157 entries.12 types / malformed rejected / smoke exit 0. Two-subagent adversarial audit (engineering PROVED the 638-step cross-tree byte-identity + no-underflow/no-double-decay/forged-edges; design: FR-SHL fidelity/no-number-leak/loops-actually-close/voice) - 0 BLOCKER, 7 findings all fixed (food-fresh->'fresh food' word order HIGH; double-period on room build; the cut job.watch/upkeep shape restored; silent off-screen wall decay now noted; generator full-grid fuel-waste; imperative people-line; jobLine report-vs-assign robustness). See docs/plans/M4_PART8_PLAN.md, docs/qa/QA_REVIEW_M4_PART8.md."
   },
   {
    "id": "T53",
@@ -908,6 +908,31 @@
    "id": "PL-M4-34",
    "from": "M4 Part 7 T51 (QA audit)",
    "note": "Trading + hidden loot + NPC hints (FR-ECO-08/09): scarcity/reputation-priced exchange needs factions (T53); curiosity caches + a survivor tip that resolves to real loot is a T54 depth-screen / radio-rumor beat. Neither ships in T51."
+  },
+  {
+   "id": "PL-M4-35",
+   "from": "M4 Part 8 T52",
+   "note": "Full off-screen people-sim (PL-M3-02 / PL-M4-08 remainder) - T52 sims the base's OWN residents + jobs off-screen; survivors elsewhere in the city still don't drift/move off-screen (tickNpcs kept on-turn only, out of advanceWorld). That, plus desertion/betrayal + inter-NPC bonds, is the T53 factions block. The shelter half is what T52 lands."
+  },
+  {
+   "id": "PL-M4-36",
+   "from": "M4 Part 8 T52",
+   "note": "Sub-cycle granularity (PL-M2-04) - a job produces trunc(hours/hoursPerCycle) per tick (the scavenge idiom), so a short turn under one cycle banks nothing and a single long advanceWorld differs from many short ones by the truncated remainder (and a long single advance can starve a resident the one-shot feed pass can't top up). Hour-by-hour off-screen stepping is deferred PL-M2-04; T52 matches the scavenge/guard model rather than adding a second one."
+  },
+  {
+   "id": "PL-M4-37",
+   "from": "M4 Part 8 T52",
+   "note": "Job/room dials untuned (M5 balance T59/T60): DEFAULT_HOURS_PER_CYCLE 6, per-job produce/consume qtys, GEN_POWER_PER_CYCLE 20, WATCH_UPKEEP_PER_CYCLE 6, RESIDENT_FEED_AT 55 / RESIDENT_FEED_RELIEF 40, STASH_SPOIL_HOURS 12, WATCHTOWER_DECAY_DIVISOR 2, and the five room-recipe costs are first-pass identity values, not balanced against a real cross-city run."
+  },
+  {
+   "id": "PL-M4-38",
+   "from": "M4 Part 8 T52",
+   "note": "Morale/friendships from shared labour (FR-NPC-07) + trading the surplus (FR-ECO-08) - residents working a base together is the natural seat of inter-NPC bonds + shelter morale, and a self-sustaining base PRODUCES surplus to trade; both need the T53 relationship/faction model. T52 ships the production loop, not the social one."
+  },
+  {
+   "id": "PL-M4-39",
+   "from": "M4 Part 8 T52",
+   "note": "A base worth raiding, but not yet raided live (PL-M3-06/08) - jobs + a stocked cache make the base a real target, but the live night-siege that attacks it is still the deferred contested-world beat."
   }
  ],
  "loopFeelCheck": {

@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.shelter.kitchen",
+  "category": "shelter",
+  "label": "Kitchen",
+  "worldEffect": "A stove and counter \u2014 where fresh food is cooked down to keep, and the cache stays cold.",
+  "inputs": [
+    {
+      "item": "item.scrap",
+      "qty": 2
+    },
+    {
+      "item": "item.fuel",
+      "qty": 1
+    }
+  ],
+  "installsRoom": "room.kitchen",
+  "timeCost": 6,
+  "description": "Installs room.kitchen, unlocking job.kitchen (preserve fresh food into cans) and refrigerating the stash (fresh food no longer spoils while the kitchen stands, PL-M4-29). Buildable in the bare shelter (FR-SHL-04)."
+}

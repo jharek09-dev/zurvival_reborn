@@ -95,6 +95,10 @@ function withOrder(actor: Survivor, order: CompanionOrder): Survivor {
   delete flags[ORDER_FLAG.hold];
   delete flags[ORDER_FLAG.scavenge];
   delete flags[ORDER_FLAG.guard];
+  // A companion re-ordered to do something else steps off any shelter job they held (T52): the `job:<id>`
+  // flag is cleared too, so orders and jobs never contradict. Inert on every prior run (no companion carries
+  // a job flag), so this is byte-identical for all pre-T52 order changes.
+  for (const k of Object.keys(flags)) if (k.startsWith("job:")) delete flags[k];
   if (order !== "follow") flags[ORDER_FLAG[order]] = true;
   return { ...actor, flags };
 }

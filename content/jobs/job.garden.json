@@ -1,0 +1,13 @@
+{
+  "$schema": "../schemas/job.schema.json",
+  "id": "job.garden",
+  "label": "Tend the garden",
+  "worldEffect": "Rooftop beds and salvaged planters give up a little fresh food.",
+  "room": "room.garden",
+  "produces": {
+    "item": "item.food-fresh",
+    "qty": 1
+  },
+  "hoursPerCycle": 6,
+  "description": "The body loop's base source (FR-SHL-03 \u00b7 GDD XI). A resident grows fresh food into the shared stash \u2014 the only renewable food the base has, and perishable, so it wants a kitchen (to preserve) or a cold cache (to keep) beside it."
+}

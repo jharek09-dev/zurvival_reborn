@@ -561,7 +561,7 @@ export function economyLine(state: GameState, graph: RegionGraph | undefined): s
       case "craft.done": {
         const recipe = recipeOf(graph, typeof d?.["recipe"] === "string" ? (d!["recipe"] as string) : "");
         if (recipe === undefined) return "You work at the bench a while, and it is done.";
-        if (recipe.installsRoom !== undefined) return `You build it into the shelter — ${recipe.worldEffect.toLowerCase()}. The room is yours now.`;
+        if (recipe.installsRoom !== undefined) return `You build it into the shelter — ${recipe.worldEffect.toLowerCase().replace(/\.\s*$/, "")}. The room is yours now.`;
         return `You make it at the bench: ${recipe.label.toLowerCase()}. ${recipe.worldEffect}`;
       }
       case "repair.done": {

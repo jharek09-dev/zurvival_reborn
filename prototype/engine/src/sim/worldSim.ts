@@ -44,6 +44,8 @@ import { tickRoutes } from "./routes.js";
 import { recordInto } from "./history.js";
 import { tickTimeOfDay } from "./timeOfDay.js";
 import { tickDirector } from "./director.js";
+import { tickCompanions } from "./companions.js";
+import { tickShelterOps, offscreenShelterUpkeep, jobsActive } from "./jobs.js";
 
 /**
  * Everything a layer may read that is not already in `GameState`: the `hours` this tick spans (drives
@@ -151,6 +153,11 @@ export function tickWorld(state: GameState, ctx: SimContext): GameState {
  * turn counter) to the caller: this moves the world, not the player's turn. Deterministic — same
  * (state, hours, seed) ⇒ byte-identical result — and save-lossless (it only ever writes plain-JSON
  * world slices). A zero-hour advance is inert.
+ *
+ * As of T52 the base runs off-screen too: with an active job pool, the party drifts and works its standing
+ * orders (the off-screen half of PL-M4-08), the shelter runs its jobs and feeds its residents from the
+ * stash, and its barricades decay (PL-M3-05). All of that is gated on `jobsActive(graph)`, so every
+ * pool-free off-screen advance — every prior run and every existing off-screen suite — is byte-identical.
  */
 export function advanceWorld(state: GameState, hours: number, graph?: RegionGraph): GameState {
   const h = Math.max(0, Math.trunc(hours));
@@ -160,6 +167,17 @@ export function advanceWorld(state: GameState, hours: number, graph?: RegionGrap
   const world = tickWorld(decayed, graph === undefined ? { hours: h } : { hours: h, graph });
   // Routes drift off-screen too — a storm blocks a road whether or not the player is there (T29).
   const ticked = tickRoutes(world, h);
+  // The shelter half (T52) — inert without a job pool, so no prior run is touched. The party ticks (needs
+  // drift + scavenge/guard orders), the shelter runs its jobs + feeds its residents, then barricades erode.
+  // (Off-screen non-party survivors still don't drift — that people-sim half stays PL-M3-02/T53.)
+  let shel = ticked;
+  if (jobsActive(graph)) {
+    // Feed + run the base first, then drift the party (a starving resident dies only after the cache has
+    // had its chance to feed them — PL-M3-01), then decay the barricades.
+    shel = tickShelterOps(shel, graph, h);
+    shel = tickCompanions(shel, h);
+    shel = offscreenShelterUpkeep(shel, graph, h);
+  }
   // Off-screen fast-forwards leave a trace in the Living History too (T31).
-  return recordInto(state, ticked);
+  return recordInto(state, shel);
 }
