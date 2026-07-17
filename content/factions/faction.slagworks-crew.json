@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/faction.schema.json",
+  "id": "faction.slagworks-crew",
+  "name": "The Slagworks Crew",
+  "archetype": "crew",
+  "description": "A hard scavenging crew that took the Ironworks foundry for its walls and its tools. They strip what they find, owe nobody, and reckon a stranger is either muscle or salvage — a reputation the honest ones among them can't quite shake.",
+  "homeNode": "node.ironworks.foundry",
+  "goal": "control-the-works",
+  "members": ["npc.dana", "npc.hector-ruiz", "npc.gus", "npc.nia"],
+  "baseline": { "strength": 65, "hostility": 55, "reputation": -25 },
+  "rivalries": [
+    { "a": "npc.hector-ruiz", "b": "npc.sarah" },
+    { "a": "npc.dana", "b": "npc.marcus" }
+  ],
+  "notes": "T53 · Ironworks. Hostile crew (gus never joins). Two cross-faction grudges between RECRUITABLE survivors, so both bite at the base: hector↔sarah and dana↔marcus — recruit either pair and the rivalry grinds shelter morale (FR-NPC-07)."
+}

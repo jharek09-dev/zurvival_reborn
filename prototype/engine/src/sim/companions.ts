@@ -134,6 +134,12 @@ export function recruit(state: GameState, npcId: ActorId): GameState {
     type: npc.type,
     name: npc.name,
     trust: npc.trust,
+    // Carry the T53 attitude axes + memory onto the recruit (only ever present in a social run): a survivor
+    // you menaced into following you joins still afraid and unimpressed, and can later desert/betray on it.
+    // Conditional so a non-social recruit (no such fields) is byte-identical to the T36/T45 shape.
+    ...(npc.respect !== undefined ? { respect: npc.respect } : {}),
+    ...(npc.fear !== undefined ? { fear: npc.fear } : {}),
+    ...(npc.memory !== undefined ? { memory: npc.memory } : {}),
     condition: {
       needs: npc.needs,
       wounds: [],

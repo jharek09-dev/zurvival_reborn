@@ -8,5 +8,9 @@
   "background": "Neighbourhood locksmith for forty years; there is not a door on Maple Street he cannot open.",
   "personality": "Dry, watchful, and slow to warm — he measures a person before he'll hand over a key.",
   "secret": "He can't sleep in his own house anymore, so he lets himself into the neighbours' empty ones — and takes one small keepsake from each, a grief he calls tidying up.",
-  "notes": "T45 · The Terraces. Skill: locks/entry. Hook: access to sealed homes/caches (FR-NPC-06); the quiet theft is grief, not menace."
+  "knowledge": [
+    { "id": "walt.gunsafe", "hint": "There's a gun shop in the strip mall off Overlook — steel door, drop bar, the works. I cut keys for the owner for fifteen years. That lock and I are old friends.", "reveals": "node.the-terraces.strip-mall", "minTrust": 40 },
+    { "id": "walt.garden-seed", "hint": "The Garden Center up on Overlook still had its loading dock stacked with seed and dry goods when the roads closed. Nobody thinks to raid a garden center.", "reveals": "node.the-terraces.garden-center", "minTrust": 45 }
+  ],
+  "notes": "T45 · The Terraces. Skill: locks/entry. Hook: access to sealed homes/caches (FR-NPC-06); the quiet theft is grief, not menace. T53: both leads reveal real, NON-adjacent lootable terraces nodes (the strip-mall gun shop, the Garden Center) — reachable because you ask Walt at maple-street, out of sight of both."
 }

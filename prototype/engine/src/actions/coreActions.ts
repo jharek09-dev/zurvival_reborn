@@ -85,6 +85,7 @@ import {
 import { radioChoices, isRadioAction, resolveRadioAction, radioLine, radioPool } from "../sim/radio.js";
 import { economyChoices, isEconomyAction, resolveEconomyAction, economyLine, economyActive } from "../sim/economy.js";
 import { jobChoices, isJobAction, resolveJobAction, jobLine, jobIdOf, jobOf } from "../sim/jobs.js";
+import { socialChoices, isSocialAction, resolveSocialAction, socialLine, socialActive, attitudeRead, companionUnease, shelterMoodRead } from "../sim/social.js";
 
 /** Time cost, in in-game hours, of each core action (FR-CORE-03). */
 export const MOVE_COST = 2;
@@ -241,6 +242,11 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   // so inert for every prior run; free base management like the T45 order and T39 stash verbs.
   for (const choice of jobChoices(state, graph)) choices.push(choice);
 
+  // Social (T53 · FR-NPC-06): ask a met survivor here what they know — a costed verb whose payoff is real
+  // world state (a revealed node / a marked discovery). Gated on an active faction pool, so inert for every
+  // prior run; offered only in this quiet explore branch, after the base-management verbs.
+  for (const choice of socialChoices(state, graph)) choices.push(choice);
+
   // Drop a carried item to reclaim weight (T18 · FR-PLR-03) — the leave-behind lever. Surfaced only
   // when the pack is heavy (>= PACK_HEAVY): below that there's ample room, so drops would just clutter
   // the single-decision screen (FR-UI). One choice per non-unique stack, stable-ordered by type; free.
@@ -295,7 +301,8 @@ function applySearch(state: GameState): GameState {
 export function applyPlayerAction(state: GameState, graph: RegionGraph, action: Action): GameState {
   if (isCombatAction(action)) return resolveCombatAction(state, graph, action);
   if (isEventAction(action)) return resolveEventAction(state, graph, action);
-  if (isEncounterAction(action)) return resolveEncounterAction(state, action);
+  if (isEncounterAction(action)) return resolveEncounterAction(state, action, graph);
+  if (isSocialAction(action)) return resolveSocialAction(state, graph, action);
   if (isCompanionOrderAction(action)) return resolveCompanionOrder(state, action);
   if (isShelterAction(action)) return resolveShelterAction(state, action);
   if (isStashAction(action)) return resolveStashAction(state, action);
@@ -455,7 +462,10 @@ function peopleLine(state: GameState, graph: RegionGraph | undefined): string | 
       order === "hold" ? " — holding here" :
       order === "guard" ? " — guarding the base" :
       order === "scavenge" ? " — ranging out for the base" : "";
-    bits.push(`${companionName(c)} is with you${doing}.`);
+    // A companion's unrest (T53 · FR-NPC-05): a legible desertion tell a turn or two before they leave, so a
+    // departure never comes out of nowhere. Gated on the social system; silent for a steady companion.
+    const unease = socialActive(graph) ? companionUnease(c) : null;
+    bits.push(`${companionName(c)} is with you${doing}.${unease !== null ? ` They are ${unease}.` : ""}`);
   }
 
   let witness = companionsHere(state, here).length > 0;
@@ -465,9 +475,12 @@ function peopleLine(state: GameState, graph: RegionGraph | undefined): string | 
     if (!n.alive) { bits.push(`${n.name} lies where they fell.`); continue; }
     witness = true;
     if (!canParley(n)) { bits.push(`${n.name} will not meet your eye — past talking now.`); continue; }
+    // A met survivor's attitude toward you (T53 · FR-NPC-02): respect/fear surfaced as behaviour, never a
+    // number. Gated on the social system; a survivor you've done nothing to reads by disposition alone (T35).
+    const att = n.met && socialActive(graph) ? attitudeRead(n) : null;
     bits.push(
       n.met
-        ? `${n.name} is here${npcNeedRead(n)}.`
+        ? `${n.name} is here${npcNeedRead(n)}${att !== null ? `, ${att}` : ""}.`
         : `Someone is here — ${n.name}, ${dispositionRead(n.disposition)}${npcNeedRead(n)}.`,
     );
   }
@@ -477,6 +490,13 @@ function peopleLine(state: GameState, graph: RegionGraph | undefined): string | 
   // (symptomatic+); null while healthy/asymptomatic so no prior scene is touched.
   const sign = infectionSign(state);
   if (witness && sign !== null) bits.push(`Those here keep their distance, wary of ${sign}.`);
+
+  // Shelter mood (T53 · FR-NPC-07): when two or more of your people are home together, how the house feels —
+  // close-knit, on edge with old grudges, or wearing down. Gated on the social system; null off the base.
+  if (socialActive(graph)) {
+    const mood = shelterMoodRead(state);
+    if (mood !== null) bits.push(mood);
+  }
 
   return bits.length > 0 ? bits.join(" ") : null;
 }
@@ -536,12 +556,15 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   // base's jobs produced / fed its people / lost food to spoilage, an honest words-only "daily report".
   // Null on any other turn, so an ordinary scene is untouched.
   const jobs = jobLine(state, graph);
+  // The social system (T53 · FR-NPC-05/06): on a turn a survivor confided a lead, or a companion deserted /
+  // betrayed you, an honest words-only read. Null on any other turn, so an ordinary scene is untouched.
+  const social = socialLine(state, graph);
   const people = peopleLine(state, graph);
   const shelter = shelterLine(state);
   const story = storyLine(state);
   const moral = humanityBand(state);
   const atmosphere = atmosphereLine(state);
-  const narration = [event, lead, halluc, cure, radio, economy, jobs, people, shelter, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
+  const narration = [event, lead, halluc, cure, radio, economy, jobs, social, people, shelter, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
 
   return { turn, day, hour, phase, location: here, narration, choices: availableActions(state, graph) };
 }

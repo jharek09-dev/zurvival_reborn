@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/faction.schema.json",
+  "title": "Survivor Faction",
+  "description": "A survivor group / faction (FR-NPC-07/10, T53 · GDD XII). Static definition only; the run seeds a SurvivorGroup into GameState.groups and a player.reputation entry at start (sim/social.seedFactions). Co-members trend friendly and `rivalries` trend hostile, seeding recruited companions' `relationships` and moving shelter morale; `homeNode` is where the faction's off-screen survivors regroup. Registering any faction turns the whole social system on (the master gate); a content set with no factions leaves it inert (byte-identical to pre-T53).",
+  "type": "object",
+  "required": ["id", "name", "archetype", "description", "members"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "Optional editor hint pointing at this schema." },
+    "id": { "type": "string", "pattern": "^faction\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$", "description": "Stable content id of the form faction.<slug> (becomes the GroupId)." },
+    "name": { "type": "string", "minLength": 1, "description": "Player-facing faction name (ICU MessageFormat string)." },
+    "archetype": { "type": "string", "minLength": 1, "description": "Identity key for prose (e.g. collective, holdout, crew, raiders) — FR-NPC-10 identity, first pass." },
+    "description": { "type": "string", "minLength": 1, "description": "How the faction reads — who they are and how they hold their ground (ICU MessageFormat string)." },
+    "homeNode": { "type": "string", "pattern": "^node\\.[a-z0-9]+(?:[.\\-_][a-z0-9]+)*$", "description": "The node this faction gathers at; its off-screen survivors drift here (PL-M3-02)." },
+    "goal": { "type": "string", "description": "Content-defined goal key driving off-screen behaviour (reserved for diplomacy; movement uses homeNode)." },
+    "members": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Survivor ids that belong to this faction.",
+      "items": { "type": "string", "pattern": "^npc\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$" }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional starting integers seeded into the SurvivorGroup + player.reputation.",
+      "properties": {
+        "strength": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Group strength 0–100 (default 50)." },
+        "hostility": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Group hostility toward the player 0–100 (default 0)." },
+        "reputation": { "type": "integer", "minimum": -100, "maximum": 100, "description": "Player's starting standing with this faction −100..100 (default 0)." }
+      }
+    },
+    "rivalries": {
+      "type": "array",
+      "description": "Pairs of survivors (by id) who don't get along — seeds a negative bond between them, moving shelter morale when both are recruited.",
+      "items": {
+        "type": "object",
+        "required": ["a", "b"],
+        "additionalProperties": false,
+        "properties": {
+          "a": { "type": "string", "pattern": "^npc\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$" },
+          "b": { "type": "string", "pattern": "^npc\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$" }
+        }
+      }
+    },
+    "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
+  }
+}

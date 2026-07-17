@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/faction.schema.json",
+  "id": "faction.quad-collective",
+  "name": "The Quad Collective",
+  "archetype": "collective",
+  "description": "What's left of the university, run by committee on the old campus — they ration by vote, keep a chore roster pinned to the quad noticeboard, and believe, stubbornly, that how you survive still matters.",
+  "homeNode": "node.hillcrest.university-quad",
+  "goal": "keep-the-lights-on",
+  "members": ["npc.jonah-sable", "npc.mara", "npc.emeka-okonkwo"],
+  "baseline": { "strength": 55, "hostility": 0, "reputation": 20 },
+  "notes": "T53 · Hillcrest. Organized and friendly-leaning; jonah runs the radio mast. The collective's survivors regroup on the quad off-screen (PL-M3-02)."
+}

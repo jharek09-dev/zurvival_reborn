@@ -7,5 +7,9 @@
   "homeNode": "node.rivermouth.clinic",
   "background": "Ran the ambulance service out of the Rivermouth clinic until the roads stopped meaning anything.",
   "personality": "Steady, wry, and constitutionally unable to walk past someone who is hurt.",
-  "secret": "She left a colleague behind on the last run and tells herself he made it out."
+  "secret": "She left a colleague behind on the last run and tells herself he made it out.",
+  "knowledge": [
+    { "id": "sarah.mercy-pharmacy", "hint": "Before the roads closed I ran supplies out of Mercy Hospital — the pharmacy wing had a stockroom nobody ever cleared. If you can reach the hospital, it's worth the trip.", "reveals": "node.mercy-hospital.pharmacy-wing", "minTrust": 40 }
+  ],
+  "notes": "T53 · Rivermouth · Harbor Holdout. FR-NPC-06 lead reveals the Mercy pharmacy wing (a real, lootable node) — she knows the hospital from her ambulance days."
 }

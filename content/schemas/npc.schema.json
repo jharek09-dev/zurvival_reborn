@@ -16,6 +16,31 @@
     "background": { "type": "string", "description": "One-line history — who they were before (FR-NPC-01)." },
     "personality": { "type": "string", "description": "One-line personality note (FR-NPC-01)." },
     "secret": { "type": "string", "description": "Something they are not telling you yet (FR-NPC-01; surfaced via T35+)." },
+    "knowledge": {
+      "type": "array",
+      "description": "Offhand knowledge this survivor will share once they trust you (FR-NPC-06, T53). Each lead is a real, actionable hint that reveals a node or marks a discovery when `ask`ed. Interpreted by sim/social.ts; inert without an active faction pool.",
+      "items": {
+        "type": "object",
+        "required": ["id", "hint"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "Stable lead id, flagged told once shared." },
+          "hint": { "type": "string", "minLength": 1, "description": "The verbatim offhand line the survivor speaks (ICU MessageFormat string)." },
+          "reveals": { "type": "string", "pattern": "^node\\.[a-z0-9]+(?:[.\\-_][a-z0-9]+)*$", "description": "Node id to lift onto the player's map (fog reveal)." },
+          "marks": {
+            "type": "object",
+            "required": ["node", "discovery"],
+            "additionalProperties": false,
+            "description": "A discovery to mark into a node's memory.",
+            "properties": {
+              "node": { "type": "string", "pattern": "^node\\.[a-z0-9]+(?:[.\\-_][a-z0-9]+)*$" },
+              "discovery": { "type": "string", "pattern": "^disc\\.[a-z0-9]+(?:[.\\-_][a-z0-9]+)*$" }
+            }
+          },
+          "minTrust": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Trust the survivor needs before they share this lead (default 40)." }
+        }
+      }
+    },
     "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
   }
 }

@@ -17,6 +17,8 @@ import type { EncounterDef } from "../sim/events.js";
 import type { SignalDef } from "../sim/radio.js";
 import type { RecipeDef } from "../sim/economy.js";
 import type { JobDef } from "../sim/jobs.js";
+import type { FactionDef } from "../sim/social.js";
+import type { NPCDef } from "../sim/npcs.js";
 import { MapError, type NodeDef, type RegionDef, type RegionGraph } from "./types.js";
 
 /** Index an array of defs by id, rejecting duplicates. */
@@ -45,6 +47,8 @@ export function buildRegionGraph(
   signalDefs: readonly SignalDef[] = [],
   recipeDefs: readonly RecipeDef[] = [],
   jobDefs: readonly JobDef[] = [],
+  factionDefs: readonly FactionDef[] = [],
+  peopleDefs: readonly NPCDef[] = [],
 ): RegionGraph {
   if (nodeDefs.length === 0) throw new MapError("no nodes: a region graph needs at least one node");
 
@@ -105,6 +109,11 @@ export function buildRegionGraph(
     ...(signalDefs.length > 0 ? { signals: signalDefs } : {}),
     ...(recipeDefs.length > 0 ? { recipes: recipeDefs } : {}),
     ...(jobDefs.length > 0 ? { jobs: jobDefs } : {}),
+    // The faction pool (T53) is the social system's master gate — attached only when the client registers one,
+    // so a graph without it leaves the whole social layer inert (every prior run byte-identical). The survivor
+    // catalog rides alongside it (read for `ask` leads); present only with a faction pool.
+    ...(factionDefs.length > 0 ? { factions: factionDefs } : {}),
+    ...(factionDefs.length > 0 && peopleDefs.length > 0 ? { people: peopleDefs } : {}),
   };
 }
 

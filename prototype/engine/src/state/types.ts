@@ -132,6 +132,23 @@ export interface Mind {
   readonly morale: number;
 }
 
+/**
+ * One remembered social event driving a survivor's per-relationship axes (M4 task T53 · FR-NPC-02 · GDD
+ * XII "Memory, trust, and respect"). Plain JSON, integer-only. A survivor keeps a bounded, append-only
+ * list of these; each nudges their `respect`/`fear` (and the memory itself surfaces as "they remember").
+ * `kind` is a verb key (e.g. "kindness", "menaced-me", "confided"); `other` is set when the memory is
+ * about someone other than the player. Absent on every pre-T53 / social-inactive run (written only when a
+ * faction pool is registered), so it is optional and tolerated-absent — no save-schema rung (the T45/T52
+ * discipline).
+ */
+export interface SocialMemory {
+  readonly kind: string;
+  /** The `meta.turn` it happened — recency for surfacing + memory-cap eviction. */
+  readonly turn: number;
+  /** The other actor, when the remembered act was not the player's toward this survivor. */
+  readonly other?: ActorId;
+}
+
 export interface CharacterState {
   readonly needs: Needs;
   readonly wounds: readonly Wound[];
@@ -240,6 +257,23 @@ export interface Survivor {
   readonly relationships: { readonly [actorId: ActorId]: number };
   readonly inventory: readonly InventoryEntry[];
   readonly flags: Flags;
+  /**
+   * The other two attitude axes toward the player (M4 task T53 · FR-NPC-02) — `respect` (do they defer to
+   * you?) and `fear` (do they dread you?), 0–100 ints, beside the existing `trust`. Not a global bar:
+   * per-character and driven by {@link SocialMemory}. Optional and tolerated-absent — written only when a
+   * faction pool makes the social system active, so a pre-T53 companion carries neither and no save-schema
+   * rung is needed (the `name`/`trust` discipline).
+   */
+  readonly respect?: number;
+  readonly fear?: number;
+  /** Bounded, append-only memory of what the player and others did (T53 · FR-NPC-02). Absent when inactive. */
+  readonly memory?: readonly SocialMemory[];
+  /**
+   * How many consecutive social ticks this companion has been unhappy/afraid enough to consider leaving
+   * (T53 · FR-NPC-05). Reaches the desertion threshold ⇒ they desert or betray. Optional/tolerated-absent
+   * (0 when unset) — written only under an active faction pool, so no rung.
+   */
+  readonly desertPressure?: number;
 }
 
 /**
@@ -278,6 +312,17 @@ export interface NPCState {
   readonly met: boolean;
   /** 0–100 int trust toward the player (T34 · FR-NPC-02). Moves only from actions; no free regen. */
   readonly trust: number;
+  /**
+   * The other two attitude axes toward the player (M4 task T53 · FR-NPC-02), beside `trust` — `respect`
+   * (do they defer to you?) and `fear` (do they dread you?), 0–100 ints, driven by {@link SocialMemory}.
+   * Optional/tolerated-absent: written only when a faction pool makes the social system active, so a
+   * pre-T53 spawned survivor carries neither and no save-schema rung is needed (unlike the required `met`
+   * field of the v5→v6 rung — these are deliberately optional so a pool-less run stays byte-identical).
+   */
+  readonly respect?: number;
+  readonly fear?: number;
+  /** Bounded, append-only memory of what the player and others did (T53 · FR-NPC-02). Absent when inactive. */
+  readonly memory?: readonly SocialMemory[];
 }
 
 /** An off-screen faction / rival group (GDD XII; moves in pipeline stage 10). */

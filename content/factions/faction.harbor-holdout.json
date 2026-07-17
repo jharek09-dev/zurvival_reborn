@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/faction.schema.json",
+  "id": "faction.harbor-holdout",
+  "name": "The Harbor Holdout",
+  "archetype": "holdout",
+  "description": "The survivors who never left Rivermouth — they keep the marina gates shut, share what the tide brings in, and take the measure of anyone who comes down the waterfront asking for a berth.",
+  "homeNode": "node.rivermouth.marina",
+  "goal": "hold-the-waterfront",
+  "members": ["npc.ruth", "npc.sarah", "npc.marcus"],
+  "baseline": { "strength": 45, "hostility": 10, "reputation": 15 },
+  "notes": "T53 · Rivermouth. A wary-but-decent holdout; sarah (healer) + marcus (ex-cop) recruit as allies (co-membership seeds a friendly bond), so taking both in lifts shelter morale (FR-NPC-07)."
+}
