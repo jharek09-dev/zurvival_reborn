@@ -8,5 +8,9 @@
   "background": "Bike messenger who knew every alley and service door in the downtown core before the streets seized up.",
   "personality": "Wiry, quick, and allergic to sitting still — she thinks in shortcuts.",
   "secret": "She never made her last drop — a letter to a house she reached too late — and can't decide whether to burn it or keep carrying it.",
-  "notes": "T45 · Downtown. Skill: navigation/routes. Hook: her mental map of the city is real FR-NPC-06 location knowledge; the undelivered letter is a small personal thread."
+  "knowledge": [
+    { "id": "cass.pharmacy", "hint": "The Grand Pharmacy off the plaza — I used to deliver the scripts nobody picked up. Back room's still locked, which means it's still full.", "reveals": "node.downtown.grand-pharmacy", "minTrust": 40 },
+    { "id": "cass.bank-tunnel", "hint": "Union Bank has a service tunnel out of the parking structure. You go in the back, you skip everything waiting at the front doors.", "reveals": "node.downtown.union-bank", "minTrust": 55 }
+  ],
+  "notes": "T45 · Downtown. Skill: navigation/routes. Hook: her mental map of the city is real FR-NPC-06 location knowledge; the undelivered letter is a small personal thread. T53: two `knowledge` leads reveal real downtown nodes."
 }

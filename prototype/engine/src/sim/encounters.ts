@@ -22,10 +22,12 @@
 
 import type { ActorId, GameState, NodeId, NPCState } from "../state/types.js";
 import type { Action, SceneChoice } from "../pipeline/contract.js";
+import type { RegionGraph } from "../map/types.js";
 import { applyTrustEvent, canParley, canRecruit } from "./trust.js";
 import { FOOD_ITEM, WATER_ITEM, EAT_RELIEF, DRINK_RELIEF, RELIEF_OFFER_AT } from "./survival.js";
 import { recruit, companionsHere, canRecruitEligible, companionName, COMPANION_SHARE_TRUST } from "./companions.js";
 import { stageRank } from "./infection.js";
+import { socialActive, remember } from "./social.js";
 
 /** Rank at/above which infection is *visibly* dying — no survivor will follow you (T49 · FR-INJ-06). */
 const VISIBLY_DYING_RANK = stageRank("advanced");
@@ -169,6 +171,7 @@ function give(
   item: string,
   need: "hunger" | "thirst",
   relief: number,
+  graph: RegionGraph | undefined,
 ): GameState {
   if (!carries(state, item)) return state;
   const inventory = consumeItem(state, item);
@@ -178,8 +181,11 @@ function give(
     const npc = state.npcs[npcId];
     if (npc === undefined || !npc.alive) return state;
     const needs = { ...npc.needs, [need]: clampPct(npc.needs[need] - relief) };
+    // Trust moves via T34 (unchanged). When the social system is active (T53), the kindness is also
+    // remembered — respect edges up, fear eases — but this overlay is gated, so a pool-less run is untouched.
     const fed = applyTrustEvent({ ...npc, needs }, "share");
-    return { ...state, player, npcs: { ...state.npcs, [npcId]: fed } };
+    const remembered = socialActive(graph) ? remember(fed, "kindness", state.meta.turn) : fed;
+    return { ...state, player, npcs: { ...state.npcs, [npcId]: remembered } };
   }
   if (compId !== null) {
     const c = state.actors[compId];
@@ -187,34 +193,42 @@ function give(
     const needs = { ...c.condition.needs, [need]: clampPct(c.condition.needs[need] - relief) };
     // Feeding a companion earns trust (T45): care is how you unlock the harder standing orders. Clamped 0–100.
     const trust = Math.max(0, Math.min(100, (c.trust ?? 0) + COMPANION_SHARE_TRUST));
-    return { ...state, player, actors: { ...state.actors, [compId]: { ...c, trust, condition: { ...c.condition, needs } } } };
+    const base = { ...c, trust, condition: { ...c.condition, needs } };
+    const remembered = socialActive(graph) ? remember(base, "kindness", state.meta.turn) : base;
+    return { ...state, player, actors: { ...state.actors, [compId]: remembered } };
   }
   return state;
 }
 
 /** Threaten a survivor: lower trust; below PARLEY_MIN they turn (canParley false), the betrayal sticking. */
-function threaten(state: GameState, id: ActorId): GameState {
+function threaten(state: GameState, id: ActorId, graph: RegionGraph | undefined): GameState {
   const npc = state.npcs[id];
   if (npc === undefined || !npc.alive) return state;
-  return { ...state, npcs: { ...state.npcs, [id]: applyTrustEvent(npc, "threaten") } };
+  // Trust drops via T34 (unchanged). Under an active social system (T53) the menace is also remembered — fear
+  // climbs hard, respect barely — which is what later drives desertion/betrayal. Gated, so no prior run moves.
+  const cowed = applyTrustEvent(npc, "threaten");
+  const remembered = socialActive(graph) ? remember(cowed, "menaced-me", state.meta.turn) : cowed;
+  return { ...state, npcs: { ...state.npcs, [id]: remembered } };
 }
 
 /**
  * Resolve a survivor-interaction action (pipeline stage 3, dispatched from `applyPlayerAction`). An action
- * of an unrelated type is returned unchanged for the caller to handle. Pure, deterministic.
+ * of an unrelated type is returned unchanged for the caller to handle. The optional `graph` enables the T53
+ * social overlay (respect/fear/memory) on share/threaten; omitted (or without a faction pool) it is the exact
+ * T35 behaviour. Pure, deterministic.
  */
-export function resolveEncounterAction(state: GameState, action: Action): GameState {
+export function resolveEncounterAction(state: GameState, action: Action, graph?: RegionGraph): GameState {
   const npcId = typeof action.params?.["npc"] === "string" ? (action.params["npc"] as ActorId) : null;
   const compId = typeof action.params?.["companion"] === "string" ? (action.params["companion"] as ActorId) : null;
   switch (action.type) {
     case "talk":
       return npcId === null ? state : talkTo(state, npcId);
     case "give-food":
-      return give(state, npcId, compId, FOOD_ITEM, "hunger", EAT_RELIEF);
+      return give(state, npcId, compId, FOOD_ITEM, "hunger", EAT_RELIEF, graph);
     case "give-water":
-      return give(state, npcId, compId, WATER_ITEM, "thirst", DRINK_RELIEF);
+      return give(state, npcId, compId, WATER_ITEM, "thirst", DRINK_RELIEF, graph);
     case "threaten":
-      return npcId === null ? state : threaten(state, npcId);
+      return npcId === null ? state : threaten(state, npcId, graph);
     case "recruit":
       return npcId === null ? state : recruit(state, npcId);
     default:

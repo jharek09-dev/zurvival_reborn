@@ -46,6 +46,8 @@ import { tickTimeOfDay } from "./timeOfDay.js";
 import { tickDirector } from "./director.js";
 import { tickCompanions } from "./companions.js";
 import { tickShelterOps, offscreenShelterUpkeep, jobsActive } from "./jobs.js";
+import { tickNpcs } from "./npcs.js";
+import { tickPeople, tickGroups, socialActive } from "./social.js";
 
 /**
  * Everything a layer may read that is not already in `GameState`: the `hours` this tick spans (drives
@@ -171,12 +173,25 @@ export function advanceWorld(state: GameState, hours: number, graph?: RegionGrap
   // drift + scavenge/guard orders), the shelter runs its jobs + feeds its residents, then barricades erode.
   // (Off-screen non-party survivors still don't drift — that people-sim half stays PL-M3-02/T53.)
   let shel = ticked;
-  if (jobsActive(graph)) {
+  const jobs = jobsActive(graph);
+  const social = socialActive(graph);
+  if (jobs) {
     // Feed + run the base first, then drift the party (a starving resident dies only after the cache has
     // had its chance to feed them — PL-M3-01), then decay the barricades.
     shel = tickShelterOps(shel, graph, h);
     shel = tickCompanions(shel, h);
     shel = offscreenShelterUpkeep(shel, graph, h);
+  }
+  // The people half (T53) — the off-screen people-sim PL-M3-02/PL-M4-35 named. Inert without a faction pool,
+  // so no prior off-screen suite is touched. Non-party survivors finally drift their needs while you are away
+  // (they can starve in a district you fast-forward past — the teeth), the party drifts + can starve too, the
+  // party's morale/desertion pressure advances, and survivors move a step toward their faction's home.
+  if (social) {
+    shel = tickNpcs(shel, h); // off-screen needs drift for non-party survivors (stage 5 does this on-turn)
+    // The party also drifts off-screen — but only when a job pool didn't already tick it above (no double drift).
+    if (!jobs) shel = tickCompanions(shel, h);
+    shel = tickPeople(shel, graph, h); // morale drift + desertion/betrayal
+    shel = tickGroups(shel, graph, h); // survivors regroup toward home
   }
   // Off-screen fast-forwards leave a trace in the Living History too (T31).
   return recordInto(state, shel);

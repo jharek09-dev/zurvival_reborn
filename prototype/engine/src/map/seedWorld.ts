@@ -19,6 +19,7 @@ import { seedStarterHordes } from "../sim/hordes.js";
 import { seedRoutes } from "../sim/routes.js";
 import { spawnNpcs, type NPCDef } from "../sim/npcs.js";
 import { registerArcs } from "../sim/story.js";
+import { seedFactions, type FactionDef } from "../sim/social.js";
 import type { EncounterDef } from "../sim/events.js";
 import type { SignalDef } from "../sim/radio.js";
 import type { RecipeDef } from "../sim/economy.js";
@@ -111,8 +112,20 @@ export function startRun(
   signalDefs: readonly SignalDef[] = [],
   recipeDefs: readonly RecipeDef[] = [],
   jobDefs: readonly JobDef[] = [],
+  factionDefs: readonly FactionDef[] = [],
 ): RunStart {
-  const graph = buildRegionGraph(regionDefs, nodeDefs, encounterDefs, signalDefs, recipeDefs, jobDefs);
+  const graph = buildRegionGraph(
+    regionDefs,
+    nodeDefs,
+    encounterDefs,
+    signalDefs,
+    recipeDefs,
+    jobDefs,
+    factionDefs,
+    // The survivor catalog rides the graph only alongside a faction pool (for `ask` leads); passing it
+    // otherwise is harmless (unread + never serialized), but keeping them paired keeps the intent clear.
+    factionDefs.length > 0 ? npcDefs : [],
+  );
   const base = createInitialState({ ...opts, startLocation: graph.startNodeId });
 
   const regions = seedRegionState(regionDefs);
@@ -135,5 +148,8 @@ export function startRun(
   // register any opt-in story arcs into `story.progress` (T40); inert when none are supplied, so every
   // prior run stays byte-identical.
   const peopled = spawnNpcs(seeded, npcDefs, graph);
-  return { state: registerArcs(peopled, arcIds), graph };
+  // Register any opt-in factions (T53) into `groups` + `player.reputation`; inert when none are supplied, so
+  // every prior run carries empty `groups`/`reputation` exactly as before (byte-identical).
+  const factioned = seedFactions(peopled, factionDefs);
+  return { state: registerArcs(factioned, arcIds), graph };
 }

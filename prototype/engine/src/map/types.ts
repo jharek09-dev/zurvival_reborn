@@ -16,6 +16,8 @@ import type { EncounterDef } from "../sim/events.js";
 import type { SignalDef } from "../sim/radio.js";
 import type { RecipeDef } from "../sim/economy.js";
 import type { JobDef } from "../sim/jobs.js";
+import type { FactionDef } from "../sim/social.js";
+import type { NPCDef } from "../sim/npcs.js";
 
 /** A region's static definition — mirrors `content/schemas/region.schema.json`. */
 export interface RegionDef {
@@ -96,6 +98,21 @@ export interface RegionGraph {
    * stays byte-identical. Never serialized.
    */
   readonly jobs?: readonly JobDef[];
+  /**
+   * The run's registered faction pool (M4 task T53) — transient content the client loaded from
+   * `content/factions/`, carried here so the social interpreter reaches it the same way the job pool does.
+   * Optional and defaulting to empty: a graph built without it leaves the WHOLE social layer inert (no
+   * memory/respect/fear, no ask, no desertion/betrayal, no morale drift, no off-screen people tick, no group
+   * movement), so every prior run stays byte-identical. It is the master gate. Never serialized.
+   */
+  readonly factions?: readonly FactionDef[];
+  /**
+   * The run's survivor catalog (M4 task T53) — the same {@link NPCDef}s handed to `spawnNpcs`, carried here
+   * so the `ask` verb can read a survivor's authored `knowledge` leads (FR-NPC-06) at action time. Read only
+   * when the social system is active, so registering it changes no state bytes (the graph is never
+   * serialized). Present only alongside a faction pool.
+   */
+  readonly people?: readonly NPCDef[];
 }
 
 /**

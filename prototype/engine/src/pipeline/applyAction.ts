@@ -35,6 +35,7 @@ import { evaluateArcs, resolveDueStoryEvents } from "../sim/story.js";
 import { evaluateEvents, resolveDueEncounterEvents } from "../sim/events.js";
 import { tickSpoilage } from "../sim/economy.js";
 import { tickShelterOps } from "../sim/jobs.js";
+import { tickPeople, tickGroups } from "../sim/social.js";
 import { diffSystems } from "../telemetry/turnAudit.js";
 import type { Action, Scene, SceneChoice, TurnResult } from "./contract.js";
 
@@ -57,9 +58,6 @@ interface TurnContext {
 
 /** A pipeline stage: a pure transform of the turn context. */
 type StageFn = (ctx: TurnContext) => TurnContext;
-
-/** No-op transform — the body of a world stage not yet implemented. */
-const identity: StageFn = (ctx) => ctx;
 
 /**
  * Stage 1: reject an action the current situation did not offer (FR-CORE-01). Any action answering a
@@ -114,7 +112,11 @@ const updateCompanions: StageFn = (ctx) => {
   // so a base with food in the cache keeps its people alive rather than losing them a beat before it feeds
   // them (PL-M3-01). Inert without a job pool, so tickCompanions sees the identical input on every prior run.
   const withOps = tickShelterOps(withNpcs, ctx.graph, hours);
-  return { ...ctx, state: tickCompanions(withOps, hours) };
+  const withParty = tickCompanions(withOps, hours);
+  // The social overlay (T53 · FR-NPC-05/07): seed inter-companion bonds, drift shelter morale, and resolve
+  // desertion/betrayal. Inert without a faction pool, so every prior run sees the identical stage-5 output —
+  // the body graduated exactly as T52 added shelter-ops here and T51 added spoilage to stage 4.
+  return { ...ctx, state: tickPeople(withParty, ctx.graph, hours) };
 };
 
 /** Stage 6: decay/deposit node noise (T14), apply shelter fortification upkeep + noise muffle (T38), then
@@ -146,6 +148,17 @@ const updateWorld: StageFn = (ctx) => {
 
 /** Stage 9: migrating hordes re-path to fresh noise and step over the graph (T26). */
 const moveHordes: StageFn = (ctx) => ({ ...ctx, state: runLayer(ctx.state, "hordes", simCtx(ctx)) });
+
+/**
+ * Stage 10: move the people — off-screen survivors regroup a step toward their faction's home (T53 ·
+ * PL-M3-02, the "survivors don't move" half). The reserved `identity` no-op graduates to a real gated body;
+ * inert without a faction pool, so every prior run is byte-identical, and the stage NAME + 14-stage order
+ * never change (pipeline.test asserts only names/order), exactly as stages 5/6 graduated.
+ */
+const moveGroups: StageFn = (ctx) => ({
+  ...ctx,
+  state: tickGroups(ctx.state, ctx.graph, Math.max(0, Math.trunc(ctx.action.timeCost ?? 0))),
+});
 
 /** Stage 11: the Apocalypse Director biases pacing without ever forcing an impossible state (T30). */
 const tickDirector: StageFn = (ctx) => ({ ...ctx, state: runLayer(ctx.state, "director", simCtx(ctx)) });
@@ -198,7 +211,7 @@ export const PIPELINE_STAGES: readonly { readonly name: string; readonly run: St
   { name: "updateRegion", run: updateRegion },
   { name: "updateWorld", run: updateWorld },
   { name: "moveHordes", run: moveHordes },
-  { name: "moveGroups", run: identity },
+  { name: "moveGroups", run: moveGroups },
   { name: "tickDirector", run: tickDirector },
   { name: "resolveQueue", run: resolveQueue },
   { name: "evaluateStory", run: evaluateStory },

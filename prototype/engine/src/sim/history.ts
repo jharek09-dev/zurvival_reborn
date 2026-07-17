@@ -88,7 +88,11 @@ export function recordHistory(before: GameState, after: GameState): readonly His
     }
   }
   for (const id of Object.keys(before.actors).sort()) {
-    if (after.actors[id] === undefined && isCompanion(before.actors[id]!)) {
+    // A companion who VANISHED from `actors`. Distinguish death from the T53 hard turns: desertion/betrayal
+    // set a `left.<id>` flag on the player before this diff runs, so a companion who *left* is never logged
+    // as `companion.died` (the `social.deserted`/`social.betrayed` beats own that outcome). Only a genuine
+    // death (combat loss / starvation removal) reaches here with no `left.` flag.
+    if (after.actors[id] === undefined && isCompanion(before.actors[id]!) && after.player.flags[`left.${id}`] !== true) {
       events.push(stamp(after, "companion.died", [id], {}));
     }
   }

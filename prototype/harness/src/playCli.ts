@@ -30,7 +30,7 @@ import {
 import { applyAction, availableActions, sceneOf } from "../../engine/src/index.js";
 import { parseCommand, renderScene, saveState } from "./play.js";
 import { isRunOver } from "../../engine/src/index.js";
-import type { EncounterDef, SignalDef, RecipeDef, JobDef } from "../../engine/src/index.js";
+import type { EncounterDef, SignalDef, RecipeDef, JobDef, FactionDef } from "../../engine/src/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const contentDir = join(here, "..", "..", "..", "content");
@@ -59,14 +59,19 @@ function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; 
   // the base runs while you're away. Like the pools above, golden transcript generators don't register it,
   // so they stay byte-stable (the whole jobs system is inert without a job pool).
   const jobs = load<JobDef>("jobs");
+  // The faction pool (T53): registered so the playable client's survivors are socially alive — memory,
+  // ask-for-leads, desertion/betrayal, inter-NPC bonds, and the off-screen people-sim. It is the social
+  // system's master gate; like the pools above, golden transcript generators don't register it, so they
+  // stay byte-stable (the whole social layer is inert without a faction pool).
+  const factions = load<FactionDef>("factions");
   const resumeIdx = argv.indexOf("--resume");
   if (resumeIdx !== -1 && argv[resumeIdx + 1]) {
     const savePath = argv[resumeIdx + 1]!;
     const state = loadGame(readFileSync(savePath, "utf8"));
-    return { state, graph: buildRegionGraph(regions, nodes, encounters, signals, recipes, jobs), savePath };
+    return { state, graph: buildRegionGraph(regions, nodes, encounters, signals, recipes, jobs, factions, npcs), savePath };
   }
   const seed = argv[2] && !argv[2].startsWith("--") ? argv[2] : "rivermouth-demo";
-  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes, npcs, [], encounters, signals, recipes, jobs);
+  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes, npcs, [], encounters, signals, recipes, jobs, factions);
   return { state, graph, savePath: DEFAULT_SAVE };
 }
 

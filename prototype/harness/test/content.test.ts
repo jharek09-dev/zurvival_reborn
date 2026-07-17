@@ -7,11 +7,14 @@ import {
   startRun,
   isDiscovered,
   isVisited,
+  socialActive,
   THE_LAST_CUSTOMER,
   ZOMBIE_BEHAVIOUR,
   ENEMIES,
   ENEMY_FOR_ZOMBIE,
+  type FactionDef,
   type NodeDef,
+  type NpcLead,
   type NPCDef,
   type RegionDef,
 } from "../../engine/src/index.js";
@@ -204,5 +207,74 @@ describe("shipped content — the survivor pool (T45 · FR-NPC-01)", () => {
     expect(npcs.some((n) => n.id === "npc.dana")).toBe(true);
     const dispositions = new Set(npcs.map((n) => n.disposition));
     expect(dispositions.size).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("shipped content — factions & inter-NPC relationships (T53 · FR-NPC-02/05/06/07)", () => {
+  const regions = loadDefs<RegionDef>("regions");
+  const nodes = loadDefs<NodeDef>("nodes");
+  const npcs = loadDefs<NPCDef & { knowledge?: NpcLead[] }>("npcs");
+  const factions = loadDefs<FactionDef>("factions");
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const npcIds = new Set(npcs.map((n) => n.id));
+
+  it("ships at least three factions over the real cast, each with a valid home node", () => {
+    expect(factions.length).toBeGreaterThanOrEqual(3);
+    for (const f of factions) {
+      expect(f.members.length, `${f.id} has members`).toBeGreaterThanOrEqual(1);
+      for (const m of f.members) expect(npcIds.has(m), `${f.id} member ${m} is a real survivor`).toBe(true);
+      if (f.homeNode !== undefined) expect(nodeIds.has(f.homeNode), `${f.id} home ${f.homeNode} is a real node`).toBe(true);
+      for (const r of f.rivalries ?? []) {
+        expect(npcIds.has(r.a), `rivalry ${r.a} is a real survivor`).toBe(true);
+        expect(npcIds.has(r.b), `rivalry ${r.b} is a real survivor`).toBe(true);
+      }
+    }
+  });
+
+  it("every survivor belongs to at most one faction (membership is unambiguous)", () => {
+    const seen = new Map<string, string>();
+    for (const f of factions) {
+      for (const m of f.members) {
+        expect(seen.has(m), `${m} is in both ${seen.get(m)} and ${f.id}`).toBe(false);
+        seen.set(m, f.id);
+      }
+    }
+  });
+
+  it("every authored knowledge lead points at a real node / discovery (FR-NPC-06)", () => {
+    const withLeads = npcs.filter((n) => (n.knowledge?.length ?? 0) > 0);
+    expect(withLeads.length, "some survivors carry knowledge leads").toBeGreaterThanOrEqual(3);
+    for (const n of withLeads) {
+      for (const lead of n.knowledge!) {
+        expect(typeof lead.hint === "string" && lead.hint.length > 0, `${n.id} lead ${lead.id} has a hint`).toBe(true);
+        if (lead.reveals !== undefined) expect(nodeIds.has(lead.reveals), `${n.id} lead reveals a real node`).toBe(true);
+        if (lead.marks !== undefined) expect(nodeIds.has(lead.marks.node), `${n.id} lead marks a real node`).toBe(true);
+      }
+    }
+  });
+
+  it("a full-content run WITH the faction pool turns the social system on and seeds groups", () => {
+    const { state, graph } = startRun(
+      { seed: "content-social", createdAt: "2026-07-17T00:00:00Z" },
+      regions,
+      nodes,
+      npcs,
+      [],
+      [],
+      [],
+      [],
+      [],
+      factions,
+    );
+    expect(socialActive(graph)).toBe(true);
+    expect(Object.keys(state.groups).length).toBe(factions.length);
+    for (const f of factions) expect(state.groups[f.id]).toBeDefined();
+  });
+
+  it("the same content WITHOUT a faction pool is inert (byte-identity — no groups, social off)", () => {
+    const { state, graph } = startRun({ seed: "content-social", createdAt: "2026-07-17T00:00:00Z" }, regions, nodes, npcs);
+    expect(socialActive(graph)).toBe(false);
+    expect(state.groups).toEqual({});
+    expect(state.player.reputation).toEqual({});
   });
 });

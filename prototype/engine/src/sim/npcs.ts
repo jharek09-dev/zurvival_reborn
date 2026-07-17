@@ -54,6 +54,32 @@ export interface NPCDef {
   readonly background?: string;
   readonly personality?: string;
   readonly secret?: string;
+  /**
+   * Offhand knowledge this survivor will share once they trust you — the FR-NPC-06 "conversation is a
+   * mechanic" leads (M4 task T53). Each is a real, actionable hint that reveals a node or marks a discovery
+   * when `ask`ed (interpreted by `sim/social.ts`). Optional; a survivor without it simply has nothing to
+   * confide. The engine reads it via the transient `graph.people` catalog, gated on an active faction pool,
+   * so a run without the social system never surfaces it.
+   */
+  readonly knowledge?: readonly NpcLead[];
+}
+
+/**
+ * One authored lead a survivor can share (M4 task T53 · FR-NPC-06 · GDD XII "conversations that hint").
+ * `hint` is the verbatim prose ("the clinic on 4th had a safe in the back"); resolving it `reveals` a real
+ * node on the map and/or `marks` a discovery into a node's memory — listening pays in world state, never a
+ * quest marker. `minTrust` gates when they'll open up (default {@link import("./social.js").ASK_TRUST_MIN}).
+ */
+export interface NpcLead {
+  /** Stable id of this lead — flagged `told:<id>` on the survivor once shared (open flags, no save rung). */
+  readonly id: string;
+  readonly hint: string;
+  /** Node id to lift onto the player's map (fog reveal), if any. */
+  readonly reveals?: NodeId;
+  /** A discovery to mark into a node's memory, if any. */
+  readonly marks?: { readonly node: NodeId; readonly discovery: ContentId };
+  /** Trust the survivor needs before they'll share this (0–100); defaults to a warm-ish threshold. */
+  readonly minTrust?: number;
 }
 
 /** A survivor's modest starting needs; a `desperate` one opens hungrier and thirstier (a story hook). */
