@@ -1,0 +1,87 @@
+{
+  "id": "encounter.rivermouth.marina-cabin",
+  "category": "social",
+  "title": "The locked cabin",
+  "premise": "Moral: free a trapped stranger, at a cost, or don't.",
+  "requirements": {
+    "nodeIds": [
+      "node.rivermouth.marina"
+    ]
+  },
+  "scope": "run",
+  "stages": [
+    {
+      "id": "s",
+      "narration": "Someone is alive in the cabin of a listing cruiser off the end of the dock — you can hear the flat, exhausted banging, hand on fibreglass. Three walkers are already in the water around the hull, pawing at it, and the sound of you arriving has turned one head your way.",
+      "choices": [
+        {
+          "id": "free",
+          "label": "Wade out and get the cabin open",
+          "timeCost": 3,
+          "effects": [
+            {
+              "kind": "addNoise",
+              "amount": 35
+            },
+            {
+              "kind": "seedWalkers",
+              "count": 2,
+              "types": [
+                "zombie.walker"
+              ]
+            },
+            {
+              "kind": "adjustHumanity",
+              "delta": 15
+            },
+            {
+              "kind": "adjustMind",
+              "morale": 8
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "waded out and freed the survivor at the marina"
+            }
+          ]
+        },
+        {
+          "id": "leave",
+          "label": "They're as good as gone — back away quietly",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "adjustHumanity",
+              "delta": -20
+            },
+            {
+              "kind": "adjustMind",
+              "stress": 12
+            }
+          ]
+        },
+        {
+          "id": "lie",
+          "label": "Call out that you'll bring help, and go",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "adjustHumanity",
+              "delta": -8
+            },
+            {
+              "kind": "adjustMind",
+              "stress": 6
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "promised help at the marina and left"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "No clean answer: rescue draws the dead onto you; leaving is abandonment; the lie is the cheapest and the worst."
+}

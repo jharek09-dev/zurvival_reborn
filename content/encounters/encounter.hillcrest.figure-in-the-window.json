@@ -1,0 +1,47 @@
+{
+  "id": "encounter.hillcrest.figure-in-the-window",
+  "category": "environmental",
+  "title": "A figure in the window",
+  "premise": "False encounter: the survivor who isn't.",
+  "requirements": {
+    "nodeIds": [
+      "node.hillcrest.faculty-housing"
+    ]
+  },
+  "scope": "run",
+  "stages": [
+    {
+      "id": "s",
+      "narration": "Across the courtyard, a third-floor window: a figure standing at the glass, one arm half-raised, not moving. You raise a hand back before you can stop yourself. It doesn't wave. It doesn't do anything.",
+      "choices": [
+        {
+          "id": "approach",
+          "label": "Go up and check — someone might be alive up there",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "revealDiscovery",
+              "discovery": "disc.faculty.window"
+            },
+            {
+              "kind": "adjustMind",
+              "stress": 6
+            }
+          ]
+        },
+        {
+          "id": "leave",
+          "label": "You know that stillness by now — leave it",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "adjustMind",
+              "morale": -4
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "A body, weeks dead, propped upright by a fallen coat-rack and the draft. No payoff — the point is the hope and its cost."
+}

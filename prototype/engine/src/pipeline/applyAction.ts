@@ -32,6 +32,7 @@ import { tickNpcs } from "../sim/npcs.js";
 import { tickCompanions } from "../sim/companions.js";
 import { recordHistory, appendHistory } from "../sim/history.js";
 import { evaluateArcs, resolveDueStoryEvents } from "../sim/story.js";
+import { evaluateEvents, resolveDueEncounterEvents } from "../sim/events.js";
 import { diffSystems } from "../telemetry/turnAudit.js";
 import type { Action, Scene, SceneChoice, TurnResult } from "./contract.js";
 
@@ -139,7 +140,12 @@ const tickDirector: StageFn = (ctx) => ({ ...ctx, state: runLayer(ctx.state, "di
  * repayment or the cold raid the arc enqueued when the player chose. Inert when the queue holds no due
  * story event, so every prior run (empty queue) is byte-identical; the stage name / order never move.
  */
-const resolveQueue: StageFn = (ctx) => ({ ...ctx, state: resolveDueStoryEvents(ctx.state) });
+const resolveQueue: StageFn = (ctx) => ({
+  ...ctx,
+  // T40 arc consequences, then T47 encounter follow-ups (a timed chain flag comes due). Both inert on
+  // an empty queue, so every prior run (no scheduled events) is byte-identical.
+  state: resolveDueEncounterEvents(resolveDueStoryEvents(ctx.state)),
+});
 
 /** Stage 14: project the resolved state into the Scene the client will render. */
 const generateScene: StageFn = (ctx) => ({ ...ctx, scene: sceneOf(ctx.state, ctx.graph) });
@@ -151,10 +157,12 @@ const generateScene: StageFn = (ctx) => ({ ...ctx, scene: sceneOf(ctx.state, ctx
  */
 const evaluateStory: StageFn = (ctx) => {
   // T40: advance the authored arcs first (auto-trigger a plea when the world has set the stage), so this
-  // turn's beat is in the log; then record the Living History as before. Inert when no arc is active.
+  // turn's beat is in the log; then T47: engage a fitting encounter from the registered pool (inert
+  // without one); then record the Living History as before. Both beats land before the world events.
   const withArcs = evaluateArcs(ctx.state);
-  const events = recordHistory(ctx.before, withArcs);
-  const state = events.length === 0 ? withArcs : appendHistory(withArcs, events);
+  const withEvents = evaluateEvents(withArcs, ctx.graph);
+  const events = recordHistory(ctx.before, withEvents);
+  const state = events.length === 0 ? withEvents : appendHistory(withEvents, events);
   return state === ctx.state ? ctx : { ...ctx, state };
 };
 

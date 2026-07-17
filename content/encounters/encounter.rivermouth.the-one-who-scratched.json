@@ -1,0 +1,76 @@
+{
+  "id": "encounter.rivermouth.the-one-who-scratched",
+  "category": "story",
+  "title": "The one who scratched it",
+  "premise": "Chain payoff: you learn how the message ended.",
+  "requirements": {
+    "requiresFlags": [
+      "chain.terraces.name-seen",
+      "chain.terraces.time-passed"
+    ],
+    "nodeIds": [
+      "node.rivermouth.transit-plaza"
+    ]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "You almost miss it, back near where you started: a woman slumped against the transit shelter, a child's backpack still looped over one shoulder, a chapel service leaflet folded in her coat. DELACROIX, the leaflet says, in the same careful hand. She waited in the wrong place, and she waited too long.",
+      "choices": [
+        {
+          "id": "bury",
+          "label": "Do what you can — cover her, mark the spot",
+          "timeCost": 3,
+          "effects": [
+            {
+              "kind": "adjustHumanity",
+              "delta": 12
+            },
+            {
+              "kind": "adjustMind",
+              "morale": -4
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "buried Delacroix at the transit plaza"
+            }
+          ]
+        },
+        {
+          "id": "take",
+          "label": "She has no more use for what she's carrying",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "grantItem",
+              "item": "item.canned-food",
+              "quantity": 1
+            },
+            {
+              "kind": "grantItem",
+              "item": "item.bandage",
+              "quantity": 1
+            },
+            {
+              "kind": "adjustHumanity",
+              "delta": -12
+            }
+          ]
+        },
+        {
+          "id": "word",
+          "label": "Say a word and leave her be",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "adjustMind",
+              "stress": 4
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "Resolves the chain a day later; burying the dead preserves Humanity (GDD), robbing her erodes it."
+}

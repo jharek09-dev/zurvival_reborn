@@ -437,6 +437,36 @@ export {
   type StoryArc,
 } from "./sim/story.js";
 
+// Data-driven encounter/event system — categories, chains, multi-stage, moral/Humanity, false,
+// evolution (T47 · FR-ENC-03..08 · FR-CNT-03). Declarative content interpreted generically.
+export {
+  ENCOUNTER_CATEGORIES,
+  ACTIVE_ENCOUNTER_QUEST,
+  ENCOUNTER_EVENT_KIND,
+  activeEncounter,
+  encounterPool,
+  encounterOf,
+  humanityOf,
+  humanityBand,
+  matchesRequirement,
+  applyEncounterEffect,
+  eligibleEncounters,
+  selectEncounter,
+  evaluateEvents,
+  eventChoices,
+  eventLine,
+  isEventAction,
+  resolveEventAction,
+  resolveDueEncounterEvents,
+  type EncounterCategory,
+  type EncounterRequirement,
+  type EncounterEffect,
+  type EncounterChoice,
+  type EncounterStage,
+  type EncounterDef,
+  type ActiveEncounter,
+} from "./sim/events.js";
+
 // Core action loop — move/search/rest, time cost, scene (T12, DESIGN §5/§10)
 export { phaseOf, advanceClock } from "./time/clock.js";
 export {

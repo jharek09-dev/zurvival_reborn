@@ -1,0 +1,59 @@
+{
+  "id": "encounter.the-terraces.garden-center-after",
+  "category": "environmental",
+  "title": "The garden center — picked over",
+  "premise": "Evolution AFTER: someone has been back.",
+  "requirements": {
+    "nodeIds": [
+      "node.the-terraces.garden-center"
+    ],
+    "requiresFlags": [
+      "enc.gc.pack"
+    ],
+    "minSearchPct": 67
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "The place is a wreck now — shelving down, glass across the concrete, a dark stain worked into the spilled potting soil where the dead went over. Someone's been back since you: a bedroll folded in the seed-store, a child's crayon drawing weighted flat under a trowel. Not yours.",
+      "choices": [
+        {
+          "id": "leave",
+          "label": "Leave the drawing where it is",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "revealDiscovery",
+              "discovery": "disc.gc.drawing"
+            },
+            {
+              "kind": "adjustHumanity",
+              "delta": 5
+            },
+            {
+              "kind": "adjustMind",
+              "morale": -5
+            }
+          ]
+        },
+        {
+          "id": "take",
+          "label": "Take whatever tins are left",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "grantItem",
+              "item": "item.canned-food",
+              "quantity": 1
+            },
+            {
+              "kind": "adjustHumanity",
+              "delta": -5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "Closes the before/during/after triple with a quiet moral coda + environmental storytelling."
+}

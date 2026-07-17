@@ -30,6 +30,7 @@ import {
 import { applyAction, availableActions, sceneOf } from "../../engine/src/index.js";
 import { parseCommand, renderScene, saveState } from "./play.js";
 import { isRunOver } from "../../engine/src/index.js";
+import type { EncounterDef } from "../../engine/src/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const contentDir = join(here, "..", "..", "..", "content");
@@ -44,14 +45,17 @@ function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; 
   const regions = load<RegionDef>("regions");
   const nodes = load<NodeDef>("nodes");
   const npcs = load<NPCDef>("npcs");
+  // The data-driven encounter pool (T47): registered so the playable client speaks in scenes. Golden
+  // transcript generators (playSlice/gen-slice) deliberately don't register it, staying byte-stable.
+  const encounters = load<EncounterDef>("encounters");
   const resumeIdx = argv.indexOf("--resume");
   if (resumeIdx !== -1 && argv[resumeIdx + 1]) {
     const savePath = argv[resumeIdx + 1]!;
     const state = loadGame(readFileSync(savePath, "utf8"));
-    return { state, graph: buildRegionGraph(regions, nodes), savePath };
+    return { state, graph: buildRegionGraph(regions, nodes, encounters), savePath };
   }
   const seed = argv[2] && !argv[2].startsWith("--") ? argv[2] : "rivermouth-demo";
-  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes, npcs);
+  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes, npcs, [], encounters);
   return { state, graph, savePath: DEFAULT_SAVE };
 }
 

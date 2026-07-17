@@ -1,0 +1,82 @@
+{
+  "id": "encounter.the-terraces.garden-center-during",
+  "category": "combat",
+  "title": "The garden center — the noise catches up",
+  "premise": "Evolution DURING: your searching draws a pack.",
+  "requirements": {
+    "nodeIds": [
+      "node.the-terraces.garden-center"
+    ],
+    "requiresFlags": [
+      "enc.gc.entered"
+    ],
+    "minSearchPct": 34,
+    "forbidsFlags": [
+      "enc.gc.pack"
+    ]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "You're deep in the back rows, arms full, when the sound of your own rummaging catches up with you. Shapes bump the greenhouse glass — more than a few, and the nearest is already finding the gap you came through.",
+      "choices": [
+        {
+          "id": "grab",
+          "label": "Grab an armful and get out",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "grantItem",
+              "item": "item.canned-food",
+              "quantity": 1
+            },
+            {
+              "kind": "seedWalkers",
+              "count": 2,
+              "types": [
+                "zombie.walker"
+              ]
+            },
+            {
+              "kind": "setFlag",
+              "flag": "enc.gc.pack"
+            }
+          ]
+        },
+        {
+          "id": "clear",
+          "label": "Clear the last shelves — you need this",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "grantItem",
+              "item": "item.canned-food",
+              "quantity": 2
+            },
+            {
+              "kind": "grantItem",
+              "item": "item.bandage",
+              "quantity": 1
+            },
+            {
+              "kind": "addNoise",
+              "amount": 30
+            },
+            {
+              "kind": "seedWalkers",
+              "count": 4,
+              "types": [
+                "zombie.walker"
+              ]
+            },
+            {
+              "kind": "setFlag",
+              "flag": "enc.gc.pack"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "Both seed walkers → the T15 avoidable-fight prompt; more loot = more dead (Survival Triangle)."
+}

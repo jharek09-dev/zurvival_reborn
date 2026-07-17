@@ -1,0 +1,80 @@
+{
+  "id": "encounter.ironworks.the-scavenger",
+  "category": "social",
+  "title": "The scavenger at the canal",
+  "premise": "Moral: rob, help, or walk past a desperate survivor.",
+  "requirements": {
+    "nodeIds": [
+      "node.ironworks.loading-canal"
+    ],
+    "npcHere": "npc.nia"
+  },
+  "scope": "run",
+  "stages": [
+    {
+      "id": "s",
+      "narration": "She's crouched over a split-open supply crate at the water's edge, sorting the good from the ruined with quick, hungry hands, and she goes very still when your shadow falls across it. There's a knife on the concrete by her knee. There's more in that crate than one person can carry.",
+      "choices": [
+        {
+          "id": "rob",
+          "label": "Take the crate — you were here first, as far as anyone knows",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "grantItem",
+              "item": "item.canned-food",
+              "quantity": 2
+            },
+            {
+              "kind": "adjustTrust",
+              "npc": "npc.nia",
+              "delta": -45
+            },
+            {
+              "kind": "adjustHumanity",
+              "delta": -25
+            }
+          ]
+        },
+        {
+          "id": "split",
+          "label": "Split the crate and go your separate ways",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "grantItem",
+              "item": "item.canned-food",
+              "quantity": 1
+            },
+            {
+              "kind": "adjustTrust",
+              "npc": "npc.nia",
+              "delta": 15
+            },
+            {
+              "kind": "adjustHumanity",
+              "delta": 10
+            }
+          ]
+        },
+        {
+          "id": "walk",
+          "label": "Leave her to it and walk on",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "adjustMind",
+              "stress": 4
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "left the scavenger her crate"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "The Survival Triangle made personal: her supplies against your hunger, against who you are."
+}

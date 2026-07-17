@@ -5,6 +5,7 @@ import {
   availableActions,
   saveGame,
   loadGame,
+  SAVE_SCHEMA_VERSION,
   atOwnShelter,
   stashChoices,
   resolveStashAction,
@@ -161,7 +162,8 @@ describe("save round-trip & the v6→v7 migration (T39)", () => {
     env.state.meta.version = 6;
     const loaded = loadGame(JSON.stringify(env));
     expect(loaded.player.stash).toEqual([]);
-    expect(loaded.meta.version).toBe(7);
+    // The ladder always runs to the current version — a v6 blob climbs v6→v7 (stash) →…→ current.
+    expect(loaded.meta.version).toBe(SAVE_SCHEMA_VERSION);
   });
 });
 

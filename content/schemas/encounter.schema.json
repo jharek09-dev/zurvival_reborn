@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/encounter.schema.json",
+  "title": "Encounter",
+  "description": "A data-driven encounter (M4 task T47 · FR-ENC-03..08 · FR-CNT-03 · GDD Part VIII). Requirements + effects are declared here in data; the engine (prototype/engine/src/sim/events.ts) interprets them generically with NO hard-coded per-encounter branching. Categories (05), chains via flags (03), multi-stage flows via advanceStage (04), moral shifts via adjustHumanity (06), false encounters — no payoff (07), and evolution via node-state bands (08). The engine is the authority for the effect/requirement vocabulary; a harness drift-guard proves every shipped kind is known.",
+  "type": "object",
+  "required": ["id", "category", "title", "premise", "stages"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "type": "string", "pattern": "^encounter\\.[a-z0-9]+(?:[.\\-_][a-z0-9]+)*$", "description": "Stable content id, encounter.<region-or-common>.<slug>." },
+    "category": { "enum": ["exploration", "combat", "social", "environmental", "story", "psychological", "shelter"], "description": "FR-ENC-05 category — a healthy turn mix draws from all seven." },
+    "title": { "type": "string", "minLength": 1, "description": "Player-facing title (ICU string)." },
+    "premise": { "type": "string", "minLength": 1, "description": "One-line author pitch." },
+    "requirements": { "$ref": "#/$defs/requirement", "description": "When this encounter is eligible to fire (declarative predicate; absent ⇒ anywhere)." },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One stage for a single-decision encounter; more for a multi-stage flow (FR-ENC-04). advanceStage moves between them.",
+      "items": { "$ref": "#/$defs/stage" }
+    },
+    "repeatable": { "type": "boolean", "description": "Default false ⇒ one-shot (a done-flag blocks re-fire). A repeatable encounter relies on state-gating (cooldowns are T48)." },
+    "scope": { "enum": ["node", "run"], "description": "One-shot done-flag scope: once per node (default) or once per run." },
+    "cooldownHours": { "type": "integer", "minimum": 0, "maximum": 336, "description": "Reserved for T48 cooldown suppression; not enforced by the T47 engine." },
+    "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
+  },
+  "$defs": {
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "All fields optional and AND-combined; an empty object matches anywhere. The node-state bands (searchPct/walkers/blood/corpses) + flags are the evolution + chain handles.",
+      "properties": {
+        "nodeIds": { "type": "array", "items": { "type": "string", "pattern": "^node\\." } },
+        "regionIds": { "type": "array", "items": { "type": "string", "pattern": "^region\\." } },
+        "nodeKinds": { "type": "array", "items": { "type": "string" } },
+        "phases": { "type": "array", "items": { "enum": ["dawn", "morning", "midday", "evening", "night"] } },
+        "minSearchPct": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "maxSearchPct": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "minWalkers": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "maxWalkers": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "minBlood": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "maxBlood": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "minCorpses": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "maxCorpses": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "minDay": { "type": "integer", "minimum": 1 },
+        "maxDay": { "type": "integer", "minimum": 1 },
+        "minRegionThreat": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "maxRegionThreat": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "minHumanity": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "maxHumanity": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "minStress": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "maxStress": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "minMorale": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "maxMorale": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "minStash": { "type": "integer", "minimum": 0, "maximum": 999 },
+        "maxStash": { "type": "integer", "minimum": 0, "maximum": 999 },
+        "requiresFlags": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "forbidsFlags": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "requiresShelter": { "type": "boolean" },
+        "carriesItem": { "type": "string", "pattern": "^item\\." },
+        "metNpc": { "type": "string", "pattern": "^npc\\." },
+        "npcHere": { "type": "string", "pattern": "^npc\\." }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "narration", "choices"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "narration": { "type": "string", "minLength": 1, "description": "The situation, in words (screen-reader-safe, non-audio; NFR-ACC)." },
+        "choices": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/choice" } }
+      }
+    },
+    "choice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "timeCost", "effects"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "timeCost": { "type": "integer", "minimum": 0, "maximum": 24, "description": "Hours the choice spends (>0 ⇒ a resolved turn)." },
+        "requirements": { "$ref": "#/$defs/requirement", "description": "Optional gate — hide the choice unless the state matches." },
+        "effects": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/effect" } }
+      }
+    },
+    "effect": {
+      "type": "object",
+      "description": "One declarative consequence. The engine applies each purely; the kind vocabulary is authoritative in events.ts.",
+      "oneOf": [
+        { "additionalProperties": false, "required": ["kind", "flag"], "properties": { "kind": { "const": "setFlag" }, "flag": { "type": "string", "minLength": 1 }, "value": { "type": "boolean" } } },
+        { "additionalProperties": false, "required": ["kind", "flag"], "properties": { "kind": { "const": "setRegionFlag" }, "flag": { "type": "string", "minLength": 1 }, "value": { "type": "boolean" }, "region": { "type": "string", "pattern": "^region\\." } } },
+        { "additionalProperties": false, "required": ["kind", "delta"], "properties": { "kind": { "const": "adjustHumanity" }, "delta": { "type": "integer", "minimum": -100, "maximum": 100 } } },
+        { "additionalProperties": false, "required": ["kind", "npc", "delta"], "properties": { "kind": { "const": "adjustTrust" }, "npc": { "type": "string", "pattern": "^npc\\." }, "delta": { "type": "integer", "minimum": -100, "maximum": 100 } } },
+        { "additionalProperties": false, "required": ["kind", "need", "delta"], "properties": { "kind": { "const": "adjustNeed" }, "need": { "enum": ["hunger", "thirst", "fatigue"] }, "delta": { "type": "integer", "minimum": -100, "maximum": 100 } } },
+        { "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "adjustMind" }, "stress": { "type": "integer", "minimum": -100, "maximum": 100 }, "morale": { "type": "integer", "minimum": -100, "maximum": 100 } } },
+        { "additionalProperties": false, "required": ["kind", "item", "quantity"], "properties": { "kind": { "const": "grantItem" }, "item": { "type": "string", "pattern": "^item\\." }, "quantity": { "type": "integer", "minimum": 1, "maximum": 20 } } },
+        { "additionalProperties": false, "required": ["kind", "item", "quantity"], "properties": { "kind": { "const": "takeItem" }, "item": { "type": "string", "pattern": "^item\\." }, "quantity": { "type": "integer", "minimum": 1, "maximum": 20 } } },
+        { "additionalProperties": false, "required": ["kind", "units"], "properties": { "kind": { "const": "depleteStash" }, "units": { "type": "integer", "minimum": 0, "maximum": 20 } } },
+        { "additionalProperties": false, "required": ["kind", "wound", "site", "severity"], "properties": { "kind": { "const": "inflictWound" }, "wound": { "type": "string", "pattern": "^wound\\." }, "site": { "type": "string", "minLength": 1 }, "severity": { "type": "integer", "minimum": 1, "maximum": 100 } } },
+        { "additionalProperties": false, "required": ["kind", "count"], "properties": { "kind": { "const": "seedWalkers" }, "count": { "type": "integer", "minimum": 0, "maximum": 20 }, "node": { "type": "string", "pattern": "^node\\." }, "types": { "type": "array", "items": { "type": "string", "pattern": "^zombie\\." } } } },
+        { "additionalProperties": false, "required": ["kind", "amount"], "properties": { "kind": { "const": "addNoise" }, "amount": { "type": "integer", "minimum": 0, "maximum": 100 }, "node": { "type": "string", "pattern": "^node\\." } } },
+        { "additionalProperties": false, "required": ["kind", "discovery"], "properties": { "kind": { "const": "revealDiscovery" }, "discovery": { "type": "string", "minLength": 1 }, "node": { "type": "string", "pattern": "^node\\." } } },
+        { "additionalProperties": false, "required": ["kind", "event"], "properties": { "kind": { "const": "logHistory" }, "event": { "type": "string", "minLength": 1 }, "note": { "type": "string" } } },
+        { "additionalProperties": false, "required": ["kind", "to"], "properties": { "kind": { "const": "advanceStage" }, "to": { "type": "string", "minLength": 1 } } },
+        { "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "endEncounter" } } },
+        { "additionalProperties": false, "required": ["kind", "flag", "delayHours"], "properties": { "kind": { "const": "scheduleFollowup" }, "flag": { "type": "string", "minLength": 1 }, "delayHours": { "type": "integer", "minimum": 1, "maximum": 168 } } }
+      ]
+    }
+  }
+}
