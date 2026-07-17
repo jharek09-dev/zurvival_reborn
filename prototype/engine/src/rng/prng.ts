@@ -83,3 +83,17 @@ export function stepFloat(stream: RngStreamState): {
   const value = u32(t) / 4294967296; // 2^32 → [0, 1)
   return { value, state: { state: [u32(a), u32(b), u32(c), u32(d)] } };
 }
+
+/**
+ * Stateless hash of a string to a float in [0, 1). Seeds a stream from `str` (cyrb128) and takes a
+ * single step — a *pure* value-in/value-out draw that touches no `RngState` and advances nothing.
+ *
+ * This is the primitive for deterministic-but-non-advancing randomness: a render (e.g. `sceneOf`) is
+ * called ad hoc, possibly many times per turn, so it must never consume a named stream, yet infection
+ * perception distortion (T49 · FR-INJ-06) must be reproducible and resume-safe. Hashing
+ * `${seed}:${turn}:…` gives exactly that — stable for a given state, varying across turns, seeded by
+ * the run seed, with zero effect on the serialized `rng`.
+ */
+export function hashUnit(str: string): number {
+  return stepFloat({ state: cyrb128(str) }).value;
+}

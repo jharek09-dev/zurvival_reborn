@@ -1,0 +1,40 @@
+{
+  "$schema": "../schemas/infection.schema.json",
+  "id": "infection.bite",
+  "name": "The bite",
+  "description": "The infection carried by a zombie's bite — the spine of the health model, and the clearest expression of 'infection is identity, not a countdown' (GDD VI). It advances through hidden stages the player learns to read from symptoms alone, never a bar. Reaching terminal opens a cure race, not a loss screen (FR-INJ-08); the run ends by infection only if that race is neglected. This file mirrors the engine's authoritative dials in sim/infection.ts; a harness drift-guard keeps them identical.",
+  "source": "bite",
+  "stages": [
+    {
+      "key": "incubating",
+      "label": "asymptomatic",
+      "cure": { "amount": 50, "partial": 50, "certaintyPercent": 100 },
+      "quarantine": 30
+    },
+    {
+      "key": "symptomatic",
+      "label": "symptomatic",
+      "symptom": "You feel feverish — a wound throbs with a heat that isn't healing, and a fine tremor runs through your hands.",
+      "sign": "the sheen of fever on you",
+      "cure": { "amount": 50, "partial": 50, "certaintyPercent": 100 },
+      "quarantine": 30
+    },
+    {
+      "key": "advanced",
+      "label": "advanced",
+      "symptom": "The fever has burrowed deep. Sounds come from nowhere and shapes cross the edge of your sight — you can no longer trust your own senses.",
+      "sign": "the grey, sweating look of the badly infected",
+      "cure": { "amount": 30, "partial": 12, "certaintyPercent": 70 },
+      "quarantine": 10
+    },
+    {
+      "key": "terminal",
+      "label": "terminal",
+      "symptom": "You are burning up and failing — thoughts swimming, time slipping, and you can no longer tell what is real. And yet you are still here, still moving.",
+      "sign": "the hollow, dying look of someone the infection has almost taken",
+      "cure": { "amount": 18, "partial": 4, "certaintyPercent": 40 },
+      "quarantine": 0
+    }
+  ],
+  "notes": "Stage keys/order, symptom, sign, cure (amount/partial/certaintyPercent = round(certainty*100)), and quarantine mirror sim/infection.ts INFECTION_STAGES + CURE_BY_STAGE + QUARANTINE_BY_STAGE exactly; docs/qa/QA_REVIEW_M4_PART5.md records the pairing. Non-bite sources (wound/tainted-water/spoiled-food/blood) are authored later against the same staged machine (T51)."
+}

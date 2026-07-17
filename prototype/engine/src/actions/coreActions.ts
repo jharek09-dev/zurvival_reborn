@@ -74,6 +74,14 @@ import {
   orderOf,
 } from "../sim/companions.js";
 import { canParley } from "../sim/trust.js";
+import {
+  infectionChoices,
+  isInfectionAction,
+  resolveInfectionAction,
+  infectionSign,
+  perceptionDistortion,
+  infectionOutcomeLine,
+} from "../sim/infection.js";
 
 /** Time cost, in in-game hours, of each core action (FR-CORE-03). */
 export const MOVE_COST = 2;
@@ -179,6 +187,11 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
     });
   }
 
+  // Infection (T49 · FR-INJ-07): diagnose the stage, dose antibiotics (the cure race), or quarantine at
+  // your base — grouped with the self-care verbs. Inert unless infected, so every prior (bite-free) run
+  // keeps the identical choice list; a fight / active encounter above already pre-empts this branch.
+  for (const choice of infectionChoices(state)) choices.push(choice);
+
   choices.push({
     id: "rest",
     label: "Rest and recover",
@@ -268,6 +281,7 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
   if (isShelterAction(action)) return resolveShelterAction(state, action);
   if (isStashAction(action)) return resolveStashAction(state, action);
   if (isStoryAction(action)) return resolveStoryAction(state, action);
+  if (isInfectionAction(action)) return resolveInfectionAction(state, action);
   switch (action.type) {
     case "move": {
       const to = action.params?.["to"];
@@ -415,10 +429,12 @@ function peopleLine(state: GameState): string | null {
     bits.push(`${companionName(c)} is with you${doing}.`);
   }
 
+  let witness = companionsHere(state, here).length > 0;
   for (const id of Object.keys(state.npcs).sort()) {
     const n = state.npcs[id]!;
     if (n.location !== here) continue;
     if (!n.alive) { bits.push(`${n.name} lies where they fell.`); continue; }
+    witness = true;
     if (!canParley(n)) { bits.push(`${n.name} will not meet your eye — past talking now.`); continue; }
     bits.push(
       n.met
@@ -426,6 +442,13 @@ function peopleLine(state: GameState): string | null {
         : `Someone is here — ${n.name}, ${dispositionRead(n.disposition)}${npcNeedRead(n)}.`,
     );
   }
+
+  // Others react to the visible sign of infection on you (T49 · FR-INJ-06): companions grow afraid,
+  // strangers keep their distance. Only when someone is here to see it and the sign actually shows
+  // (symptomatic+); null while healthy/asymptomatic so no prior scene is touched.
+  const sign = infectionSign(state);
+  if (witness && sign !== null) bits.push(`Those here keep their distance, wary of ${sign}.`);
+
   return bits.length > 0 ? bits.join(" ") : null;
 }
 
@@ -464,12 +487,20 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   // reads. The felt moral read (`moral`) rides with the atmosphere, surfaced only at the extremes.
   const event = eventLine(state, graph);
   const lead = threat ?? worldLead(state, graph);
+  // Infection perception distortion (T49 · FR-INJ-06): at advanced/terminal the scene grows unreliable —
+  // a hallucinated lead or a memory gap, framed as possibly-unreal. Suppressed whenever a REAL danger lead
+  // is on the board, so a hallucinated "you hear them massing" can never sit beside — and undermine — a
+  // genuine horde read (fairness). It colours only the quiet, never fabricates a real threat
+  // (availableActions still keys off real state). Stateless/pure — no rng advance in a render.
+  const halluc = lead === null ? perceptionDistortion(state) : null;
+  // Honest, no-number feedback on a cure/quarantine taken THIS turn (did it clear / ease / merely hold?).
+  const cure = infectionOutcomeLine(state);
   const people = peopleLine(state);
   const shelter = shelterLine(state);
   const story = storyLine(state);
   const moral = humanityBand(state);
   const atmosphere = atmosphereLine(state);
-  const narration = [event, lead, people, shelter, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
+  const narration = [event, lead, halluc, cure, people, shelter, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
 
   return { turn, day, hour, phase, location: here, narration, choices: availableActions(state, graph) };
 }

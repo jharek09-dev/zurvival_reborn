@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/infection.schema.json",
+  "title": "Infection",
+  "description": "A staged infection identity (FR-INJ-05..08 · GDD Part VI). Static, content-as-data definition of a sickness the survivor reads only from symptoms — never a bar. The engine (sim/infection.ts) holds the authoritative mechanical dials; this file is the canonical mirror validated in CI, and a harness drift-guard test asserts the two never diverge (the T40 arc pattern). A live infection (its hidden progression, its current stage) lives in GameState.player.condition.infection.",
+  "type": "object",
+  "required": ["id", "name", "description", "source", "stages"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "Optional editor hint pointing at this schema." },
+    "id": {
+      "type": "string",
+      "pattern": "^infection\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+      "description": "Stable content id of the form infection.<slug>, e.g. \"infection.bite\"."
+    },
+    "name": { "type": "string", "minLength": 1, "description": "Player-facing name of the sickness (ICU MessageFormat string)." },
+    "description": { "type": "string", "minLength": 1, "description": "What the infection is and how it behaves (author/design reference)." },
+    "source": {
+      "type": "string",
+      "enum": ["bite", "wound", "tainted-water", "spoiled-food", "blood"],
+      "description": "How this infection is contracted (GDD VI Sources). Only 'bite' is driven in the engine today; the staged machine is source-agnostic and ready for the rest."
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The staged identity, in order. Mirrors the engine's INFECTION_STAGES / CURE_BY_STAGE / QUARANTINE_BY_STAGE; a drift-guard test keeps them byte-identical.",
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "cure", "quarantine"],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": ["incubating", "symptomatic", "advanced", "terminal"],
+            "description": "The engine stage key. 'incubating' is the GDD's asymptomatic stage."
+          },
+          "label": { "type": "string", "minLength": 1, "description": "Human-readable stage label for design docs." },
+          "symptom": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the player FEELS at this stage — the honest status read (never a number). Absent for asymptomatic (incubating): nothing to feel yet."
+          },
+          "sign": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What OTHERS see on the player — the visible sign NPCs react to. Absent while asymptomatic."
+          },
+          "cure": {
+            "type": "object",
+            "required": ["amount", "partial", "certaintyPercent"],
+            "additionalProperties": false,
+            "description": "The antibiotics cure at this stage. 'The deeper it goes, the costlier and less certain the cure' (FR-INJ-07).",
+            "properties": {
+              "amount": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Hidden progression removed on a full/certain application." },
+              "partial": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Progression removed when the (late-stage) roll falls short." },
+              "certaintyPercent": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Odds of the full effect (100 = certain, no RNG draw)." }
+            }
+          },
+          "quarantine": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Progression a shelter quarantine (clean conditions, no meds) removes at this stage. 0 at terminal — clean conditions alone can't beat the late body."
+          }
+        }
+      }
+    },
+    "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
+  }
+}

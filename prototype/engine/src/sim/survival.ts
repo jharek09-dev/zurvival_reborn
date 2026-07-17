@@ -20,9 +20,20 @@
  * Pure, deterministic, dependency-free, integer-only (ADR-0001). No clock, no RNG.
  */
 
-import type { GameState, Infection, Needs } from "../state/types.js";
+import type { GameState, Needs } from "../state/types.js";
 import type { Action } from "../pipeline/contract.js";
 import { isWounded, treatWound, woundRemainder, worstWound } from "./wounds.js";
+import { advanceInfection, hasSuccumbed, stageFatigue } from "./infection.js";
+
+// Infection is now a staged identity (T49 · `sim/infection.ts`). survival.ts keeps owning the needs +
+// wound-decline drift and the run-end derivation, and re-exports the infection dials it drives so the
+// engine's public surface (and the T22 tests) are unchanged.
+export {
+  stageFor,
+  BITE_INFECT_RATE,
+  INFECT_SYMPTOMATIC_AT,
+  INFECT_TERMINAL_AT,
+} from "./infection.js";
 
 // --- needs drift (per in-game hour) ---------------------------------------------------------
 
@@ -79,10 +90,6 @@ export const MED_ITEMS: readonly string[] = [
 
 /** Extra fatigue per open wound per hour — being hurt wears you down faster. */
 export const WOUND_FATIGUE_PER_WOUND = 1;
-/** Infection progression per hour while an untreated bite is open. */
-export const BITE_INFECT_RATE = 2;
-export const INFECT_SYMPTOMATIC_AT = 40;
-export const INFECT_TERMINAL_AT = 100;
 
 const clampPct = (n: number): number => Math.max(0, Math.min(100, Math.trunc(n)));
 const hoursOf = (action: Action): number => Math.max(0, Math.trunc(action.timeCost ?? 0));
@@ -110,40 +117,36 @@ export function driftNeeds(needs: Needs, isRest: boolean, hours: number): Needs 
   };
 }
 
-/** Advance an infection's stage from its progression (never regresses stage on its own). Pure. */
-export function stageFor(progression: number): Infection["stage"] {
-  if (progression >= INFECT_TERMINAL_AT) return "terminal";
-  if (progression >= INFECT_SYMPTOMATIC_AT) return "symptomatic";
-  if (progression > 0) return "incubating";
-  return "none";
-}
-
 /**
  * Stage-4 condition update: drift needs by the action's hours, then apply every open wound's decline
- * — extra fatigue per wound, and an untreated bite driving the infection track — and re-stage the
- * infection. A zero-hour action (a bare `wait`) changes nothing, preserving the M0 empty-turn
- * contract. Pure transform of GameState.
+ * — extra fatigue per wound, an untreated bite driving the **staged** infection (T49), and the fever's
+ * own per-stage fatigue drain. A zero-hour action (a bare `wait`) changes nothing, preserving the M0
+ * empty-turn contract. A `quarantine` counts as a `rest` for fatigue recovery (isolation *is* rest).
+ * Pure transform of GameState.
  */
 export function updateCondition(state: GameState, action: Action): GameState {
   const hours = hoursOf(action);
   if (hours === 0) return state;
 
   const cond = state.player.condition;
-  const isRest = action.type === "rest";
+  const isRest = action.type === "rest" || action.type === "quarantine";
 
   let needs = driftNeeds(cond.needs, isRest, hours);
 
-  // Wound decline: each open wound tires you; an untreated bite feeds the infection.
+  // Wound decline: each open wound tires you; an untreated bite is the infection driver.
   const openWounds = cond.wounds.filter((w) => woundRemainder(w) > 0);
-  let infectDelta = 0;
+  let biteOpen = false;
   if (openWounds.length > 0) {
     needs = { ...needs, fatigue: clampPct(needs.fatigue + WOUND_FATIGUE_PER_WOUND * openWounds.length * hours) };
-    const biteOpen = openWounds.some((w) => WOUND_EFFECTS[w.type] === "infect-risk");
-    if (biteOpen) infectDelta = BITE_INFECT_RATE * hours;
+    biteOpen = openWounds.some((w) => WOUND_EFFECTS[w.type] === "infect-risk");
   }
 
-  const progression = clampPct(cond.infection.progression + infectDelta);
-  const infection: Infection = { progression, stage: stageFor(progression) };
+  // Staged infection (T49 · FR-INJ-05/08): the driver advances it while an untreated bite is open, and
+  // the fever's stage then adds its own fatigue — infection is a *harder way to keep playing*, felt as
+  // consequence, not as a bar. Both inert while healthy, so every prior (bite-free) run is byte-identical.
+  const infection = advanceInfection(cond.infection, biteOpen, hours);
+  const feverFatigue = stageFatigue(infection.stage, hours);
+  if (feverFatigue > 0) needs = { ...needs, fatigue: clampPct(needs.fatigue + feverFatigue) };
 
   return { ...state, player: { ...state.player, condition: { ...cond, needs, infection } } };
 }
@@ -201,7 +204,9 @@ export type RunEndReason = "starved" | "dehydrated" | "infection";
 /** Why the run has ended, or null if the survivor lives. Derived from condition — no stored flag. */
 export function runEndReason(state: GameState): RunEndReason | null {
   const { needs, infection } = state.player.condition;
-  if (infection.stage === "terminal") return "infection";
+  // Infection no longer ends the run at terminal onset (T49 · FR-INJ-08) — terminal is the playable cure
+  // race. The run ends by infection ONLY at the delayed `succumb` collapse, reached by neglecting the race.
+  if (hasSuccumbed(infection)) return "infection";
   if (needs.thirst >= NEED_FATAL) return "dehydrated";
   if (needs.hunger >= NEED_FATAL) return "starved";
   return null;

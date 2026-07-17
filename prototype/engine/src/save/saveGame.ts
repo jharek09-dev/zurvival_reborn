@@ -23,7 +23,15 @@
  * a disk or browser store is the client's job; the core only turns state ⇄ string.
  */
 
-import { SAVE_SCHEMA_VERSION, HUMANITY_BASELINE, type GameState, type Phase } from "../state/types.js";
+import {
+  SAVE_SCHEMA_VERSION,
+  HUMANITY_BASELINE,
+  type CharacterState,
+  type GameState,
+  type Phase,
+  type Survivor,
+} from "../state/types.js";
+import { stageFor } from "../sim/infection.js";
 
 /** Envelope discriminator — lets a loader reject a blob that isn't one of our saves. */
 export const SAVE_FORMAT = "zurvival-save" as const;
@@ -178,6 +186,31 @@ function migrateV7toV8(state: GameState): GameState {
   };
 }
 
+/**
+ * v8 -> v9 (task T49): infection became a *staged identity* and its stage bands changed — an `advanced`
+ * band was inserted at progression 70, and terminal onset (100) no longer ends the run. A v8 save stored
+ * `infection.stage` under the OLD bands, so a mid-infection save with progression in [70, 100) carries a
+ * `stage` ("symptomatic") that now disagrees with `stageFor(progression)` ("advanced"), and nothing else
+ * re-derives it. This forward-only rung RE-DERIVES `stage` from the stored `progression` under the current
+ * bands, for the player and every actor, so a loaded run reads its infection correctly. The state *shape*
+ * is unchanged (stage: string, progression: int) — a value normalization, not a reshape. Pure and total;
+ * a healthy save (progression 0 ⇒ "none") is untouched. One N->N+1 rung, per the ADR-0003 / T7 ladder.
+ */
+function migrateV8toV9(state: GameState): GameState {
+  const restage = (c: CharacterState): CharacterState => {
+    const stage = stageFor(c.infection.progression);
+    return stage === c.infection.stage ? c : { ...c, infection: { ...c.infection, stage } };
+  };
+  const actors: Record<string, Survivor> = {};
+  for (const [id, a] of Object.entries(state.actors)) actors[id] = { ...a, condition: restage(a.condition) };
+  return {
+    ...state,
+    meta: { ...state.meta, version: 9 },
+    player: { ...state.player, condition: restage(state.player.condition) },
+    actors: actors as GameState["actors"],
+  };
+}
+
 const MIGRATIONS: { readonly [fromVersion: number]: SaveMigration } = {
   1: (save) => ({ ...save, saveSchemaVersion: 2, state: migrateV1toV2(save.state) }),
   2: (save) => ({ ...save, saveSchemaVersion: 3, state: migrateV2toV3(save.state) }),
@@ -186,6 +219,7 @@ const MIGRATIONS: { readonly [fromVersion: number]: SaveMigration } = {
   5: (save) => ({ ...save, saveSchemaVersion: 6, state: migrateV5toV6(save.state) }),
   6: (save) => ({ ...save, saveSchemaVersion: 7, state: migrateV6toV7(save.state) }),
   7: (save) => ({ ...save, saveSchemaVersion: 8, state: migrateV7toV8(save.state) }),
+  8: (save) => ({ ...save, saveSchemaVersion: 9, state: migrateV8toV9(save.state) }),
 };
 
 /** Two-digit zero-pad for the summary clock (pure, allocation-light). */

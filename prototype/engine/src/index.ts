@@ -178,6 +178,52 @@ export {
   type RunEndReason,
 } from "./sim/survival.js";
 
+// Infection as staged identity — asymptomatic→symptomatic→advanced→terminal, no bar, no instant
+// game-over; perception distortion, diagnosis/cure-race/quarantine (T49 · FR-INJ-05/06/07/08)
+export {
+  stageInfo,
+  infectionSymptom,
+  infectionSign,
+  infectionLine,
+  infectionOutcomeLine,
+  perceptionDistortion,
+  advanceInfection,
+  stageFatigue,
+  hasSuccumbed,
+  isInfected,
+  isSymptomatic,
+  clampInfection,
+  stageRank,
+  canDiagnose,
+  canCureInfection,
+  canQuarantine,
+  infectionChoices,
+  isInfectionAction,
+  resolveInfectionAction,
+  INFECTION_STAGES,
+  STAGE_ORDER,
+  INFECT_STAGE_FATIGUE,
+  CURE_BY_STAGE,
+  QUARANTINE_BY_STAGE,
+  HALLUCINATION_LINES,
+  MEMORY_GAP_LINES,
+  INFECT_ADVANCED_AT,
+  INFECT_SUCCUMB_AT,
+  INFECT_CEILING,
+  ADVANCED_DISTORT_CHANCE,
+  TERMINAL_DISTORT_CHANCE,
+  ANTIBIOTICS_ITEM,
+  DIAGNOSTIC_ITEMS,
+  DIAGNOSED_FLAG,
+  INFECTION_STREAM,
+  DIAGNOSE_COST,
+  CURE_COST,
+  QUARANTINE_COST,
+  type InfectionStage,
+  type InfectionStageInfo,
+  type StageCure,
+} from "./sim/infection.js";
+
 // Weight-limited inventory — the pack that forces a leave-behind (T18, DESIGN §6 · FR-PLR-03)
 export {
   CARRY_CAPACITY,

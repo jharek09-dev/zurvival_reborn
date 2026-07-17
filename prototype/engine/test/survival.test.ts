@@ -25,6 +25,7 @@ import {
   HUNGER_RATE,
   INFECT_SYMPTOMATIC_AT,
   INFECT_TERMINAL_AT,
+  INFECT_SUCCUMB_AT,
   NEED_FATAL,
   REST_RECOVERY,
   THIRST_RATE,
@@ -62,6 +63,13 @@ const withInv = (s: GameState, inv: [string, number][]): GameState => ({
 const withBite = (s: GameState): GameState => ({
   ...s,
   player: { ...s.player, condition: { ...s.player.condition, wounds: [bite()] } },
+});
+const withInfectionState = (
+  s: GameState,
+  infection: GameState["player"]["condition"]["infection"],
+): GameState => ({
+  ...s,
+  player: { ...s.player, condition: { ...s.player.condition, infection } },
 });
 
 // --- needs drift is felt (FR-CORE-02) -------------------------------------------------------
@@ -168,15 +176,16 @@ describe("an untreated bite drives infection; treatment halts it (T22)", () => {
 
 // --- neglect ends the run (T22) -------------------------------------------------------------
 
-describe("run-end is a real, derived stake (T22)", () => {
-  it("maxed thirst / hunger / terminal infection each end the run", () => {
+describe("run-end is a real, derived stake (T22 · T49)", () => {
+  it("maxed thirst / hunger end the run; terminal infection does NOT — it's the cure race (T49 · FR-INJ-08)", () => {
     expect(runEndReason(withNeeds(run().state, { thirst: NEED_FATAL }))).toBe("dehydrated");
     expect(runEndReason(withNeeds(run().state, { hunger: NEED_FATAL }))).toBe("starved");
-    const terminal: GameState = {
-      ...run().state,
-      player: { ...run().state.player, condition: { ...run().state.player.condition, infection: { stage: "terminal", progression: 100 } } },
-    };
-    expect(runEndReason(terminal)).toBe("infection");
+    // T49: reaching terminal (progression 100) is the playable cure race, never an instant Game Over.
+    const terminalOnset = withInfectionState(run().state, { stage: "terminal", progression: INFECT_TERMINAL_AT });
+    expect(runEndReason(terminalOnset)).toBeNull();
+    // The run ends by infection ONLY at the delayed succumb collapse, reached by neglecting the race.
+    const succumbed = withInfectionState(run().state, { stage: "terminal", progression: INFECT_SUCCUMB_AT });
+    expect(runEndReason(succumbed)).toBe("infection");
     expect(runEndReason(run().state)).toBeNull(); // a fresh survivor lives
   });
 
