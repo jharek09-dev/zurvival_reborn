@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.repair.tool",
+  "category": "repair",
+  "label": "Repair a worn tool",
+  "worldEffect": "Bring a worn tool's edge back — a repair, not a replacement.",
+  "inputs": [
+    {
+      "item": "item.scrap",
+      "qty": 1
+    }
+  ],
+  "repairs": 40,
+  "room": "room.workshop",
+  "timeCost": 2,
+  "description": "FR-ECO-07 · SCR-10. Restores a carried durability artifact and appends a line to its provenance — the third repair reads as 'the story grows'. Needs the workshop; the instance id never changes (repair over replace)."
+}

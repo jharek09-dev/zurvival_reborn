@@ -14,6 +14,7 @@
 import type { NodeId, RegionId } from "../state/types.js";
 import type { EncounterDef } from "../sim/events.js";
 import type { SignalDef } from "../sim/radio.js";
+import type { RecipeDef } from "../sim/economy.js";
 
 /** A region's static definition — mirrors `content/schemas/region.schema.json`. */
 export interface RegionDef {
@@ -78,6 +79,14 @@ export interface RegionGraph {
    * Never serialized.
    */
   readonly signals?: readonly SignalDef[];
+  /**
+   * The run's registered crafting-recipe pool (M4 task T51) — transient content the client loaded from
+   * `content/recipes/`, carried here so the economy interpreter reaches it the same way the encounter and
+   * radio pools do. Optional and defaulting to empty: a graph built without it leaves the whole economy
+   * inert (no craft/repair/purify verbs, no spoilage tick, no durability wear, no loot gating), so every
+   * prior run stays byte-identical. Never serialized.
+   */
+  readonly recipes?: readonly RecipeDef[];
 }
 
 /**

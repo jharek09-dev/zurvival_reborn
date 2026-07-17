@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.purify.boil",
+  "category": "purify",
+  "label": "Boil water",
+  "worldEffect": "Boil dirty water safe — the fuel is the price.",
+  "inputs": [
+    {
+      "item": "item.fuel",
+      "qty": 1
+    }
+  ],
+  "purifyFrom": "item.water-dirty",
+  "purifyTo": "item.water",
+  "timeCost": 1,
+  "description": "FR-ECO-05. Converts every carried dirty-water unit to safe water, debiting fuel — the power loop's sink. Known from the start; the honest gate on dirty water (you can never drink it directly)."
+}

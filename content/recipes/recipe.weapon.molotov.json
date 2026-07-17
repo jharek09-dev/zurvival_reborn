@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.weapon.molotov",
+  "category": "weapon",
+  "label": "Molotov",
+  "worldEffect": "A fuel-filled bottle with a cloth wick — a bottle of fire, and it's very loud when it goes.",
+  "inputs": [
+    {
+      "item": "item.fuel",
+      "qty": 1
+    },
+    {
+      "item": "item.cloth",
+      "qty": 1
+    }
+  ],
+  "output": {
+    "item": "item.molotov",
+    "qty": 1
+  },
+  "blueprint": "blueprint.molotov",
+  "timeCost": 1,
+  "description": "Blueprint-gated (a police/station find). Cheap to make, expensive to use — the loudness is the item's cost when thrown, not the craft's. SCR-10's amber 'MISSING PART' row when fuel is short.",
+  "notes": " worldEffect describes the made object; the thrown-weapon effect lands with the combat throw system (deferred, PL)."
+}

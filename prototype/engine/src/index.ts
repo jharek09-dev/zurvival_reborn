@@ -260,6 +260,38 @@ export {
   type SignalRead,
 } from "./sim/radio.js";
 
+// The crafting economy — recipes (medical/weapon/shelter/survival/repair/purify) gated by blueprints,
+// components, and rooms; food spoilage (faster after power loss); water purification; repair-over-replace
+// that grows an artifact's story. Closes the four resource loops (T51 · FR-ECO-04..07 · GDD X/XI · SCR-10)
+export {
+  recipePool,
+  recipeOf,
+  economyActive,
+  craftable,
+  workshopListing,
+  carriedArtifacts,
+  blueprintIdForItem,
+  economyChoices,
+  isEconomyAction,
+  resolveEconomyAction,
+  tickSpoilage,
+  wearWeaponOnStrike,
+  economyLine,
+  FRESH_FOOD_ITEM,
+  SPOILED_FOOD_ITEM,
+  BLUEPRINT_ITEM_PREFIX,
+  BLUEPRINT_ID_PREFIX,
+  FRESH_SHELF_LIFE,
+  POWER_SPOIL_AT,
+  POWER_SPOIL_MULT,
+  WEAPON_WEAR,
+  WEAPON_SLOT,
+  type RecipeCategory,
+  type RecipeIO,
+  type RecipeDef,
+  type WorkshopRow,
+} from "./sim/economy.js";
+
 // Weight-limited inventory — the pack that forces a leave-behind (T18, DESIGN §6 · FR-PLR-03)
 export {
   CARRY_CAPACITY,

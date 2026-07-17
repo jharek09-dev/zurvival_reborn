@@ -53,6 +53,9 @@ export function createInitialState(opts: InitialStateOptions): GameState {
       flags: {},
       // The run's hidden moral shape (T47): neutral at the start, moved only by moral encounters.
       humanity: HUMANITY_BASELINE,
+      // The crafting economy (T51): no recipes learned, no fresh food carried — inert until the workbench
+      // and perishable loot come into play, so a run with no economy content behaves exactly as before.
+      economy: { blueprints: [], freshness: null },
     },
     world: {
       weather: "weather.clear",

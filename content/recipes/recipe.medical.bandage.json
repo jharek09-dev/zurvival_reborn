@@ -1,0 +1,19 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.medical.bandage",
+  "category": "medical",
+  "label": "Bandage",
+  "worldEffect": "Clean cloth strips to dress a wound.",
+  "inputs": [
+    {
+      "item": "item.cloth",
+      "qty": 2
+    }
+  ],
+  "output": {
+    "item": "item.bandage",
+    "qty": 1
+  },
+  "timeCost": 1,
+  "description": "A survival basic — known from the start, no room. Cloth (scavenged from homes and stores) into a wound dressing the health loop spends on treatment."
+}

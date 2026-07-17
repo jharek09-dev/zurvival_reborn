@@ -33,6 +33,7 @@ import { tickCompanions } from "../sim/companions.js";
 import { recordHistory, appendHistory } from "../sim/history.js";
 import { evaluateArcs, resolveDueStoryEvents } from "../sim/story.js";
 import { evaluateEvents, resolveDueEncounterEvents } from "../sim/events.js";
+import { tickSpoilage } from "../sim/economy.js";
 import { diffSystems } from "../telemetry/turnAudit.js";
 import type { Action, Scene, SceneChoice, TurnResult } from "./contract.js";
 
@@ -84,8 +85,15 @@ const resolvePlayerAction: StageFn = (ctx) =>
     ? ctx
     : { ...ctx, state: applyPlayerAction(ctx.state, ctx.graph, ctx.action) };
 
-/** Stage 4: drift the player's needs by the hours spent (rest recovers fatigue). */
-const updatePlayer: StageFn = (ctx) => ({ ...ctx, state: tickNeeds(ctx.state, ctx.action) });
+/** Stage 4: drift the player's needs by the hours spent (rest recovers fatigue), then age carried fresh
+ * food (T51 spoilage, faster once the grid fails). Spoilage is inert without an active economy pool, so
+ * the stage name / 14-stage order are unchanged and every prior run stays byte-identical — the body just
+ * graduated, exactly as stage 6 added shelter upkeep. */
+const updatePlayer: StageFn = (ctx) => {
+  const withNeeds = tickNeeds(ctx.state, ctx.action);
+  const hours = Math.max(0, Math.trunc(ctx.action.timeCost ?? 0));
+  return { ...ctx, state: tickSpoilage(withNeeds, ctx.graph, hours) };
+};
 
 /** Build the world-sim context for a turn: the hours the action spent, plus the transient graph. */
 const simCtx = (ctx: TurnContext): SimContext => {

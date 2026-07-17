@@ -44,16 +44,37 @@ export const LOOT_TABLES: { readonly [kind: string]: readonly string[] } = {
 export const RADIO_LOOT_ITEM = "item.radio";
 const RADIO_LOOT_KINDS: ReadonlySet<string> = new Set(["store", "residential", "industrial"]);
 
+/**
+ * The economy items (T51) are appended to these tables ONLY when the crafting economy is active (a recipe
+ * pool is registered) — exactly the radio discipline above, for exactly the same `floor(f*len)` reason: a
+ * table that grows shifts every draw, so mutating the shared tables would break byte-identity for every
+ * economy-less run. Gating on the pool keeps every prior run drawing as before. Per kind: perishable
+ * `item.food-fresh` where food is, `item.water-dirty` where water is, the `cloth`/`charcoal` components,
+ * and a rare blueprint schematic in the clinic (`antibiotics`) / the station (`molotov`).
+ */
+const ECONOMY_LOOT: { readonly [kind: string]: readonly string[] } = {
+  generic: ["item.food-fresh", "item.water-dirty", "item.charcoal"],
+  store: ["item.food-fresh", "item.cloth"],
+  medical: ["item.blueprint.antibiotics"],
+  police: ["item.blueprint.molotov"],
+  residential: ["item.food-fresh", "item.cloth", "item.water-dirty"],
+  industrial: ["item.charcoal", "item.water-dirty"],
+};
+
 const clampPct = (n: number): number => Math.max(0, Math.min(100, Math.trunc(n)));
 
 /**
  * The item pool for a node kind, falling back to the generic table for an unknown/absent kind. With
- * `includeRadio` (only when the radio system is active), the scavenged radio is appended to the
- * store/residential/industrial tables so it becomes findable — additively, never in a radio-less run.
+ * `includeRadio` (radio system active) the scavenged radio is appended to the store/residential/industrial
+ * tables; with `includeEconomy` (crafting economy active) the economy items for the kind are appended
+ * after it. Both are additive and gated, so a run with neither flag draws exactly as before — the append
+ * order (base, radio, economy) is fixed so a run with both is itself deterministic.
  */
-export function lootTableFor(kind: string | undefined, includeRadio = false): readonly string[] {
+export function lootTableFor(kind: string | undefined, includeRadio = false, includeEconomy = false): readonly string[] {
   const base = (kind !== undefined && LOOT_TABLES[kind]) || LOOT_TABLES["generic"]!;
-  return includeRadio && kind !== undefined && RADIO_LOOT_KINDS.has(kind) ? [...base, RADIO_LOOT_ITEM] : base;
+  const withRadio = includeRadio && kind !== undefined && RADIO_LOOT_KINDS.has(kind) ? [...base, RADIO_LOOT_ITEM] : base;
+  const eco = kind !== undefined ? ECONOMY_LOOT[kind] : undefined;
+  return includeEconomy && eco !== undefined ? [...withRadio, ...eco] : withRadio;
 }
 
 /**
@@ -72,7 +93,7 @@ export function searchYieldCap(regionLoot: number, searchPct: number): number {
  * by exactly what was taken (finite + depleting), and drops one plausible item into the inventory.
  * A depleted region or a picked-clean node yields nothing. Pure; consumes the `loot` RNG stream.
  */
-export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string | undefined, includeRadio = false): GameState {
+export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string | undefined, includeRadio = false, includeEconomy = false): GameState {
   const node = state.nodes[nodeId];
   if (node === undefined) return state;
   const region = state.regions[node.regionId];
@@ -83,7 +104,7 @@ export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string
 
   const drawn = drawInt(state.rng, state.meta.seed, "loot", 1, cap);
   const take = Math.min(region.loot, drawn.value);
-  const pick = drawPick(drawn.rng, state.meta.seed, "loot", lootTableFor(kind, includeRadio));
+  const pick = drawPick(drawn.rng, state.meta.seed, "loot", lootTableFor(kind, includeRadio, includeEconomy));
 
   // Weight cap (T18 · FR-PLR-03): pocket the find only if it fits. A full pack leaves it in the
   // world and the region is NOT debited — carrying is finite, so a full pack stops draining the well.
