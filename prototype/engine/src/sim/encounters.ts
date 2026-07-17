@@ -25,6 +25,10 @@ import type { Action, SceneChoice } from "../pipeline/contract.js";
 import { applyTrustEvent, canParley, canRecruit } from "./trust.js";
 import { FOOD_ITEM, WATER_ITEM, EAT_RELIEF, DRINK_RELIEF, RELIEF_OFFER_AT } from "./survival.js";
 import { recruit, companionsHere, canRecruitEligible, companionName, COMPANION_SHARE_TRUST } from "./companions.js";
+import { stageRank } from "./infection.js";
+
+/** Rank at/above which infection is *visibly* dying — no survivor will follow you (T49 · FR-INJ-06). */
+const VISIBLY_DYING_RANK = stageRank("advanced");
 
 /** Time cost (hours) of each interaction. All > 0 so every interaction is a resolved turn (FR-CORE-03/04). */
 export const TALK_COST = 1;
@@ -66,6 +70,11 @@ export function encounterPeople(state: GameState): readonly SceneChoice[] {
   const here = state.player.location;
   const choices: SceneChoice[] = [];
 
+  // Dialogue closes with the infection (T49 · FR-INJ-06): once you *look* infected (advanced+), no
+  // survivor will agree to follow you — the recruit option vanishes even at qualifying trust. Talk /
+  // share / threaten remain (you can still be helped and still be feared). Healthy ⇒ unchanged.
+  const visiblyDying = stageRank(state.player.condition.infection.stage) >= VISIBLY_DYING_RANK;
+
   for (const npc of survivorsHere(state, here)) {
     const id = npc.id;
     const willEngage = canParley(npc);
@@ -94,7 +103,7 @@ export function encounterPeople(state: GameState): readonly SceneChoice[] {
         action: { type: "give-water", choiceId: `give-water:${id}`, timeCost: GIVE_COST, params: { npc: id } },
       });
     }
-    if (npc.met && canRecruit(npc) && canRecruitEligible(state, npc)) {
+    if (npc.met && canRecruit(npc) && canRecruitEligible(state, npc) && !visiblyDying) {
       choices.push({
         id: `recruit:${id}`,
         label: `Ask ${npc.name} to join you`,

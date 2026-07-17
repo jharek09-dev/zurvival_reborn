@@ -164,7 +164,10 @@ export function resolveShelterAction(state: GameState, action: Action): GameStat
  * and the player is standing in their own shelter — so no prior run is touched. Pure.
  */
 export function applyShelterRest(state: GameState, action: Action): GameState {
-  if (action.type !== "rest") return state;
+  // A `quarantine` (T49) is a rest taken in isolation at your own shelter, so it earns the same base +
+  // fortification recovery a `rest` here does — otherwise quarantining would leave you stranger than
+  // simply resting at the same base. `updateCondition` already treats it as a rest for the base recovery.
+  if (action.type !== "rest" && action.type !== "quarantine") return state;
   const hours = Math.max(0, Math.trunc(action.timeCost ?? 0));
   if (hours === 0) return state;
   const sid = state.player.shelterId;

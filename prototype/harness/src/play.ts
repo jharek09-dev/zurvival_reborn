@@ -26,6 +26,7 @@ import {
   isWounded,
   worstWound,
   isRunOver,
+  infectionLine,
   type Action,
   type GameState,
   type Scene,
@@ -69,16 +70,15 @@ function woundName(typeId: string): string {
   return tail.length > 0 ? tail : typeId;
 }
 
-/** Infection as *symptoms*, never a number (FR-UI-02). Empty until a stage shows. */
+/**
+ * Infection as *symptoms*, never a number (FR-UI-02 · T49). Reads the engine's staged, honest symptom
+ * line — feverish (symptomatic) → senses you can't trust (advanced) → a body giving out (terminal) —
+ * or, once the player has diagnosed it, the stage named precisely. Null while healthy or still
+ * asymptomatic (incubating): the clock is hidden and running, nothing to perceive yet. The four stages
+ * read recognisably differently so a player can act on how bad it is with no hidden number.
+ */
 function describeInfection(state: GameState): string | null {
-  switch (state.player.condition.infection.stage) {
-    case "symptomatic":
-      return "You feel feverish, and a wound throbs with a heat that isn't healing.";
-    case "terminal":
-      return "The fever has you now — your thoughts swim and your limbs are leaden.";
-    default:
-      return null; // "none"/"incubating": nothing the player can yet perceive
-  }
+  return infectionLine(state);
 }
 
 /**

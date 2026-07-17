@@ -27,6 +27,7 @@
  */
 
 import type { GameState, RegionState } from "../state/types.js";
+import { isSymptomatic } from "./infection.js";
 
 // --- bands & steps (tunable) ----------------------------------------------------------------
 
@@ -54,7 +55,9 @@ export function playerDistressed(state: GameState): boolean {
   const c = state.player.condition;
   if (c.wounds.some((w) => w.treated < 100)) return true;
   if (c.needs.hunger >= DIRECTOR_NEED_DISTRESS || c.needs.thirst >= DIRECTOR_NEED_DISTRESS || c.needs.fatigue >= DIRECTOR_NEED_DISTRESS) return true;
-  if (c.infection.stage === "symptomatic" || c.infection.stage === "terminal") return true;
+  // Any *showing* infection — symptomatic, advanced, or terminal (T49 added `advanced`; using the
+  // module predicate keeps the distress curve monotonic, never dipping at the middle stage).
+  if (isSymptomatic(state)) return true;
   return false;
 }
 

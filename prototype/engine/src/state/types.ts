@@ -15,7 +15,7 @@
  */
 
 /** Bump on any breaking change to this shape; checked on load (DESIGN §9). */
-export const SAVE_SCHEMA_VERSION = 8;
+export const SAVE_SCHEMA_VERSION = 9;
 
 /**
  * Neutral starting `Player.humanity` (M4 task T47 · GDD "The Humanity system"). 0–100 int, never shown
@@ -112,10 +112,16 @@ export interface Wound {
 /**
  * Infection is tracked numerically but NEVER surfaced as a number — the client only
  * ever sees symptoms in the Scene (FR-INJ-05, DESIGN §4).
+ *
+ * The stages are the GDD Part VI identity ladder: `incubating` is the *asymptomatic* stage (kept as
+ * the key since T22), `advanced` (M4 task T49) is the hallucinating, memory-gapped stage before
+ * `terminal`. `terminal` is a *playable* stage — the cure race — not an instant loss (FR-INJ-08); the
+ * run only ends by infection once `progression` reaches the delayed `INFECT_SUCCUMB_AT` collapse.
+ * `progression` now runs past 100 up to that ceiling; it is still never shown (FR-UI-02).
  */
 export interface Infection {
-  readonly stage: "none" | "incubating" | "symptomatic" | "terminal";
-  /** 0–100 hidden progression int. */
+  readonly stage: "none" | "incubating" | "symptomatic" | "advanced" | "terminal";
+  /** Hidden progression int, 0–`INFECT_CEILING` (148); the stage is derived from it, the number never shown. */
   readonly progression: number;
 }
 

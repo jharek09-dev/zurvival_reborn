@@ -22,6 +22,7 @@ import type { GameState, HistoryEvent } from "../state/types.js";
 import { conditionOf } from "./routes.js";
 import { runEndReason } from "./survival.js";
 import { isCompanion } from "./companions.js";
+import { stageRank } from "./infection.js";
 
 /** Stamp an event with the resolved clock (day/hour/turn from the after-state). */
 function stamp(after: GameState, type: string, subjects: readonly string[], data: HistoryEvent["data"]): HistoryEvent {
@@ -101,6 +102,15 @@ export function recordHistory(before: GameState, after: GameState): readonly His
     const wasB = before.nodes[sid]?.barricades ?? 0;
     const nowB = after.nodes[sid]?.barricades ?? 0;
     if (nowB > wasB) events.push(stamp(after, "shelter.fortified", [sid], { from: wasB, to: nowB }));
+  }
+
+  // Infection deepened a stage this turn (T49 · FR-INJ-05): the fever crossing into symptomatic /
+  // advanced / terminal is a moment the survivor remembers. Only on a *worsening* transition (rank rose);
+  // a cure that pulls it back, or a steady turn, logs nothing — and no bite-free run ever reaches here.
+  const stageBefore = before.player.condition.infection.stage;
+  const stageAfter = after.player.condition.infection.stage;
+  if (stageRank(stageAfter) > stageRank(stageBefore)) {
+    events.push(stamp(after, "infection.staged", ["player"], { from: stageBefore, to: stageAfter }));
   }
 
   // The run ended this turn.
