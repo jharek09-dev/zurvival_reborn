@@ -39,9 +39,30 @@
               "morale": -4
             }
           ]
+        },
+        {
+          "id": "call",
+          "label": "Call out to them, once, low",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "addNoise",
+              "amount": 6
+            },
+            {
+              "kind": "adjustMind",
+              "stress": 4,
+              "morale": -2
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "called up to the figure in the window; nothing answered"
+            }
+          ]
         }
       ]
     }
   ],
-  "notes": "A body, weeks dead, propped upright by a fallen coat-rack and the draft. No payoff — the point is the hope and its cost."
+  "notes": "A body, weeks dead, propped upright by a fallen coat-rack and the draft. No payoff — the point is the hope and its cost. Three approaches (approach/leave/call) all resolve to nothing — FR-CNT-04 Rule of Three honoured without inventing a payoff; calling costs real noise."
 }

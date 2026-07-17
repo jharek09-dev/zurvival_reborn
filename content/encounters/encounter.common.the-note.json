@@ -1,0 +1,47 @@
+{
+  "id": "encounter.common.the-note",
+  "category": "environmental",
+  "title": "The note",
+  "premise": "A folded note where a wallet used to be.",
+  "repeatable": true,
+  "cooldownHours": 120,
+  "tags": ["the-dead"],
+  "requirements": {
+    "nodeKinds": ["residential", "medical", "store"]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "There's a note folded small in the coat pocket, soft with handling, the ink gone feathery at the creases. It's addressed to a name. Whoever carried it read it a great many times.",
+      "choices": [
+        {
+          "id": "read",
+          "label": "Read it, so at least someone did",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "adjustHumanity", "delta": 2 },
+            { "kind": "adjustMind", "morale": -4, "stress": -2 }
+          ]
+        },
+        {
+          "id": "keep",
+          "label": "Refold it and carry it a while",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "setFlag", "flag": "note.someone-elses-letter" },
+            { "kind": "adjustMind", "stress": 3 }
+          ]
+        },
+        {
+          "id": "leave",
+          "label": "Leave it where it lies",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "stress": 1 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "the-dead. Bearing witness costs a beat and some grief but holds Humanity; carrying it is a small warmth; leaving is free but not weightless."
+}

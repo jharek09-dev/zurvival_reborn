@@ -1,0 +1,48 @@
+{
+  "id": "encounter.common.tending-the-base",
+  "category": "shelter",
+  "title": "Tending the base",
+  "premise": "The ordinary upkeep of a place that's yours.",
+  "repeatable": true,
+  "cooldownHours": 72,
+  "tags": ["holding-the-base"],
+  "requirements": {
+    "requiresShelter": true
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "An hour where nothing is trying to kill you is its own kind of work: things to be sorted and set right. The place holds because you keep making it hold.",
+      "choices": [
+        {
+          "id": "sort",
+          "label": "Inventory and set the stores in order",
+          "timeCost": 2,
+          "effects": [
+            { "kind": "adjustMind", "morale": 5, "stress": -4 }
+          ]
+        },
+        {
+          "id": "improve",
+          "label": "Build a small comfort into the place with the scrap you have",
+          "timeCost": 1,
+          "requirements": { "carriesItem": "item.scrap" },
+          "effects": [
+            { "kind": "takeItem", "item": "item.scrap", "quantity": 1 },
+            { "kind": "adjustMind", "morale": 6 }
+          ]
+        },
+        {
+          "id": "rest",
+          "label": "Do nothing useful and simply rest",
+          "timeCost": 2,
+          "effects": [
+            { "kind": "adjustNeed", "need": "fatigue", "delta": -12 },
+            { "kind": "adjustMind", "morale": -2 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "holding-the-base, requiresShelter — the recurring base beat, distinct from the one-shot the-night-watch (which shores the barricade for stress relief). Here sorting trades time for calm; improving spends scrap for morale (the satisfaction of bettering the place, not defensive shoring — kept mechanically distinct from night-watch's scrap sink); resting trades time and a little guilt for fatigue. Anchors FR-CNT-04 at every safehouse."
+}

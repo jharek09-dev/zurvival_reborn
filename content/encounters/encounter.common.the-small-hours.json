@@ -1,0 +1,47 @@
+{
+  "id": "encounter.common.the-small-hours",
+  "category": "psychological",
+  "title": "The small hours",
+  "premise": "The mind, unsupervised, at three in the morning.",
+  "repeatable": true,
+  "cooldownHours": 72,
+  "tags": ["night-nerves"],
+  "requirements": {
+    "phases": ["night"],
+    "minStress": 45
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "It's the hour when the arithmetic runs itself: days of food, miles to nowhere, the count of the people you started with. The dark doesn't argue back, so the numbers win unless you make them stop.",
+      "choices": [
+        {
+          "id": "count",
+          "label": "Let yourself count them once, by name, and then stop",
+          "timeCost": 2,
+          "effects": [
+            { "kind": "adjustMind", "stress": -11, "morale": -3 }
+          ]
+        },
+        {
+          "id": "move",
+          "label": "Get up and do something with your hands to outrun it",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "adjustMind", "stress": -6 },
+            { "kind": "adjustNeed", "need": "fatigue", "delta": 8 }
+          ]
+        },
+        {
+          "id": "ride",
+          "label": "Let it run its course and just endure it",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "adjustMind", "stress": 2, "morale": -6 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "night-nerves, night + minStress 45 (fires only when it would actually bite). Distinct from the-long-dark's once-per-run generic dark-nerves beat — this one is the grief of counting the lost, so its relief runs partly through morale (the-long-dark is pure stress). Counting eases the fear for real time but costs a little morale; moving trades fatigue for less relief; enduring is cheap but deepens the grief."
+}

@@ -160,7 +160,10 @@ const evaluateStory: StageFn = (ctx) => {
   // turn's beat is in the log; then T47: engage a fitting encounter from the registered pool (inert
   // without one); then record the Living History as before. Both beats land before the world events.
   const withArcs = evaluateArcs(ctx.state);
-  const withEvents = evaluateEvents(withArcs, ctx.graph);
+  // T48: don't OPEN a new encounter on a turn spent resolving one (an `event` action) — one scene closes
+  // before the next opens, so the denser ambient pool can't stack a fresh beat onto a just-finished one.
+  // A subsequent non-encounter action (move/search/wait) engages normally; inert for T47's sparse pool.
+  const withEvents = ctx.action.type === "event" ? withArcs : evaluateEvents(withArcs, ctx.graph);
   const events = recordHistory(ctx.before, withEvents);
   const state = events.length === 0 ? withEvents : appendHistory(withEvents, events);
   return state === ctx.state ? ctx : { ...ctx, state };

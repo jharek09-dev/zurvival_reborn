@@ -45,6 +45,18 @@ export {
   type PacingSummary,
 } from "./telemetry/pacing.js";
 
+// Encounter-variety telemetry — the §4 verbatim-repeat-rate signal the T48 hard gate reads (T48 · PRD §4)
+export {
+  encounterFires,
+  summarizeRepetition,
+  summarizeRunRepetition,
+  ENCOUNTER_BEGIN,
+  RECENCY_WINDOW_HOURS,
+  VERBATIM_REPEAT_TARGET,
+  type EncounterFire,
+  type RepetitionSummary,
+} from "./telemetry/repetition.js";
+
 // Save / load — versioned serialized GameState (T7, DESIGN §9)
 export {
   saveGame,
@@ -452,12 +464,17 @@ export {
   applyEncounterEffect,
   eligibleEncounters,
   selectEncounter,
+  chooseEncounter,
   evaluateEvents,
   eventChoices,
   eventLine,
   isEventAction,
   resolveEventAction,
   resolveDueEncounterEvents,
+  ENCOUNTER_STREAM,
+  BASE_WEIGHT,
+  STALE_CAP_HOURS,
+  COOLDOWN_MAX_HOURS,
   type EncounterCategory,
   type EncounterRequirement,
   type EncounterEffect,

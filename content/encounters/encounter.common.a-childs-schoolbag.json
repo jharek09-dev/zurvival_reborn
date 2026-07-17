@@ -1,0 +1,48 @@
+{
+  "id": "encounter.common.a-childs-schoolbag",
+  "category": "story",
+  "title": "A child's schoolbag",
+  "premise": "A small backpack, still packed, no child.",
+  "repeatable": true,
+  "cooldownHours": 120,
+  "tags": ["city-voices"],
+  "requirements": {
+    "nodeKinds": ["residential", "store"]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "A small backpack sits upright against a step, zipped, a cartoon dinosaur worn pale on the flap. Homework in a folder, a juice box gone sticky beside it. No child. You make yourself stop looking for one.",
+      "choices": [
+        {
+          "id": "right",
+          "label": "Set it somewhere it can be seen, and go",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "adjustHumanity", "delta": 2 },
+            { "kind": "adjustMind", "morale": -3, "stress": -2 }
+          ]
+        },
+        {
+          "id": "look",
+          "label": "Check it for anything you could use",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "adjustHumanity", "delta": -3 },
+            { "kind": "adjustMind", "morale": -6 },
+            { "kind": "logHistory", "event": "encounter.note", "note": "went through the child's bag; took nothing" }
+          ]
+        },
+        {
+          "id": "pass",
+          "label": "Don't touch it — keep walking",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "morale": -2 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "city-voices, a moral micro-beat feeding Humanity. Looking turns up nothing worth the cost of having looked; the honouring gesture costs time; walking on is free but doesn't leave you. Human-only (the child is gone, human)."
+}

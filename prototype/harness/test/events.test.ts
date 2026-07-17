@@ -9,6 +9,7 @@ import {
   sceneOf,
   activeEncounter,
   humanityOf,
+  ACTIVE_ENCOUNTER_QUEST,
   ENCOUNTER_CATEGORIES,
   ENCOUNTER_EVENT_KIND,
   ITEM_WEIGHTS,
@@ -41,7 +42,9 @@ const zombies = loadDefs<{ id: string }>("zombies");
 
 const opts = { seed: "enc-harness", createdAt: "2026-07-16T00:00:00Z" };
 const run = (): { state: GameState; graph: RegionGraph } => startRun(opts, regions, nodes, npcs, [], encounters);
-const at = (s: GameState, node: string): GameState => ({ ...s, player: { ...s.player, location: node } });
+// Teleport to a node for a probe. With the T48 ambient pool an intermediate tick can engage a transient
+// ambient at the node you were on; leaving that node ends it, so drop any active-encounter slot on move.
+const at = (s: GameState, node: string): GameState => ({ ...s, player: { ...s.player, location: node, quests: s.player.quests.filter((q) => q.id !== ACTIVE_ENCOUNTER_QUEST) } });
 const withFlags = (s: GameState, ...flags: string[]): GameState => ({ ...s, player: { ...s.player, flags: { ...s.player.flags, ...Object.fromEntries(flags.map((f) => [f, true])) } } });
 const withSearch = (s: GameState, node: string, pct: number): GameState => ({ ...s, nodes: { ...s.nodes, [node]: { ...s.nodes[node]!, searchPct: pct } } });
 const tick = (s: GameState, g: RegionGraph): GameState => applyAction(s, { type: "wait" }, g).state;
