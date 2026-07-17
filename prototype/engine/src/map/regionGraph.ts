@@ -13,6 +13,7 @@
  */
 
 import type { NodeId } from "../state/types.js";
+import type { EncounterDef } from "../sim/events.js";
 import { MapError, type NodeDef, type RegionDef, type RegionGraph } from "./types.js";
 
 /** Index an array of defs by id, rejecting duplicates. */
@@ -37,6 +38,7 @@ function indexById<T extends { readonly id: string }>(
 export function buildRegionGraph(
   regionDefs: readonly RegionDef[],
   nodeDefs: readonly NodeDef[],
+  encounterDefs: readonly EncounterDef[] = [],
 ): RegionGraph {
   if (nodeDefs.length === 0) throw new MapError("no nodes: a region graph needs at least one node");
 
@@ -87,7 +89,11 @@ export function buildRegionGraph(
     );
   }
 
-  return { regions, nodes, startNodeId };
+  // The encounter pool is transient content (T47) — attached only when the client registers one, so a
+  // graph built without it leaves the encounter system inert (every prior run byte-identical).
+  return encounterDefs.length === 0
+    ? { regions, nodes, startNodeId }
+    : { regions, nodes, startNodeId, encounters: encounterDefs };
 }
 
 /** Breadth-first set of node ids reachable from `from` over the graph's edges. */

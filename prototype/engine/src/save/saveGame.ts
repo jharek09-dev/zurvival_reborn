@@ -23,7 +23,7 @@
  * a disk or browser store is the client's job; the core only turns state ⇄ string.
  */
 
-import { SAVE_SCHEMA_VERSION, type GameState, type Phase } from "../state/types.js";
+import { SAVE_SCHEMA_VERSION, HUMANITY_BASELINE, type GameState, type Phase } from "../state/types.js";
 
 /** Envelope discriminator — lets a loader reject a blob that isn't one of our saves. */
 export const SAVE_FORMAT = "zurvival-save" as const;
@@ -161,6 +161,23 @@ function migrateV6toV7(state: GameState): GameState {
   };
 }
 
+/**
+ * v7 -> v8 (task T47): the Humanity system arrived. The player now carries a hidden moral scalar —
+ * `player.humanity` — that moral encounters (FR-ENC-06) move. v7 states have no such field; a
+ * forward-only rung seeds it at `HUMANITY_BASELINE` (a pre-moral run reads as neutral) and stamps
+ * `meta.version` to 8. Pure and total — one N->N+1 rung, per the ADR-0003 / T7 ladder.
+ */
+function migrateV7toV8(state: GameState): GameState {
+  const src = state as unknown as { readonly player: Record<string, unknown> };
+  const player =
+    "humanity" in src.player ? src.player : { ...src.player, humanity: HUMANITY_BASELINE };
+  return {
+    ...state,
+    meta: { ...state.meta, version: 8 },
+    player: player as unknown as GameState["player"],
+  };
+}
+
 const MIGRATIONS: { readonly [fromVersion: number]: SaveMigration } = {
   1: (save) => ({ ...save, saveSchemaVersion: 2, state: migrateV1toV2(save.state) }),
   2: (save) => ({ ...save, saveSchemaVersion: 3, state: migrateV2toV3(save.state) }),
@@ -168,6 +185,7 @@ const MIGRATIONS: { readonly [fromVersion: number]: SaveMigration } = {
   4: (save) => ({ ...save, saveSchemaVersion: 5, state: migrateV4toV5(save.state) }),
   5: (save) => ({ ...save, saveSchemaVersion: 6, state: migrateV5toV6(save.state) }),
   6: (save) => ({ ...save, saveSchemaVersion: 7, state: migrateV6toV7(save.state) }),
+  7: (save) => ({ ...save, saveSchemaVersion: 8, state: migrateV7toV8(save.state) }),
 };
 
 /** Two-digit zero-pad for the summary clock (pure, allocation-light). */

@@ -58,6 +58,14 @@ import {
 import { stashChoices, isStashAction, resolveStashAction } from "../sim/stash.js";
 import { storyChoices, isStoryAction, resolveStoryAction, storyLine } from "../sim/story.js";
 import {
+  activeEncounter,
+  eventChoices,
+  eventLine,
+  humanityBand,
+  isEventAction,
+  resolveEventAction,
+} from "../sim/events.js";
+import {
   companionsHere,
   companionName,
   companionOrderChoices,
@@ -105,6 +113,10 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
 
   if (isRunOver(state)) return []; // the run has ended — no actions follow a death (T22)
   if (state.combat !== null) return combatChoices(state, graph);
+  // An engaged multi-stage encounter (T47) owns the turn until it resolves — its stage choices only,
+  // plus a guaranteed way out (eventChoices). Sits above the walker prompt so a wanderer arriving
+  // mid-negotiation can't shadow the active beat; below combat, which is always the most urgent.
+  if (activeEncounter(state) !== null) return eventChoices(state, graph);
   if (node.walkers > 0) return encounterChoices(state, graph);
 
   const choices: SceneChoice[] = [];
@@ -250,6 +262,7 @@ function applySearch(state: GameState): GameState {
  */
 export function applyPlayerAction(state: GameState, graph: RegionGraph, action: Action): GameState {
   if (isCombatAction(action)) return resolveCombatAction(state, graph, action);
+  if (isEventAction(action)) return resolveEventAction(state, graph, action);
   if (isEncounterAction(action)) return resolveEncounterAction(state, action);
   if (isCompanionOrderAction(action)) return resolveCompanionOrder(state, action);
   if (isShelterAction(action)) return resolveShelterAction(state, action);
@@ -447,12 +460,16 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   const setting = `${where}${searched}${pack} (Day ${day}, ${phase} ${pad2(hour)}:00 — at ${name}.)`;
   // Surface the reactive world (QA H1 / PL-M2-01): a fight or the sharpest world danger leads, then the
   // atmosphere line, then the place itself. Screen-reader-safe — everything critical is in words.
+  // An engaged encounter (T47) is the scene — its stage narration leads, ahead of the ambient world
+  // reads. The felt moral read (`moral`) rides with the atmosphere, surfaced only at the extremes.
+  const event = eventLine(state, graph);
   const lead = threat ?? worldLead(state, graph);
   const people = peopleLine(state);
   const shelter = shelterLine(state);
   const story = storyLine(state);
+  const moral = humanityBand(state);
   const atmosphere = atmosphereLine(state);
-  const narration = [lead, people, shelter, story, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
+  const narration = [event, lead, people, shelter, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
 
   return { turn, day, hour, phase, location: here, narration, choices: availableActions(state, graph) };
 }

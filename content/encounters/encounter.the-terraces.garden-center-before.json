@@ -1,0 +1,47 @@
+{
+  "id": "encounter.the-terraces.garden-center-before",
+  "category": "exploration",
+  "title": "The garden center — untouched",
+  "premise": "Evolution BEFORE: a quiet, unlooted place.",
+  "requirements": {
+    "nodeIds": [
+      "node.the-terraces.garden-center"
+    ],
+    "maxSearchPct": 33,
+    "forbidsFlags": [
+      "enc.gc.entered"
+    ]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "Rows of dead houseplants sag in the greenhouse, but the shelves past them still hold seed packets, twine, tinned goods someone stocked and never came back for. A couple of shapes drift in the parking lot beyond the fence — slow, unbothered, for now.",
+      "choices": [
+        {
+          "id": "slip",
+          "label": "Slip in through the loading door and look around",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "setFlag",
+              "flag": "enc.gc.entered"
+            }
+          ]
+        },
+        {
+          "id": "skip",
+          "label": "Not worth the noise — move on",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "left the garden center alone"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "Entering (enc.gc.entered) opens the DURING beat; skipping consumes the one-shot."
+}

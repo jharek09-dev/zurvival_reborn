@@ -1,0 +1,44 @@
+{
+  "id": "encounter.common.the-long-dark",
+  "category": "psychological",
+  "title": "The long dark",
+  "premise": "Psychological: the weight of a night alone.",
+  "requirements": {
+    "phases": [
+      "night"
+    ]
+  },
+  "scope": "run",
+  "stages": [
+    {
+      "id": "s",
+      "narration": "The dark out here is total and it has a texture — every settling board and far-off sound arrives sharpened, and your own mind starts helpfully filling the gaps with worse. You catch yourself holding your breath to listen to nothing.",
+      "choices": [
+        {
+          "id": "steady",
+          "label": "Sit with it, breathe, wait for the light",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "adjustMind",
+              "stress": -15
+            }
+          ]
+        },
+        {
+          "id": "push",
+          "label": "Push the thoughts down and keep watch",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "adjustMind",
+              "stress": -4,
+              "morale": -8
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "Reads/writes mind, all prose (non-audio). Scope run so it lands once."
+}

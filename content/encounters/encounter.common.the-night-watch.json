@@ -1,0 +1,75 @@
+{
+  "id": "encounter.common.the-night-watch",
+  "category": "shelter",
+  "title": "The night watch",
+  "premise": "Shelter: the small decisions of holding a base.",
+  "requirements": {
+    "requiresShelter": true
+  },
+  "scope": "run",
+  "stages": [
+    {
+      "id": "s",
+      "narration": "Your place holds. Tonight, anyway. But holding it is a job that never quite ends: a gap in the boards you keep meaning to close, stores that want counting, and the simple animal question of whether you dare actually sleep tonight.",
+      "choices": [
+        {
+          "id": "shore",
+          "label": "Shore up the weak board with what scrap you have",
+          "timeCost": 2,
+          "requirements": {
+            "carriesItem": "item.scrap"
+          },
+          "effects": [
+            {
+              "kind": "takeItem",
+              "item": "item.scrap",
+              "quantity": 1
+            },
+            {
+              "kind": "adjustMind",
+              "stress": -8
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "shored up the barricade"
+            }
+          ]
+        },
+        {
+          "id": "sleep",
+          "label": "Trust the walls and get real sleep",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "adjustNeed",
+              "need": "fatigue",
+              "delta": -12
+            },
+            {
+              "kind": "adjustMind",
+              "stress": 6
+            }
+          ]
+        },
+        {
+          "id": "watch",
+          "label": "Take the watch yourself and let the night pass",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "adjustMind",
+              "stress": -5
+            },
+            {
+              "kind": "adjustNeed",
+              "need": "fatigue",
+              "delta": 10
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "Shelter-category beat; the scrap option is gated on carrying it (a choice-level requirement)."
+}

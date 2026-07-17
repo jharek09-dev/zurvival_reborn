@@ -12,6 +12,7 @@
  */
 
 import type { NodeId, RegionId } from "../state/types.js";
+import type { EncounterDef } from "../sim/events.js";
 
 /** A region's static definition — mirrors `content/schemas/region.schema.json`. */
 export interface RegionDef {
@@ -61,6 +62,13 @@ export interface RegionGraph {
   readonly nodes: { readonly [id: NodeId]: NodeDef };
   /** The single node whose `start` is true. */
   readonly startNodeId: NodeId;
+  /**
+   * The run's registered encounter pool (M4 task T47) — transient content the client loaded from
+   * `content/encounters/`, carried here so it reaches the pipeline the same way the node graph does.
+   * Optional and defaulting to empty: a graph built without a pool leaves the encounter system inert,
+   * so every prior run stays byte-identical. Never serialized (like the rest of the graph).
+   */
+  readonly encounters?: readonly EncounterDef[];
 }
 
 /**

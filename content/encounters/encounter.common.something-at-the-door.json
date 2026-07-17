@@ -1,0 +1,54 @@
+{
+  "id": "encounter.common.something-at-the-door",
+  "category": "psychological",
+  "title": "Something at the door",
+  "premise": "False encounter: tension without payoff.",
+  "requirements": {
+    "requiresShelter": true,
+    "phases": [
+      "night"
+    ]
+  },
+  "scope": "run",
+  "stages": [
+    {
+      "id": "s",
+      "narration": "A sound at the barricade — a slow, deliberate scrape of something dragging along the boards, right where you sleep. It comes again. Then a third time, patient, like it knows you're in here.",
+      "choices": [
+        {
+          "id": "check",
+          "label": "Ease the shutter back and look",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "adjustMind",
+              "stress": -6
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "the sound at the door was only the wind"
+            }
+          ]
+        },
+        {
+          "id": "wait",
+          "label": "Don't move — wait it out until dawn",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "adjustMind",
+              "stress": 8
+            },
+            {
+              "kind": "adjustNeed",
+              "need": "fatigue",
+              "delta": 6
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "It is the wind against a loose tarp. Nothing there. Checking costs a look and buys relief; waiting costs a sleepless night."
+}

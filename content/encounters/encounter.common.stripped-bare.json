@@ -1,0 +1,42 @@
+{
+  "id": "encounter.common.stripped-bare",
+  "category": "exploration",
+  "title": "Stripped bare",
+  "premise": "Exploration: the depleting-world beat.",
+  "requirements": {
+    "minSearchPct": 100
+  },
+  "scope": "run",
+  "stages": [
+    {
+      "id": "s",
+      "narration": "You work the last of it and come up with nothing — every drawer already out, every tin already gone, dust settling in the shafts of light. You've been thorough here. So has everyone who came before you. The city is a finite thing, and you can feel the bottom of it.",
+      "choices": [
+        {
+          "id": "on",
+          "label": "Nothing more here — move on",
+          "timeCost": 0,
+          "effects": [
+            {
+              "kind": "adjustMind",
+              "morale": -5
+            }
+          ]
+        },
+        {
+          "id": "sit",
+          "label": "Sit a moment before the next place",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "adjustNeed",
+              "need": "fatigue",
+              "delta": -5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "Reinforces FR-ECO depletion; scope run."
+}

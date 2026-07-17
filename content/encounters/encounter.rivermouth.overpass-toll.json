@@ -1,0 +1,165 @@
+{
+  "id": "encounter.rivermouth.overpass-toll",
+  "category": "social",
+  "title": "The overpass toll",
+  "premise": "Multi-stage: negotiate, then fight, then chase.",
+  "requirements": {
+    "nodeIds": [
+      "node.rivermouth.overpass"
+    ],
+    "forbidsFlags": [
+      "enc.toll.done"
+    ]
+  },
+  "stages": [
+    {
+      "id": "talk",
+      "narration": "Three of them have the overpass sewn up — a chain across the on-ramp, a burned-out cruiser for cover, a woman with a fire axe doing the talking. \"Toll's a can of something, or you turn around. Your call, friend.\"",
+      "choices": [
+        {
+          "id": "pay",
+          "label": "Pay the toll — a can from your cache",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "depleteStash",
+              "units": 1
+            },
+            {
+              "kind": "setFlag",
+              "flag": "enc.toll.done"
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "paid the overpass toll"
+            }
+          ],
+          "requirements": {
+            "minStash": 1
+          }
+        },
+        {
+          "id": "bluff",
+          "label": "Bluff — tell them your people are right behind you",
+          "timeCost": 1,
+          "requirements": {
+            "minMorale": 55
+          },
+          "effects": [
+            {
+              "kind": "setFlag",
+              "flag": "enc.toll.done"
+            },
+            {
+              "kind": "adjustMind",
+              "stress": 6
+            }
+          ]
+        },
+        {
+          "id": "refuse",
+          "label": "Refuse and stand your ground",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "advanceStage",
+              "to": "violence"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "violence",
+      "narration": "The axe comes off her shoulder. No more talking — this is going to cost someone.",
+      "choices": [
+        {
+          "id": "fight",
+          "label": "Take them on here",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "seedWalkers",
+              "count": 2,
+              "types": [
+                "zombie.walker"
+              ]
+            },
+            {
+              "kind": "addNoise",
+              "amount": 25
+            },
+            {
+              "kind": "setFlag",
+              "flag": "enc.toll.done"
+            }
+          ]
+        },
+        {
+          "id": "run",
+          "label": "Break past the chain and run",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "advanceStage",
+              "to": "chase"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chase",
+      "narration": "You get through the gap, but boots are pounding the pavement behind you and the woman is fast.",
+      "choices": [
+        {
+          "id": "sprint",
+          "label": "Sprint flat-out until they give up",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "adjustNeed",
+              "need": "fatigue",
+              "delta": 20
+            },
+            {
+              "kind": "inflictWound",
+              "wound": "wound.sprain",
+              "site": "ankle",
+              "severity": 18
+            },
+            {
+              "kind": "setFlag",
+              "flag": "enc.toll.done"
+            }
+          ]
+        },
+        {
+          "id": "lose",
+          "label": "Duck into the culverts and lose them",
+          "timeCost": 2,
+          "requirements": {
+            "minMorale": 40
+          },
+          "effects": [
+            {
+              "kind": "adjustNeed",
+              "need": "fatigue",
+              "delta": 12
+            },
+            {
+              "kind": "adjustMind",
+              "stress": 10
+            },
+            {
+              "kind": "setFlag",
+              "flag": "enc.toll.done"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "negotiation(talk) -> fight(violence, seeds T15 walkers) -> chase; a way out at every stage."
+}

@@ -19,6 +19,7 @@ import { seedStarterHordes } from "../sim/hordes.js";
 import { seedRoutes } from "../sim/routes.js";
 import { spawnNpcs, type NPCDef } from "../sim/npcs.js";
 import { registerArcs } from "../sim/story.js";
+import type { EncounterDef } from "../sim/events.js";
 import type { NodeDef, RegionDef, RegionGraph } from "./types.js";
 
 /** Clamp to a 0–100 integer; content baselines are already ints, this guards bad data. */
@@ -100,8 +101,9 @@ export function startRun(
   nodeDefs: readonly NodeDef[],
   npcDefs: readonly NPCDef[] = [],
   arcIds: readonly string[] = [],
+  encounterDefs: readonly EncounterDef[] = [],
 ): RunStart {
-  const graph = buildRegionGraph(regionDefs, nodeDefs);
+  const graph = buildRegionGraph(regionDefs, nodeDefs, encounterDefs);
   const base = createInitialState({ ...opts, startLocation: graph.startNodeId });
 
   const regions = seedRegionState(regionDefs);

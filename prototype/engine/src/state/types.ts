@@ -15,7 +15,14 @@
  */
 
 /** Bump on any breaking change to this shape; checked on load (DESIGN §9). */
-export const SAVE_SCHEMA_VERSION = 7;
+export const SAVE_SCHEMA_VERSION = 8;
+
+/**
+ * Neutral starting `Player.humanity` (M4 task T47 · GDD "The Humanity system"). 0–100 int, never shown
+ * as a bar; moral encounters (FR-ENC-06) move it, and the v7→v8 migration seeds every historical save
+ * here so a pre-moral run reads as neutral.
+ */
+export const HUMANITY_BASELINE = 50;
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -157,9 +164,18 @@ export interface Player {
   readonly shelterId: NodeId | null;
   /** Group id → -100..100 int standing. */
   readonly reputation: { readonly [groupId: GroupId]: number };
-  /** Active quest/goal content ids with progress data. */
+  /** Active quest/goal content ids with progress data. Also carries the reserved single active
+   * multi-stage encounter slot (M4 task T47) — an "active goal with progress" is exactly this shape. */
   readonly quests: readonly { readonly id: ContentId; readonly data: JsonValue }[];
   readonly flags: Flags;
+  /**
+   * The run's hidden moral shape (M4 task T47 · GDD "The Humanity system" · FR-ENC-06). 0–100 int,
+   * `HUMANITY_BASELINE` at run start; abandoning the desperate / killing for supplies erode it,
+   * protecting people / keeping promises / burying the dead preserve it. NEVER surfaced as a number —
+   * only as felt prose (`humanityBand`) — and read by the M5 endings (T61/T62) and companion loyalty
+   * (T53). Added at save schema v8 with a forward-only rung (migrateV7toV8).
+   */
+  readonly humanity: number;
 }
 
 /** A tracked survivor: companion or named NPC (GDD XII). */

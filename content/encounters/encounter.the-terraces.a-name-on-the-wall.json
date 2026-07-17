@@ -1,0 +1,52 @@
+{
+  "id": "encounter.the-terraces.a-name-on-the-wall",
+  "category": "story",
+  "title": "A name on the wall",
+  "premise": "Chain start: a message that sets up a later payoff.",
+  "requirements": {
+    "nodeIds": [
+      "node.the-terraces.water-tower"
+    ]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "Someone has scratched into the paint at the base of the water tower, deep, with a key or a blade: DELACROIX — WE WENT TO THE CHAPEL. WAIT FOR US. The letters are careful. Whoever cut them had time, and meant it to outlast them.",
+      "choices": [
+        {
+          "id": "read",
+          "label": "Read it, remember it, and move on",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "revealDiscovery",
+              "discovery": "disc.terraces.delacroix"
+            },
+            {
+              "kind": "setFlag",
+              "flag": "chain.terraces.name-seen"
+            },
+            {
+              "kind": "scheduleFollowup",
+              "flag": "chain.terraces.time-passed",
+              "delayHours": 24
+            }
+          ]
+        },
+        {
+          "id": "ignore",
+          "label": "Not your people, not your problem",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "passed the name on the wall by"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "Reading sets chain.terraces.name-seen now and schedules chain.terraces.time-passed for +24h; both gate the payoff."
+}

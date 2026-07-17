@@ -1,4 +1,4 @@
-import { SAVE_SCHEMA_VERSION, type GameState, type NodeId } from "./types.js";
+import { SAVE_SCHEMA_VERSION, HUMANITY_BASELINE, type GameState, type NodeId } from "./types.js";
 
 export interface InitialStateOptions {
   /** Run seed — sole origin of all randomness (DESIGN §9). */
@@ -51,6 +51,8 @@ export function createInitialState(opts: InitialStateOptions): GameState {
       reputation: {},
       quests: [],
       flags: {},
+      // The run's hidden moral shape (T47): neutral at the start, moved only by moral encounters.
+      humanity: HUMANITY_BASELINE,
     },
     world: {
       weather: "weather.clear",

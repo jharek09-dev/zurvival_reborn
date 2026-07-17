@@ -1,0 +1,48 @@
+{
+  "id": "encounter.rivermouth.first-light",
+  "category": "exploration",
+  "title": "First light over Rivermouth",
+  "premise": "An orientation beat in the start region.",
+  "requirements": {
+    "regionIds": [
+      "region.rivermouth"
+    ]
+  },
+  "scope": "run",
+  "stages": [
+    {
+      "id": "s",
+      "narration": "For a moment the street is just a street — grey light, gulls somewhere, the river smell under everything. Then you see the abandoned cars nosed up on the kerb, the smashed pharmacy grille, and it settles back over you: this is the shape of things now.",
+      "choices": [
+        {
+          "id": "steady",
+          "label": "Take a breath and get your bearings",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "adjustMind",
+              "morale": 5
+            },
+            {
+              "kind": "revealDiscovery",
+              "discovery": "disc.rivermouth.landmark"
+            }
+          ]
+        },
+        {
+          "id": "move",
+          "label": "No time for it — keep moving",
+          "timeCost": 0,
+          "effects": [
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "pressed on at first light"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "Low-stakes tone-setter; scope run so it lands once."
+}
