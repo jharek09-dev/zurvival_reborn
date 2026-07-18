@@ -22,6 +22,8 @@ import {
   transcript,
   DEPTH_SCREENS,
   SCREEN_KEYS,
+  CUE_MATRIX,
+  CUE_CHANNELS,
 } from "../src/index.js";
 
 /**
@@ -222,5 +224,30 @@ describe("depth screens are discoverable and keyboard-reachable (T54 · NFR-ACC-
     const r = playByInputs(state, graph, [...SCREEN_KEYS, "1"]);
     expect(r.screensViewed).toEqual(DEPTH_SCREENS.map((d) => d.id));
     expect(r.session.turns.length).toBe(1);
+  });
+});
+
+// --- NFR-ACC-01 acceptance: the headline metric, both channels (PRD §4 · T56 pt 2) ------------
+
+describe("NFR-ACC-01 — 100% of critical info available without colour or audio (PRD §4 · T56 pt 2)", () => {
+  // The two halves of the headline metric. Colour-independence is proven here (no ANSI; every fact in
+  // words) + gated on the design palette by content-loader's `validate:a11y` (contrast + colourblind).
+  // Audio-independence is the FR-AUD-06 cue-redundancy matrix, proven cue-by-cue in cueMatrix.test.ts.
+  it("colour-independence: the client renders zero colour codes on every turn type — meaning is text, not colour", () => {
+    const { state, graph } = base();
+    for (const mk of [(x: GameState) => x, overweight, wounded, threatened]) {
+      const s = mk(state);
+      const text = renderScene(playSession(s, graph, []).opening, s, graph).join("\n");
+      expect(text).not.toMatch(/\[/);
+    }
+  });
+
+  it("audio-independence: FR-AUD-06 is a TRACKED matrix over every soundscape layer, not a spot check", () => {
+    expect(CUE_MATRIX.length).toBeGreaterThanOrEqual(40);
+    for (const ch of CUE_CHANNELS) expect(CUE_MATRIX.some((c) => c.channel === ch), `no cue for ${ch}`).toBe(true);
+  });
+
+  it("audio-independence: no cue's text equivalent leaks a raw sim number (all words, FR-UI-02)", () => {
+    for (const entry of CUE_MATRIX) expect(/\b\d{1,3}\b/.test(entry.text), `number in ${entry.id}`).toBe(false);
   });
 });

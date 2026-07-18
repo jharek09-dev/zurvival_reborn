@@ -1,0 +1,17 @@
+/* Deliberately BROKEN palette — the a11y gate must REJECT this (mirrors the schema gate's bad-json fixture).
+   Seeded defects: (1) --muted, a body-text token, is near-black → fails AA-normal contrast; (2) --danger is
+   set to --infection's hex → the two hues are indistinguishable. These also trip contrast-drift (vs the §11
+   table) and a CVD collapse, so the gate reports several errors — all correct; the point is it exits nonzero. */
+:root {
+  --bg:        #0E0F10;
+  --text:      #EDE7DB;
+  --text-2:    #B7B3A9;
+  --muted:     #2A2B2E; /* DEFECT: body-text token, contrast ~1.4 vs --bg — fails AA-normal (unreadable) */
+  --accent:    #F2803A;
+  --danger:    #93A63E; /* DEFECT: set to --infection's hex → danger and infection are the same colour */
+  --infection: #93A63E;
+  --hope:      #5FB3A1;
+  --info:      #5C7A94;
+  --warning:   #E0A33B;
+}
+[data-contrast="high"] { --text: #FFFDF7; }

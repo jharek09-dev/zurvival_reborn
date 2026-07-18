@@ -38,6 +38,17 @@ export {
   type Soundscape,
 } from "./soundscape.js";
 
+// The FR-AUD-06 cue-redundancy matrix — every meaningful sound cue → its text equivalent (T56 pt 2 · ACCESSIBILITY §10.4)
+export {
+  CUE_MATRIX,
+  CUE_CHANNELS,
+  DEFERRED_CUES,
+  renderCueMatrix,
+  type CueMatrixEntry,
+  type CueChannel,
+  type DeferredCue,
+} from "./cueMatrix.js";
+
 // On-demand depth screens — inventory / companions / shelter / map / codex (T54 · FR-UI-04 · GDD XVII)
 export {
   DEPTH_SCREENS,

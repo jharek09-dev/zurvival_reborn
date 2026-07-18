@@ -74,3 +74,17 @@ jobs:
             exit 1
           fi
           echo "OK — schema gate rejected malformed content as required"
+
+      # --- Accessibility palette gate (T56 pt 2 · NFR-ACC-01/03): contrast + colourblind check of design/tokens.css ---
+      - name: A11y gate — design/tokens.css palette must pass (WCAG contrast + CVD)
+        working-directory: prototype/content-loader
+        run: npm run validate:a11y
+
+      - name: A11y gate — malformed palette must be rejected
+        working-directory: prototype/content-loader
+        run: |
+          if npm run --silent validate:a11y -- test/fixtures/bad-tokens.css; then
+            echo "::error::a11y gate ACCEPTED a malformed palette — the gate is not gating"
+            exit 1
+          fi
+          echo "OK — a11y gate rejected malformed palette as required"

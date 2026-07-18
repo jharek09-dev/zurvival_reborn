@@ -11,7 +11,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "validate": "tsx src/validateCli.ts"
+    "validate": "tsx src/validateCli.ts",
+    "validate:a11y": "tsx src/a11yCli.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1"
