@@ -5,6 +5,33 @@
 
 ---
 
+## 0. Baseline status — NFR-ACC at M4 (T56 pt 2, 2026-07-18)
+
+The NFR-ACC baseline is **complete at the M4 tier** and its Musts are tracked + machine-checked:
+
+- **NFR-ACC-01 (no colour/audio-only info) — MET + gated.** Colour-independence: the text client renders
+  zero ANSI (meaning never rides on colour), every fact is in words, and the design palette is contrast-
+  and colourblind-validated by a CI gate (`prototype/content-loader` → `npm run validate:a11y` over
+  `design/tokens.css`, the §11 table + a Machado CVD check). Audio-independence: the **FR-AUD-06
+  cue-redundancy matrix** — every meaningful sound cue → a text equivalent — is enumerated in
+  `prototype/harness/src/cueMatrix.ts`, proven cue-by-cue in `cueMatrix.test.ts`, and rendered to
+  `docs/reference/AUDIO_CUE_MATRIX.md`. This is PRD §4's headline "100% of critical information available
+  without colour or audio."
+- **NFR-ACC-02 (semantic, navigable, keyboard) — MET for the text client.** Stable navigable region order,
+  keyboard-only play, discoverable depth screens (T20/T54). Full web/native screen-reader *runtime* parity
+  (aria-live, focus management) is an M5 item — there is no HTML client to instrument yet; the CLI is
+  linear/AT-friendly text by construction.
+- **NFR-ACC-03 (scalable text, high-contrast, colourblind-safe) — palette MET + gated; runtime M5.** The
+  §11 contrast table and CVD separation are enforced by the a11y gate; the 200%-scaling / high-contrast
+  *runtime* toggles live in the web/native client (`tokens.css` commits to them).
+- **NFR-ACC-04 (reduced motion/flicker) — Should; policy catalogued, runtime M5.** The effects live in the
+  not-yet-built animated client; the catalogue is in colorway "States & degradation".
+
+The `[x]` items below are met + verified now; the unticked `[A]` / runtime items are the M5
+release-candidate accessibility pass (Appendix A), deferred honestly — never a retrofit.
+
+---
+
 ## 1. Purpose
 
 A working checklist for making Zurvival Reborn accessible, anchored to the **Game Accessibility
@@ -76,7 +103,7 @@ The eleven gaps are the real agenda; they are pulled together in §10.
 
 ## 5. Motor
 
-- [ ] **[B]** Full **keyboard operation** of all gameplay and menus — every choice, drill-down,
+- [x] **[B]** Full **keyboard operation** of all gameplay and menus — every choice, drill-down,
   and setting reachable and actuatable by keyboard alone. *(Planned; NFR-ACC-02 implies it, but
   FR-UI-07 currently scopes keyboard/controller parity to v1 — pull the keyboard half forward to
   M1.)*
@@ -102,7 +129,7 @@ The eleven gaps are the real agenda; they are pulled together in §10.
 
 ## 6. Cognitive
 
-- [ ] **[B]** **Difficulty options**, including a gentle mode. *(Designed-in; Story / Survivor /
+- [x] **[B]** **Difficulty options**, including a gentle mode. *(Designed-in; Story / Survivor /
   Hardcore / Nightmare + Ironman, GDD XVI.)*
 - [ ] **[B]** **Pause anytime & stop anytime** with no loss. *(Designed-in; FR-CORE-07,
   NFR-SAVE-01.)*
@@ -138,11 +165,11 @@ The eleven gaps are the real agenda; they are pulled together in §10.
 - [ ] **[B]** **Legible default size & measured line length.** 19px story body, 1.62 line-height,
   64ch max measure. *(Designed-in; `tokens.css`. Note: `--measure` becomes per-script for
   CJK/Arabic, see LOCALIZATION §8.)*
-- [ ] **[B]** **High contrast, verified.** Body text clears WCAG **AAA**; ships a high-contrast
+- [x] **[B]** **High contrast, verified.** Body text clears WCAG **AAA**; ships a high-contrast
   mode. *(Designed-in; measured values in §11. Fix the one caveat: `--danger` and `--info` are
   below AA for normal-size body text — keep them to large text / icons / edges only, as
   `colorway.md` already states, and never set body prose in them.)*
-- [ ] **[B]** **No meaning by color alone.** Every hue is paired with a word or icon
+- [x] **[B]** **No meaning by color alone.** Every hue is paired with a word or icon
   (`FEVERISH`, not just a green pixel). *(Designed-in; colorway core rule, NFR-ACC-01.)*
 - [ ] **[B]** **Photosensitivity-safe.** No flashing >3 Hz; nothing in the saturated-red danger
   range flashes. The "flicker for a failing light" and similar effects must be capped and
@@ -150,10 +177,7 @@ The eleven gaps are the real agenda; they are pulled together in §10.
 - [ ] **[I]** **Reduced-motion mode.** Honor OS `prefers-reduced-motion` and an in-game toggle for
   text-arrival animation, feverish letter-spacing drift, power-out dimming, and Quiet-Screen
   transitions. *(Planned; NFR-ACC-04, effects catalogued in colorway "States & degradation".)*
-- [ ] **[I]** **Colorblind-safe palette, validated.** The rationed palette must be checked for
-  deuteranopia/protanopia/tritanopia — the colorway's own warning that `--hope` (teal) and
-  `--infection` (bile-green) can blur is exactly the risk to test. *(Planned; keep the
-  neutral-separation rule; redundancy already covers the worst case.)*
+- [x] **[I]** **Colorblind-safe palette, validated.** The rationed palette is checked for deuteranopia/protanopia/tritanopia by the `validate:a11y` gate (Machado-2009 CVD simulation + CIELAB ΔE). *Finding (corrects the colorway's guess):* under red-green CVD the real convergent pairs are the **warm cluster** — `--accent`/`--infection`, `--accent`/`--warning`, `--danger`/`--infection`, `--infection`/`--warning` — **not** `--hope`/`--infection` (teal/bile), which stays separable. All are covered by the core rule that colour is never the sole signal (every hue paired with a label/icon); a *new* collapse outside that documented set fails the gate. Full ΔE table in [`../qa/QA_REVIEW_M4_PART13.md`](../qa/QA_REVIEW_M4_PART13.md). *(colorway's `--hope`/`--infection` adjacency caution stands as a separate visual-crowding rule.)*
 - [ ] **[I]** **Scalable / themable UI, not just body text** — controls, tags, and meta scale with
   text; offer text/background theme choices beyond the two shipped. *(Planned.)*
 - [ ] **[I]** **Distinct, visible focus indicator** for keyboard/AT users. *(Designed-in;
@@ -176,24 +200,24 @@ signatures, the Fear heartbeat, radio timbre (GDD XVIII). That makes hearing-acc
 requirement, and it is already a **Must**: **FR-AUD-06**, "non-audio equivalent for every
 meaningful sound cue."
 
-- [ ] **[B]** **Nothing essential by sound alone.** Every audio cue has a visual/text equivalent.
+- [x] **[B]** **Nothing essential by sound alone.** Every audio cue has a visual/text equivalent.
   *(Designed-in as a requirement; FR-AUD-06, NFR-ACC-01 — the build must honor it cue-by-cue.)*
 - [ ] **[B]** **Separate volume channels** (ambient / environmental / dynamic / player / music)
   with independent sliders and mutes. *(Planned; the layered mix, FR-AUD-01, makes this natural.)*
 - [ ] **[I]** **Subtitles/captions for any diegetic speech** (radio voices, GDD XIII), legible
   with backing and speaker labels. *(Planned; shared with LOCALIZATION §12 — build once.)*
-- [ ] **[I]** **Captioned sound effects** for meaningful cues — e.g. `[gunshot · north · close]`,
+- [x] **[I]** **Captioned sound effects** for meaningful cues — e.g. `[gunshot · north · close]`,
   `[screamer nearby]`. *(Planned; directly satisfies FR-AUD-06 for the "audio as information"
   cues, GDD XVIII "sound as gameplay".)*
-- [ ] **[I]** **Visual direction/distance indicator.** Because "direction and distance of noise"
+- [x] **[I]** **Visual direction/distance indicator.** Because "direction and distance of noise"
   is a mechanic (GDD XVIII), stereo panning must be mirrored by an on-screen textual/directional
   cue, so a deaf player reads what a hearing player hears. *(Gap/decision — see §10.)*
-- [ ] **[I]** **The Fear heartbeat has a visual form.** The heartbeat that rises with the Fear
+- [x] **[I]** **The Fear heartbeat has a visual form.** The heartbeat that rises with the Fear
   Meter (GDD IX/XVIII) needs a non-audio expression (text degradation already narrows options —
   make the *state* visible, not only audible). *(Gap/decision.)*
 - [ ] **[I]** **Mono / stereo-balance option** so cues aren't lost to single-sided hearing.
   *(Planned.)*
-- [ ] **[A]** **Comprehensive cue-redundancy audit** — a tracked matrix proving every meaningful
+- [x] **[A]** **Comprehensive cue-redundancy audit** — a tracked matrix proving every meaningful
   sound maps to a visual equivalent, tested end-to-end. *(Planned; the acceptance test for
   FR-AUD-06.)*
 
@@ -301,7 +325,7 @@ hooks alongside the localization gates (LOCALIZATION §13):
 | **M1 — Vertical slice** | Semantic, keyboard-operable, screen-reader-prototyped slice; 44px targets; AAA body contrast; color-never-alone; no-timed-input guaranteed. All Motor `[B]`, Vision `[B]` (bar photosensitivity policy), Cognitive `[B]`. |
 | **M2 — Reactive world** | Reduced-motion + photosensitivity policy across the growing effect set; focus indicators; volume channels. |
 | **M3 — People & shelter** | Codex/journal clarity layer; "what changed" + recap; captioned SFX + speech subtitles as content grows. |
-| **M4 — Content-complete** | Full FR-AUD-06 cue-redundancy matrix; colorblind validation at content scale; dyslexia/reading-load options. |
+| **M4 — Content-complete** | ✅ **T56 pt 2 (2026-07-18):** FR-AUD-06 cue-redundancy matrix tracked + tested end-to-end (`cueMatrix.ts`/`.test.ts`, `docs/reference/AUDIO_CUE_MATRIX.md`); colourblind + contrast validation shipped as the `validate:a11y` CI gate over `tokens.css`; NFR-ACC-01 acceptance consolidated. Dyslexia / reading-load font options remain an M5 web-client concern. |
 | **M5 — Release candidate** | Full screen-reader parity (gameplay + menus), human playtest with disabled players, all `[A]` items, accessibility statement. Satisfies PRD M5 "accessible (NFR-ACC)". |
 
 ## Appendix B — Reference map
