@@ -35,6 +35,7 @@ import {
   type RegionGraph,
 } from "../../engine/src/index.js";
 import { screenForKey, screenLegend, SCREEN_KEYS, type ScreenId } from "./screens.js";
+import { soundscapeCaptions } from "./soundscape.js";
 
 const pad2 = (n: number): string => (n < 10 ? `0${n}` : `${n}`);
 
@@ -131,9 +132,11 @@ export const FOOTER = `[choice number · screens: ${screenLegend()} · S save ·
 
 /**
  * The screen's regions, in the fixed navigable order a screen reader traverses (NFR-ACC-02). The
- * order never changes across turn types, so assistive tech and muscle memory both stay stable.
+ * order never changes across turn types, so assistive tech and muscle memory both stay stable. The
+ * `soundscape` band (T55 · FR-AUD-06) sits between status and story — you *sense* the world, then read
+ * the scene, then decide — so a sound-off player gets every audio cue in the text, in a stable place.
  */
-export const SCREEN_REGION_ORDER = ["header", "status", "story", "prompt", "choices", "footer"] as const;
+export const SCREEN_REGION_ORDER = ["header", "status", "soundscape", "story", "prompt", "choices", "footer"] as const;
 export type ScreenRegion = (typeof SCREEN_REGION_ORDER)[number];
 
 /** A rendered screen decomposed into its labelled regions (the T20 accessibility seam). */
@@ -141,13 +144,17 @@ export type ScreenRegions = { readonly [R in ScreenRegion]: readonly string[] };
 
 /**
  * Render a Scene + state into labelled regions. Every critical fact is in words (NFR-ACC-01): the
- * status carries needs/wounds/pack, the story carries place and any threat, and each choice carries
- * its known cost. Pure; no color, no glyph-only meaning — a screen reader gets everything.
+ * status carries needs/wounds/pack, the `soundscape` band carries what the player hears — the non-audio
+ * equivalent of every meaningful sound cue (T55 · FR-AUD-06) — the story carries place and any threat,
+ * and each choice carries its known cost. The optional `graph` lets the soundscape locate off-node
+ * sound by direction & distance (FR-AUD-02); without it the band is the node-local bed/body (still full
+ * and deterministic). Pure; no color, no glyph-only meaning — a screen reader gets everything.
  */
-export function renderRegions(scene: Scene, state: GameState): ScreenRegions {
+export function renderRegions(scene: Scene, state: GameState, graph?: RegionGraph): ScreenRegions {
   return {
     header: [`Day ${scene.day} · ${scene.phase} · ${weatherLabel(state.world.weather)} · ${pad2(scene.hour)}:00 · turn ${scene.turn}`],
     status: [...describeStatus(state)],
+    soundscape: [...soundscapeCaptions(state, graph)],
     story: [scene.narration.trim().length > 0 ? scene.narration.trim() : "The world is quiet."],
     prompt: ["What do you do?"],
     choices:
@@ -159,12 +166,13 @@ export function renderRegions(scene: Scene, state: GameState): ScreenRegions {
 }
 
 /**
- * Render a Scene + state as the story-first screen: header → status → story → choices → footer, in
- * that fixed order (FR-UI-01). Pure — returns lines, prints nothing. A blank line separates regions
- * so the column reads cleanly top-to-bottom (FR-UI-05 one-hand shape).
+ * Render a Scene + state as the story-first screen: header → status → soundscape → story → choices →
+ * footer, in that fixed order (FR-UI-01). Pure — returns lines, prints nothing. A blank line separates
+ * regions so the column reads cleanly top-to-bottom (FR-UI-05 one-hand shape). `graph` (optional) gives
+ * the soundscape its directional read (FR-AUD-02).
  */
-export function renderScene(scene: Scene, state: GameState): readonly string[] {
-  const r = renderRegions(scene, state);
+export function renderScene(scene: Scene, state: GameState, graph?: RegionGraph): readonly string[] {
+  const r = renderRegions(scene, state, graph);
   const lines: string[] = [];
   SCREEN_REGION_ORDER.forEach((region, i) => {
     // Blank line between regions, except keep the prompt attached to its choice list (one Q&A block).
@@ -236,10 +244,10 @@ export function playSession(
  * and the scene it produced. This is the plain-text artifact the accessibility contract (T20) leans
  * on: everything needed to follow the run is in the text, no color or audio required (NFR-ACC-01).
  */
-export function transcript(session: SessionResult): readonly string[] {
-  const lines: string[] = [...renderScene(session.opening, session.initial)];
+export function transcript(session: SessionResult, graph?: RegionGraph): readonly string[] {
+  const lines: string[] = [...renderScene(session.opening, session.initial, graph)];
   for (const t of session.turns) {
-    lines.push("", `> you chose: ${t.choiceId}`, "", ...renderScene(t.scene, t.state));
+    lines.push("", `> you chose: ${t.choiceId}`, "", ...renderScene(t.scene, t.state, graph));
   }
   return lines;
 }

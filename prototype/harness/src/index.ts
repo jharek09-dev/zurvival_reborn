@@ -30,6 +30,14 @@ export {
   type InputPlayResult,
 } from "./play.js";
 
+// The soundscape — the client-side Audio Director rendered as sound-captions (T55 · FR-AUD-01/02/06 · AUDIO §13.2)
+export {
+  describeSoundscape,
+  soundscapeCaptions,
+  EARSHOT_MAX,
+  type Soundscape,
+} from "./soundscape.js";
+
 // On-demand depth screens — inventory / companions / shelter / map / codex (T54 · FR-UI-04 · GDD XVII)
 export {
   DEPTH_SCREENS,

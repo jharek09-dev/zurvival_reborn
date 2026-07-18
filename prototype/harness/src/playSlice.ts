@@ -99,7 +99,7 @@ async function main(argv: readonly string[]): Promise<number> {
   process.stdout.write(`\n${banner}\n[keys: a number to choose · S to save & quit · Q to quit]\n`);
 
   const draw = (): void => {
-    process.stdout.write(`\n${renderScene(sceneOf(state, graph), state).join("\n")}\n\n> `);
+    process.stdout.write(`\n${renderScene(sceneOf(state, graph), state, graph).join("\n")}\n\n> `);
   };
 
   draw();
@@ -122,7 +122,7 @@ async function main(argv: readonly string[]): Promise<number> {
     const action = availableActions(state, graph).find((c) => c.id === cmd.choiceId)!.action;
     state = applyAction(state, action, graph).state;
     if (isRunOver(state)) {
-      process.stdout.write(`\n${renderScene(sceneOf(state, graph), state).join("\n")}\n\nThe run is over.\n`);
+      process.stdout.write(`\n${renderScene(sceneOf(state, graph), state, graph).join("\n")}\n\nThe run is over.\n`);
       break;
     }
     draw();
