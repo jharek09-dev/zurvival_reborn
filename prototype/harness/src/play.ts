@@ -34,6 +34,7 @@ import {
   type TrackedSystem,
   type RegionGraph,
 } from "../../engine/src/index.js";
+import { screenForKey, screenLegend, SCREEN_KEYS, type ScreenId } from "./screens.js";
 
 const pad2 = (n: number): string => (n < 10 ? `0${n}` : `${n}`);
 
@@ -121,8 +122,12 @@ export function describeChoice(index: number, choice: SceneChoice): string {
   return `  ${index}. ${choice.label}  (${cost})`;
 }
 
-/** The save/quit hint that closes the screen (footer). */
-export const FOOTER = "[type a choice number, or S to save and quit]";
+/**
+ * The footer that closes the screen. It advertises the one decision (a choice number), the depth
+ * screens on demand (FR-UI-04 — one key each, listed so nothing is missable, NFR-ACC-01), and the
+ * save/quit verbs. Built from the screen registry so the legend can never drift out of sync.
+ */
+export const FOOTER = `[choice number · screens: ${screenLegend()} · S save · Q quit]`;
 
 /**
  * The screen's regions, in the fixed navigable order a screen reader traverses (NFR-ACC-02). The
@@ -250,16 +255,27 @@ export function transcript(session: SessionResult): readonly string[] {
  */
 export type Command =
   | { readonly kind: "choice"; readonly choiceId: string }
+  | { readonly kind: "screen"; readonly screenId: ScreenId }
   | { readonly kind: "save" }
   | { readonly kind: "quit" }
   | { readonly kind: "invalid"; readonly reason: string };
 
-/** Parse a line of keyboard input against the scene's offered choices. Pure. */
+/**
+ * Parse a line of keyboard input against the scene's offered choices. Pure. A digit selects a choice;
+ * `S`/`Q` save/quit; a screen key (see {@link SCREEN_KEYS}) opens a depth screen on demand (FR-UI-04) —
+ * a screen is a read-only overlay, so the caller shows it and returns without resolving a turn.
+ */
 export function parseCommand(scene: Scene, input: string): Command {
   const t = input.trim().toLowerCase();
   if (t === "s") return { kind: "save" };
   if (t === "q") return { kind: "quit" };
-  if (!/^\d+$/.test(t)) return { kind: "invalid", reason: `type a number 1–${scene.choices.length}, S, or Q` };
+  const screen = screenForKey(t);
+  if (screen) return { kind: "screen", screenId: screen.id };
+  if (!/^\d+$/.test(t))
+    return {
+      kind: "invalid",
+      reason: `type a number 1–${scene.choices.length}, a screen key (${SCREEN_KEYS.map((k) => k.toUpperCase()).join("/")}), S, or Q`,
+    };
   const n = Number.parseInt(t, 10);
   const choice = scene.choices[n - 1];
   if (choice === undefined) return { kind: "invalid", reason: `no choice ${n} — pick 1–${scene.choices.length}` };
@@ -269,10 +285,16 @@ export function parseCommand(scene: Scene, input: string): Command {
 /** Why an input-driven play run stopped. */
 export type StopReason = "save" | "quit" | "end-of-input";
 
-/** Result of playing from keyboard input: the session so far and why it stopped. */
+/** Result of playing from keyboard input: the session so far, why it stopped, and any screens opened. */
 export interface InputPlayResult {
   readonly session: SessionResult;
   readonly stopped: StopReason;
+  /**
+   * Depth screens opened during play, in the order the keys were pressed (FR-UI-04). Each was a free
+   * read-only overlay — it never resolved a turn — so this list is proof the keyboard reaches the
+   * screens without spending time or changing state.
+   */
+  readonly screensViewed: readonly ScreenId[];
 }
 
 /**
@@ -286,6 +308,7 @@ export function playByInputs(
   inputs: readonly string[],
 ): InputPlayResult {
   const chosen: string[] = [];
+  const screensViewed: ScreenId[] = [];
   let current = state;
   let stopped: StopReason = "end-of-input";
   for (const raw of inputs) {
@@ -293,11 +316,12 @@ export function playByInputs(
     const cmd = parseCommand(scene, raw);
     if (cmd.kind === "save") { stopped = "save"; break; }
     if (cmd.kind === "quit") { stopped = "quit"; break; }
+    if (cmd.kind === "screen") { screensViewed.push(cmd.screenId); continue; } // a free overlay — no turn resolves
     if (cmd.kind === "invalid") continue;
     chosen.push(cmd.choiceId);
     current = applyAction(current, actionFor(current, graph, cmd.choiceId), graph).state;
   }
-  return { session: playSession(state, graph, chosen), stopped };
+  return { session: playSession(state, graph, chosen), stopped, screensViewed };
 }
 
 

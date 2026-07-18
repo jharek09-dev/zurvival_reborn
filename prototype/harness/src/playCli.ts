@@ -29,6 +29,7 @@ import {
 } from "../../engine/src/index.js";
 import { applyAction, availableActions, sceneOf } from "../../engine/src/index.js";
 import { parseCommand, renderScene, saveState } from "./play.js";
+import { renderDepthScreen } from "./screens.js";
 import { isRunOver } from "../../engine/src/index.js";
 import type { EncounterDef, SignalDef, RecipeDef, JobDef, FactionDef } from "../../engine/src/index.js";
 
@@ -96,6 +97,13 @@ async function main(argv: readonly string[]): Promise<number> {
       process.stdout.write(`Saved to ${savePath}. Resume with: npm run play -- --resume ${savePath}\n`);
       rl.close();
       return 0;
+    }
+    if (cmd.kind === "screen") {
+      // A depth screen is a read-only overlay (FR-UI-04): show it, then redraw the scene. No turn
+      // resolves, no time is spent, no state changes — opening a screen is free.
+      process.stdout.write(`\n${renderDepthScreen(cmd.screenId, state, graph).join("\n")}\n`);
+      draw();
+      continue;
     }
     if (cmd.kind === "invalid") { process.stdout.write(`(${cmd.reason})\n> `); continue; }
     const action = availableActions(state, graph).find((c) => c.id === cmd.choiceId)!.action;
