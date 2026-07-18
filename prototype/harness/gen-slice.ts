@@ -23,14 +23,14 @@ function play(steps: Step[]): string[] {
   let s: GameState = { ...state, player: { ...state.player, inventory: [
     { type: "item.scrap", quantity: 2 }, { type: "item.canned-food", quantity: 5 }, { type: "item.water", quantity: 5 },
   ] } };
-  const out: string[] = ["```", ...renderScene(sceneOf(s, graph), s), "```"];
+  const out: string[] = ["```", ...renderScene(sceneOf(s, graph), s, graph), "```"];
   for (const step of steps) {
     if ("note" in step && !("mutate" in step)) { out.push("", `_${step.note}_`, ""); continue; }
     if ("mutate" in step) { s = step.mutate(s); out.push("", `_${step.note}_`, ""); continue; }
     const c = availableActions(s, graph).find((x) => x.id === step.pick);
     if (!c) throw new Error(`"${step.pick}" not offered at ${s.player.location}; offered: ${availableActions(s, graph).map((x) => x.id).join(", ")}`);
     s = applyAction(s, c.action, graph).state;
-    out.push("", `**▸ you chose: ${c.label}**`, "", "```", ...renderScene(sceneOf(s, graph), s), "```");
+    out.push("", `**▸ you chose: ${c.label}**`, "", "```", ...renderScene(sceneOf(s, graph), s, graph), "```");
   }
   return out;
 }

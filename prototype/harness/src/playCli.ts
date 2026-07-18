@@ -85,7 +85,7 @@ async function main(argv: readonly string[]): Promise<number> {
 
   /** One atomic write: the whole screen, then the prompt — no interleaving, no partial repaint. */
   const draw = (): void => {
-    process.stdout.write(`\n${renderScene(sceneOf(state, graph), state).join("\n")}\n\n> `);
+    process.stdout.write(`\n${renderScene(sceneOf(state, graph), state, graph).join("\n")}\n\n> `);
   };
 
   draw();
@@ -109,7 +109,7 @@ async function main(argv: readonly string[]): Promise<number> {
     const action = availableActions(state, graph).find((c) => c.id === cmd.choiceId)!.action;
     state = applyAction(state, action, graph).state;
     if (isRunOver(state)) {
-      process.stdout.write(`\n${renderScene(sceneOf(state, graph), state).join("\n")}\n\nThe run is over.\n`);
+      process.stdout.write(`\n${renderScene(sceneOf(state, graph), state, graph).join("\n")}\n\nThe run is over.\n`);
       break;
     }
     draw();

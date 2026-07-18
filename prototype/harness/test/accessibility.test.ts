@@ -4,9 +4,11 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {
   startRun,
+  neighborsOf,
   type GameState,
   type NodeDef,
   type RegionDef,
+  type RegionGraph,
   type Wound,
 } from "../../engine/src/index.js";
 import {
@@ -161,6 +163,48 @@ describe("keyboard-only play — number keys, no pointer, no timing (T20 · NFR-
     const r = playByInputs(state, graph, ["3", "s", "3"]);
     expect(r.stopped).toBe("save");
     expect(r.session.turns.length).toBe(1); // only the pre-save turn resolved
+  });
+});
+
+// --- the soundscape is the sound-off channel (T55 · FR-AUD-06) --------------------------------
+
+describe("every meaningful sound cue has a text equivalent (T55 · FR-AUD-06, Must)", () => {
+  it("the soundscape is a stable region between status and story, present every turn", () => {
+    // it is standing information, not on-demand: a sound-off player never has to ask for a cue.
+    expect(SCREEN_REGION_ORDER.indexOf("soundscape")).toBe(SCREEN_REGION_ORDER.indexOf("status") + 1);
+    expect(SCREEN_REGION_ORDER.indexOf("soundscape")).toBeLessThan(SCREEN_REGION_ORDER.indexOf("story"));
+    const { state, graph } = base();
+    const region = renderRegions(playSession(state, graph, []).opening, state, graph).soundscape;
+    expect(region.length).toBeGreaterThan(0);
+  });
+
+  it("with sound off, an audible threat carries the danger AND its bearing in the text", () => {
+    const { state, graph } = base();
+    // a loud spike two hops out, the way there known → the caption must name distance and direction.
+    const one = neighborsOf(graph, state.player.location)[0]!;
+    const two = neighborsOf(graph, one).find((n) => n !== state.player.location)!;
+    const s: GameState = {
+      ...state,
+      nodes: {
+        ...state.nodes,
+        [one]: { ...state.nodes[one]!, discovered: true },
+        [two]: { ...state.nodes[two]!, noise: 90 },
+      },
+    };
+    const region = renderRegions(playSession(s, graph, []).opening, s, graph).soundscape.join(" ");
+    expect(region).toContain("["); // a bracketed sound caption is present
+    expect(region).toContain("near"); // the distance is in words
+    expect(region).toContain(`toward ${(graph as RegionGraph).nodes[one]!.name}`); // and the bearing
+  });
+
+  it("the soundscape leaks no number — Fear/proximity/sickness are all words", () => {
+    const { state, graph } = base();
+    const rich: GameState = {
+      ...state,
+      player: { ...state.player, condition: { ...state.player.condition, mind: { ...state.player.condition.mind, stress: 88 }, infection: { stage: "advanced", progression: 120 } } },
+    };
+    const region = renderRegions(playSession(rich, graph, []).opening, rich, graph).soundscape.join(" ");
+    expect(region).not.toMatch(/\b\d{1,3}\b/); // no raw 0–100 sim integers anywhere in the band
   });
 });
 
