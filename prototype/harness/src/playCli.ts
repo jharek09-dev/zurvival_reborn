@@ -28,6 +28,7 @@ import {
   type RegionGraph,
 } from "../../engine/src/index.js";
 import { applyAction, availableActions, sceneOf } from "../../engine/src/index.js";
+import { parseDifficulty, difficultyOf, modeInfo, isIronman } from "../../engine/src/index.js";
 import { parseCommand, renderScene, saveState } from "./play.js";
 import { renderDepthScreen } from "./screens.js";
 import { isRunOver } from "../../engine/src/index.js";
@@ -72,12 +73,35 @@ function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; 
     return { state, graph: buildRegionGraph(regions, nodes, encounters, signals, recipes, jobs, factions, npcs), savePath };
   }
   const seed = argv[2] && !argv[2].startsWith("--") ? argv[2] : "rivermouth-demo";
-  const { state, graph } = startRun({ seed, createdAt: new Date().toISOString() }, regions, nodes, npcs, [], encounters, signals, recipes, jobs, factions);
+  // Difficulty floor (T56 · GDD XVI): `--difficulty <story|survivor|hardcore|nightmare>` and `--ironman`.
+  // An unrecognized/absent mode ⇒ Survivor, the baseline, so a plain `npm run play` is unchanged.
+  const dIdx = argv.indexOf("--difficulty");
+  const difficulty = dIdx !== -1 && argv[dIdx + 1] ? parseDifficulty(argv[dIdx + 1]!) ?? undefined : undefined;
+  const ironman = argv.includes("--ironman");
+  const { state, graph } = startRun(
+    { seed, createdAt: new Date().toISOString(), ...(difficulty ? { difficulty } : {}), ...(ironman ? { ironman } : {}) },
+    regions,
+    nodes,
+    npcs,
+    [],
+    encounters,
+    signals,
+    recipes,
+    jobs,
+    factions,
+  );
   return { state, graph, savePath: DEFAULT_SAVE };
 }
 
 async function main(argv: readonly string[]): Promise<number> {
   let { state, graph, savePath } = boot(argv);
+  // The difficulty floor, surfaced once at boot so the player sees what they set (T56 · GDD XVI). Words
+  // only, no dial numbers; the Codex (L) screen carries the same readout for a returning player.
+  const mode = modeInfo(difficultyOf(state));
+  // Ironman's single-slot/no-reload rule is a full-client save-slot policy, not this demo's — say so, so the
+  // banner states the rule without implying the demo enforces permadeath (honesty).
+  const ironNote = isIronman(state) ? " · Ironman (one save, no take-backs — full-client enforced)" : "";
+  process.stdout.write(`Mode: ${mode.label}${ironNote} — ${mode.gloss}\n`);
   // terminal:false — never let readline echo or redraw the input line, so the screen can't
   // double-paint on Windows consoles; the loop owns every byte of output. The async line iterator
   // drains buffered input cleanly (interactive and piped alike) and ends on EOF.

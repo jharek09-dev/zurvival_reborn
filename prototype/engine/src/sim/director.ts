@@ -28,6 +28,7 @@
 
 import type { GameState, RegionState } from "../state/types.js";
 import { isSymptomatic } from "./infection.js";
+import { profileOf, scaleInt } from "./difficulty.js";
 
 // --- bands & steps (tunable) ----------------------------------------------------------------
 
@@ -80,11 +81,16 @@ export function directorBeat(state: GameState): DirectorBeat {
   return "hold";
 }
 
-/** Apply a beat's ±1 nudge to a region's danger dials, clamped 0–100. */
-function nudge(region: RegionState, beat: DirectorBeat): RegionState {
+/**
+ * Apply a beat's nudge to a region's danger dials, clamped 0–100. The **escalate** step is the difficulty
+ * pacing dial (T56, default `DIRECTOR_STEP`); **relief** is deliberately unscaled — a harder mode escalates
+ * a coasting run harder, it does not yank away the comeback rope the GDD's failure-spiral prevention
+ * promises (GDD XVI rule 4). `escalateStep` defaults to `DIRECTOR_STEP`, so the sole caller stays identical.
+ */
+function nudge(region: RegionState, beat: DirectorBeat, escalateStep = DIRECTOR_STEP): RegionState {
   if (beat === "escalate") {
-    const zombieDensity = clampPct(region.zombieDensity + DIRECTOR_STEP);
-    const threat = clampPct(region.threat + DIRECTOR_STEP);
+    const zombieDensity = clampPct(region.zombieDensity + escalateStep);
+    const threat = clampPct(region.threat + escalateStep);
     if (zombieDensity === region.zombieDensity && threat === region.threat) return region;
     return { ...region, zombieDensity, threat };
   }
@@ -113,7 +119,10 @@ export function tickDirector(state: GameState, hours: number): GameState {
 
   const beat = directorBeat(state);
   if (beat === "hold") return state;
-  const next = nudge(region, beat);
+  // Pacing dial (T56): scale the escalate nudge by difficulty. Survivor / unset ⇒ 1 ⇒ scaleInt returns
+  // DIRECTOR_STEP unchanged (byte-identical); harder modes escalate a coasting run faster, Story barely.
+  const escalateStep = scaleInt(DIRECTOR_STEP, profileOf(state).directorAggression);
+  const next = nudge(region, beat, escalateStep);
   if (next === region) return state;
   return { ...state, regions: { ...state.regions, [regionId]: next } };
 }

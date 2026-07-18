@@ -1,4 +1,10 @@
-import { SAVE_SCHEMA_VERSION, HUMANITY_BASELINE, type GameState, type NodeId } from "./types.js";
+import {
+  SAVE_SCHEMA_VERSION,
+  HUMANITY_BASELINE,
+  type DifficultyMode,
+  type GameState,
+  type NodeId,
+} from "./types.js";
 
 export interface InitialStateOptions {
   /** Run seed — sole origin of all randomness (DESIGN §9). */
@@ -10,6 +16,14 @@ export interface InitialStateOptions {
   readonly createdAt: string;
   /** Starting node; content-defined. Defaults to a placeholder until T6 lands content. */
   readonly startLocation?: NodeId;
+  /**
+   * Difficulty mode (T56 · GDD XVI); defaults to Survivor (the baseline) when omitted. `survivor` is
+   * stored as *absent* (it is the no-op), so a Survivor / default run is byte-identical to a
+   * pre-difficulty-modes run.
+   */
+  readonly difficulty?: DifficultyMode;
+  /** Ironman intent (T56 · GDD XVI) — layerable on any mode; recorded only when true. */
+  readonly ironman?: boolean;
 }
 
 /**
@@ -27,6 +41,14 @@ export function createInitialState(opts: InitialStateOptions): GameState {
       hour: 6,
       phase: "dawn",
       turn: 0,
+      // Difficulty (T56 · GDD XVI): stored ONLY for a non-baseline choice. Survivor is the no-op, so it
+      // normalizes to *absent* — a Survivor / default run's meta carries no `difficulty` key, byte-identical
+      // to a pre-difficulty-modes run. Ironman likewise records only when chosen. A conditional spread keeps
+      // the key set (and its order) unchanged on the baseline path, so the golden save bytes never move.
+      ...(opts.difficulty !== undefined && opts.difficulty !== "survivor"
+        ? { difficulty: opts.difficulty }
+        : {}),
+      ...(opts.ironman ? { ironman: true as const } : {}),
     },
     player: {
       condition: {

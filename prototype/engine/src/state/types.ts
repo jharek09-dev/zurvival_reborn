@@ -53,6 +53,14 @@ export type Flags = { readonly [flag: string]: boolean };
 export type Phase = "dawn" | "morning" | "midday" | "evening" | "night";
 
 /**
+ * Explicit difficulty modes (T56 · GDD XVI) that sit on top of the adaptive Director, letting a player set
+ * the floor. `survivor` is the intended baseline; its resolved dial profile — and that of an *unset*
+ * difficulty — is the identity (no-op), so a Survivor / legacy run plays and serializes exactly as it did
+ * before difficulty modes existed. The dial magnitudes live in `sim/difficulty.ts`.
+ */
+export type DifficultyMode = "story" | "survivor" | "hardcore" | "nightmare";
+
+/**
  * A node's aggregate zombie behavioural state — the FR-CBT-06 senses-driven machine (T25). One
  * state per node (not per corpse) keeps the sim phone-cheap while still giving a legible read.
  */
@@ -82,6 +90,19 @@ export interface Meta {
   readonly phase: Phase;
   /** Monotonic count of resolved turns; drives cooldowns and golden-run tests. */
   readonly turn: number;
+  /**
+   * Chosen difficulty mode (T56 · GDD XVI), or absent for the baseline. Written ONLY for a non-baseline
+   * mode — `survivor` normalizes to absent (it is the no-op), so a Survivor run's meta is byte-identical to
+   * a pre-difficulty-modes run, and `JSON.stringify` omits an unset field so the save bytes are unchanged.
+   * Optional + tolerated-absent on load ⇒ no save rung: an old save with no field simply reads as Survivor.
+   */
+  readonly difficulty?: DifficultyMode;
+  /**
+   * Ironman intent (T56 · GDD XVI): one save, no take-backs, death is final — layerable on any mode. The
+   * core records the intent and exposes it; the no-reload / single-slot enforcement is a client save-slot
+   * policy. Written only when chosen (absent = off), so a non-Ironman run is byte-identical.
+   */
+  readonly ironman?: true;
 }
 
 // ---------------------------------------------------------------------------

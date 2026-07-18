@@ -21,6 +21,7 @@
 import type { GameState, NodeId, RegionState } from "../state/types.js";
 import { drawInt, drawPick } from "../rng/streams.js";
 import { addItemBounded } from "./inventory.js";
+import { profileOf, scaleInt } from "./difficulty.js";
 
 /** Rivals draw a region down by `trunc(hours * survivorActivity / DIVISOR)` each turn. */
 export const LOOT_CONTEST_DIVISOR = 50;
@@ -99,10 +100,17 @@ export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string
   const region = state.regions[node.regionId];
   if (region === undefined || region.loot <= 0) return state;
 
-  const cap = searchYieldCap(region.loot, node.searchPct);
-  if (cap <= 0) return state;
+  const rawCap = searchYieldCap(region.loot, node.searchPct);
+  // Scarcity FIND-RATE dial (T56): a harder mode's smaller yieldCap makes a THIN search come up empty — the
+  // player finds less. Survivor / unset ⇒ lootYield 1 ⇒ yieldCap === rawCap and the guard is exactly the
+  // prior `cap <= 0` (byte-identical). The finite-stock DEBIT below draws against the RAW cap, so the
+  // region's depletion pacing stays owned by `lootContest`; lootYield gates find-success, not depletion. The
+  // dial never touches the loot TABLE, so the floor(f·len) pick hazard (T50) never arises. drawInt is one
+  // stream step regardless of range, so a Survivor search draws bit-identically.
+  const yieldCap = scaleInt(rawCap, profileOf(state).lootYield);
+  if (yieldCap <= 0) return state;
 
-  const drawn = drawInt(state.rng, state.meta.seed, "loot", 1, cap);
+  const drawn = drawInt(state.rng, state.meta.seed, "loot", 1, rawCap);
   const take = Math.min(region.loot, drawn.value);
   const pick = drawPick(drawn.rng, state.meta.seed, "loot", lootTableFor(kind, includeRadio, includeEconomy));
 
@@ -121,9 +129,16 @@ export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string
   };
 }
 
-/** Rivals thin one region by time passed (contest). Loot only ever falls; clamped at 0. Pure. */
-export function contestRegion(region: RegionState, hours: number): RegionState {
-  const drop = Math.trunc((Math.max(0, Math.trunc(hours)) * region.survivorActivity) / LOOT_CONTEST_DIVISOR);
+/**
+ * Rivals thin one region by time passed (contest). Loot only ever falls; clamped at 0. Pure.
+ *
+ * `contest` is the difficulty scarcity dial (T56) on the draw-down; it defaults to `1` and {@link scaleInt}
+ * short-circuits at `1`, so a Survivor / unset run — and every existing direct caller — debits exactly as
+ * before (byte-identical). Harder modes let the world eat the stock faster.
+ */
+export function contestRegion(region: RegionState, hours: number, contest = 1): RegionState {
+  const base = Math.trunc((Math.max(0, Math.trunc(hours)) * region.survivorActivity) / LOOT_CONTEST_DIVISOR);
+  const drop = scaleInt(base, contest);
   if (drop <= 0 || region.loot <= 0) return region;
   return { ...region, loot: clampPct(region.loot - drop) };
 }
@@ -136,10 +151,13 @@ export function contestRegion(region: RegionState, hours: number): RegionState {
 export function updateRegionContest(state: GameState, hours: number): GameState {
   const h = Math.max(0, Math.trunc(hours));
   if (h === 0) return state;
+  // Scarcity dial (T56): scale off-screen rivals' draw-down by difficulty. Survivor / unset ⇒ 1 ⇒ the exact
+  // prior contest (byte-identical); harder modes eat the stock faster, Story slower.
+  const contest = profileOf(state).lootContest;
   let changed = false;
   const regions: Record<string, RegionState> = {};
   for (const [id, region] of Object.entries(state.regions)) {
-    const next = contestRegion(region, h);
+    const next = contestRegion(region, h, contest);
     if (next !== region) changed = true;
     regions[id] = next;
   }
