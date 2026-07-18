@@ -1,5 +1,5 @@
 {
- "updated": "2026-07-17 (M4 Part 9 - T53: factions & inter-NPC relationships). FR-NPC-02/05/06/07 - GDD Part XII, the game's soul. One content-driven social system makes survivors socially alive: per-character memory drives per-relationship trust/respect/fear (not a global bar, FR-NPC-02); ask a trusting survivor what they know and their authored knowledge REVEALS a real node or marks a discovery (FR-NPC-06 - listening pays in world state); mistreat a companion - neglect them, menace them into service, lead them cruelly - and they DESERT (a legible tell first) or, worse, BETRAY and rob the base (FR-NPC-05); co-faction survivors bond, rivals clash, and shelter morale moves with who lives together (FR-NPC-07). Closes the long-deferred off-screen people-sim (PL-M3-02/PL-M4-35): survivors drift + regroup while you're away, and stage-10 moveGroups finally does something. All gated behind a graph.factions pool (socialActive) - NO save rung (stays v10, optional/tolerated-absent axes), NO new RNG stream, NO loot growth; every prior run byte-identical (proven cross-tree, 13 seeds, raw). CI green: engine 561 / content-loader 9 / harness 111 / schema gate 160 entries across 13 types / malformed rejected. Two-subagent adversarial audit + a verify pass - all findings fixed. Next: T54 (depth screens).",
+ "updated": "2026-07-17 (M4 Part 10 - T54: depth screens). FR-UI-04 - GDD Part XVII \"information on demand\". Five on-demand, read-only drill-down screens over the one-decision story screen: inventory (weight/categories/artifacts), companions (condition/trust-tier/orders - the withheld orders locked with the real gate in words), shelter (walls/rooms/jobs + a daily report scanned from the Living History), map/journal (fog/node-memory/your notes/history), codex (lore/radio/rumors/memorial). Because every fact already lives in the engine's read API, the whole feature is HARNESS-ONLY - NO engine/content/schema/save/RNG change - so the determinism surface is literally unedited and byte-identity holds BY CONSTRUCTION (engine tree zero-diff vs baseline). Opening a screen resolves no turn, spends no time, mutates no state. Words-only (infection a symptom, trust a tier - never a number), keyboard-reachable (I/C/B/M/L, none colliding with S/Q), the footer advertises them, component states (pressed/focus/locked) rendered in text. Two-subagent adversarial audit + verify pass: 0 blockers, 7 findings all fixed - incl. three dead-affordance/comprehension bugs (a companions 'ask' the engine can't perform, a shelter 'could build' that listed already-built rooms, a scavenge order shown available with no base) now all truthful to the engine's actual offer. CI green: engine 561 / content-loader 9 / harness 137 (+26) / schema gate 160 entries-13 types / malformed rejected / smoke exit 0. Save stays v10; 14-stage pipeline untouched. Next: T55 (adaptive audio + non-audio equivalents).",
  "phase": "M4 Content-complete city — breadth without repetition, the full first city. The launch Content Bible for one city: all regions & nodes, the target survivor pool with several companions, full encounter categories with chains & evolution, infection as staged identity, the radio network, a crafting/rooms/jobs economy, factions & inter-NPC relationships, depth screens, an adaptive audio mix with non-audio equivalents, difficulty modes, and the accessibility baseline complete — all content schema-validated in CI. Exit: MVP / public beta. Entry: M3 done and the Slice Fun Gate passed; content schemas frozen for authoring.",
  "currentMilestone": "M4",
  "milestones": [
@@ -429,8 +429,8 @@
    "id": "T54",
    "title": "Depth screens",
    "milestone": "M4",
-   "status": "todo",
-   "note": "FR-UI-04: on-demand depth screens — inventory, companions, shelter, map/journal, codex — layered over the story-first single-decision Scene without cluttering it. Keyboard-navigable and screen-reader friendly from the first cut (NFR-ACC-01/02); critical info never conveyed by colour or pointer alone; matches the M4 component-library states (default/pressed/focus halo/trust-locked)."
+   "status": "done",
+   "note": "Done 2026-07-17 (M4 Part 10): FR-UI-04 depth screens on demand - inventory/companions/shelter/map-journal/codex. HARNESS-ONLY (new prototype/harness/src/screens.ts + seams in play/playCli/playSlice.ts + a {kind:'screen'} Command variant, parseCommand routing, a registry-built footer, a free-overlay loop). NO engine/content/schema/save/RNG change, so byte-identity holds BY CONSTRUCTION (diff -r prototype/engine/src vs the pre-edit baseline is EMPTY; content/ too). Each screen a pure (state,graph)=>lines: opening one resolves no turn, spends no time, mutates no state (proven - JSON.stringify(state) unchanged; a screen key in playByInputs adds no turn, recorded in a new screensViewed list; transcript byte-identical with/without screen keys). Words-only, no bar, no number (infection a symptom, trust a TIER word not the 0-100 scalar); orders read from the engine's own companionOrderChoices so the screen never promises an order the engine refuses - withheld ones locked with the real gate in words (scavenge needs trust AND a base; guard needs trust). Keyboard-reachable by one mnemonic key each (I/C/B/M/L), footer advertises them (nothing missable); component states in text (pressed=active title bar, focus=marker+words, locked=gate in words). Two-subagent adversarial audit (engineering: zero-drift/non-mutation/no-crash; design: reachable AND surfaced) + a verify pass each - 0 blockers, 7 findings ALL fixed+re-verified: 3 dead-affordance/comprehension bugs (companions 'ask them' the engine can't do -> removed; shelter 'could build' listed already-built rooms -> now unbuilt room recipes; scavenge shown available with no base -> now derives from the engine offer), shelter daily report now persisted from the Living History, humanity voice/double-period, polish (item names, artifact-label gating, memorial caps, footer), + defensive ?? [] guards. CI green: engine 561 (untouched) / content-loader 9 / harness 137 (+26) / schema gate 160-13 / malformed rejected / smoke exit 0. Save v10; 14-stage pipeline untouched. Parking lot PL-M4-45..48 (Quiet Screen/FR-UI-06, in-screen actions, codex lore content, companion-lead surfacing)."
   },
   {
    "id": "T55",
@@ -958,6 +958,26 @@
    "id": "PL-M4-44",
    "from": "M4 Part 9 T53 (audit)",
    "note": "Respect is surfaced weakly: attitudeRead's 'meeting your eye with contempt' (respect<15) is effectively shadowed by the fear branch (menace, the only respect-lowering act, pushes fear past the earlier fear read), and 'deferring to you' (respect>=75) needs ~11 feeds. Fear is the readily-legible axis; respect is felt mostly through the desertion/betrayal it feeds. A later pass could give respect its own reachable behavioral consequence (order-deference terms, a respected leader's companions hold harder) so the third axis is felt directly, not only through the hard turns."
+  },
+  {
+   "id": "PL-M4-45",
+   "from": "M4 Part 10 T54",
+   "note": "FR-UI-06 emotional UI + the \"Quiet Screen\" (SCR-08, Should/MVP) is deferred - the loss-moment UI strip-back (fewer options, more whitespace, bare text + one way forward after a death/loss) and state-degraded rendering (the UI goes dark on power loss, degrades when feverish). Distinct from the T54 depth screens; its own presentation block."
+  },
+  {
+   "id": "PL-M4-46",
+   "from": "M4 Part 10 T54",
+   "note": "In-screen actions / sub-navigation deferred. T54's depth screens INFORM the one decision and point at the actions; the actions themselves (equip/use/drop, give an order, assign a job, travel, add a note) stay on the primary Scene per FR-UI-01 (one decision at a time). A shipping GUI client may fold quick actions into the screens; the text harness keeps the decision loop single."
+  },
+  {
+   "id": "PL-M4-47",
+   "from": "M4 Part 10 T54",
+   "note": "The codex renders whatever story.lore / story.mysteries exist, but no real lore/rumor CONTENT set is authored yet - the LORE section reads empty on a fresh run. Authoring discoverable lore fragments (found notes, radio logs, memorial pages) is a later content block (FR-STORY / GDD three-layer story)."
+  },
+  {
+   "id": "PL-M4-48",
+   "from": "M4 Part 10 T54",
+   "note": "A companion's authored `knowledge` leads aren't surfaced once recruited: the engine's `ask` verb reads MET NPCs (state.npcs), not companions (state.actors), so a recruited survivor's leads become unreachable. T54 removed the misleading 'ask them' teaser rather than promise an action the engine won't perform; exposing companion leads (a small engine ask-for-companions feature, or a passive recall on the companions screen) is deferred."
   }
  ],
  "loopFeelCheck": {

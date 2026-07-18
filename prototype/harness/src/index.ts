@@ -29,3 +29,23 @@ export {
   type StopReason,
   type InputPlayResult,
 } from "./play.js";
+
+// On-demand depth screens — inventory / companions / shelter / map / codex (T54 · FR-UI-04 · GDD XVII)
+export {
+  DEPTH_SCREENS,
+  SCREEN_KEYS,
+  RESERVED_KEYS,
+  SCREEN_BACK_HINT,
+  screenForKey,
+  screenById,
+  screenLegend,
+  renderDepthScreen,
+  renderInventory,
+  renderCompanions,
+  renderShelter,
+  renderMap,
+  renderCodex,
+  historyLine,
+  type ScreenId,
+  type DepthScreen,
+} from "./screens.js";

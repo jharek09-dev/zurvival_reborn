@@ -18,6 +18,8 @@ import {
   renderRegions,
   renderScene,
   transcript,
+  DEPTH_SCREENS,
+  SCREEN_KEYS,
 } from "../src/index.js";
 
 /**
@@ -159,5 +161,22 @@ describe("keyboard-only play — number keys, no pointer, no timing (T20 · NFR-
     const r = playByInputs(state, graph, ["3", "s", "3"]);
     expect(r.stopped).toBe("save");
     expect(r.session.turns.length).toBe(1); // only the pre-save turn resolved
+  });
+});
+
+// --- depth screens are on demand, advertised, and reachable (T54 · FR-UI-04) ------------------
+
+describe("depth screens are discoverable and keyboard-reachable (T54 · NFR-ACC-01/02)", () => {
+  it("the footer advertises every depth-screen key — nothing is missable", () => {
+    // the persistent footer is where a player learns the screens exist (no pointer, no hidden gesture).
+    for (const d of DEPTH_SCREENS) expect(FOOTER.toLowerCase()).toContain(d.key.toLowerCase());
+  });
+
+  it("every screen key opens a screen and none resolves a turn (a free overlay)", () => {
+    const { state, graph } = base();
+    // pressing all five screen keys, then a single real choice, resolves exactly one turn.
+    const r = playByInputs(state, graph, [...SCREEN_KEYS, "1"]);
+    expect(r.screensViewed).toEqual(DEPTH_SCREENS.map((d) => d.id));
+    expect(r.session.turns.length).toBe(1);
   });
 });

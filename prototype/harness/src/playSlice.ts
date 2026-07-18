@@ -34,6 +34,7 @@ import {
   type RegionGraph,
 } from "../../engine/src/index.js";
 import { parseCommand, renderScene, saveState } from "./play.js";
+import { renderDepthScreen } from "./screens.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const contentDir = join(here, "..", "..", "..", "content");
@@ -110,6 +111,12 @@ async function main(argv: readonly string[]): Promise<number> {
       process.stdout.write(`Saved to ${DEFAULT_SAVE}. Resume with: npm run play -- --resume ${DEFAULT_SAVE}\n`);
       rl.close();
       return 0;
+    }
+    if (cmd.kind === "screen") {
+      // A depth screen is a read-only overlay (FR-UI-04): show it, redraw, resolve no turn.
+      process.stdout.write(`\n${renderDepthScreen(cmd.screenId, state, graph).join("\n")}\n`);
+      draw();
+      continue;
     }
     if (cmd.kind === "invalid") { process.stdout.write(`(${cmd.reason})\n> `); continue; }
     const action = availableActions(state, graph).find((c) => c.id === cmd.choiceId)!.action;
