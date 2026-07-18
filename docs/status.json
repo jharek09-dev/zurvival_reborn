@@ -1,5 +1,5 @@
 {
- "updated": "2026-07-18 (M4 Part 11 - T55: adaptive audio + non-audio equivalents). FR-AUD-01/02/06 - AUDIO bible / GDD Part XVIII. A standing SOUNDSCAPE renders the AUDIO bible's client-side Audio Director (§13.2) as always-on text sound-captions, so the game is fully playable with sound off (FR-AUD-06, Must). Five adaptively-mixed layers: ambient bed, environmental one-shots, the informational layer (noise by direction+distance over a BFS earshot, the seven zombie-type signatures, behavioural state reads, the horde bed), the player body (heartbeat scaled by composited Fear; infection distortion by stage, fairly), and the music/tone (theme + 0-4 intensity, level-0 = silence). HARNESS-ONLY - NO engine/content/schema/save/RNG change - so byte-identity holds BY CONSTRUCTION (engine + content trees zero-diff vs baseline). Direction is fair-to-fog; no number leaks; a pure (state,graph)=>Soundscape (no writes, no RNG, no clock). Two-subagent adversarial audit + verify pass: 0 blockers, 7 findings all fixed (heartbeat under-reading danger; Danger tone pinned at L4; a mis-attributed noise line; a non-urgency-aware cap; horde-size; moan double-statement; hardening); purity/no-leak proven over 882k states. CI green: engine 561 (+0) / content-loader 9 / harness 170 (+33) / schema gate 160-13 / smoke exit 0. Save stays v10; 14-stage pipeline untouched. Next: T56 (difficulty modes + the NFR-ACC accessibility baseline completed).",
+ "updated": "2026-07-18 (M4 Part 12 - T56 pt 1/2: difficulty modes). GDD XVI - Story/Survivor/Hardcore/Nightmare + Ironman as an explicit floor on the adaptive Director, driven by scarcity + survivability, not enemy-stat inflation (rule 1). One new sim/difficulty.ts holds a 5-scalar dial profile (survivability needDrift/needRelief; scarcity lootYield find-denial gate + lootContest; pacing directorAggression integer escalate step) threaded read-only into 5 existing rate-seams. Survivor/unset = IDENTITY: every dial 1, applied through scaleInt which short-circuits at 1, so a baseline run executes the identical integer expression - byte-identical to the pre-edit tree (cross-tree saveGame proof, md5 5a67911b..., non-vacuous). NO save rung (meta.difficulty?/meta.ironman? optional-tolerated-absent, Survivor normalizes to absent, stays v10); no loot-table growth, no baseline RNG draw. Reachable via playCli --difficulty/--ironman (unknown -> Survivor); surfaced words-only in the Codex 'This run' readout + boot banner (no number leak). Magnitudes are directional first-pass - M5 calibrates. Two-subagent adversarial audit + verify pass: 0 blockers; fixed a prototype-key resolver hole, a dead Hardcore director (integer steps now: Hardcore 2 / Nightmare 3), an Ironman over-claim, and a dead Story lootYield. CI green: engine 580 (+19) / content-loader 9 / harness 175 (+5) / schema gate 160 entries-13 types / smoke exit 0. Save stays v10; 14-stage pipeline untouched. T56 is two halves; this is part 1 (difficulty). Next: T56 part 2 (M4 Part 13) - the NFR-ACC accessibility baseline completed.",
  "phase": "M4 Content-complete city — breadth without repetition, the full first city. The launch Content Bible for one city: all regions & nodes, the target survivor pool with several companions, full encounter categories with chains & evolution, infection as staged identity, the radio network, a crafting/rooms/jobs economy, factions & inter-NPC relationships, depth screens, an adaptive audio mix with non-audio equivalents, difficulty modes, and the accessibility baseline complete — all content schema-validated in CI. Exit: MVP / public beta. Entry: M3 done and the Slice Fun Gate passed; content schemas frozen for authoring.",
  "currentMilestone": "M4",
  "milestones": [
@@ -444,7 +444,7 @@
    "title": "Difficulty modes & accessibility baseline complete",
    "milestone": "M4",
    "status": "todo",
-   "note": "Difficulty modes in — survivability/scarcity/pacing dials, calibrated later in the M5 staged balance passes; and the NFR-ACC baseline completed from its M1 start (NFR-ACC-01..04): text-first with no colour/audio-only cues, keyboard-only, screen-reader navigable, one-hand mobile layout. Accessibility is a Must from the first UI and finished here — never an M5 retrofit."
+   "note": "[PART 1 of 2 - difficulty modes - DONE 2026-07-18 (M4 Part 12)] Difficulty modes shipped: Story/Survivor/Hardcore/Nightmare + Ironman (GDD XVI), as an explicit floor on top of the adaptive Director - via scarcity + survivability, never enemy-stat inflation (rule 1). One new sim/difficulty.ts: a 5-scalar dial profile (survivability needDrift/needRelief; scarcity lootYield find-denial gate + lootContest depletion; pacing directorAggression integer escalate step) threaded read-only into 5 existing rate-seams (updateCondition/eat/drink, resolveSearchLoot/updateRegionContest, tickDirector). Survivor - and an unset difficulty - is the IDENTITY profile (every dial 1) and each dial is applied through scaleInt(n,mult) which short-circuits to the exact input at mult===1, so a baseline run executes the identical integer expression as before T56 -> byte-identical to the pristine pre-edit tree (cross-tree saveGame proof, md5 5a67911b..., non-vacuous: nightmare/story diverge by thousands of fields). NO save rung: meta.difficulty?/meta.ironman? optional-tolerated-absent (Survivor normalizes to absent, JSON.stringify omits an unset field), stays v10; the dials never grow a loot table and add no baseline RNG draw. Reachable via playCli --difficulty/--ironman (unknown -> Survivor, so plain `npm run play` unchanged); surfaced words-only in the Codex 'This run' readout + the boot banner (no number leak). Magnitudes are directional FIRST-PASS - M5 staged balance passes calibrate them. Two-subagent adversarial audit + a verify pass each: 0 blockers, findings fixed (prototype-key resolver hole -> hasOwnProperty guard; Hardcore director was dead == Survivor because trunc(1x1.5)=1 -> integer escalate steps, Hardcore 2/Nightmare 3, with a regression test; Ironman text over-claimed permadeath -> reworded to the rule + full-client enforcer; Story lootYield was a dead '>1 richer' knob -> neutral find-denial gate, Story loot ease rides lootContest). Ratified scope: needDrift scales the PLAYER's clock only (companions/residents ride the shelter-economy loot dials). CI green: engine 580 (+19) / content-loader 9 / harness 175 (+5) / schema gate 160-13 / malformed rejected / smoke exit 0. See docs/plans/M4_PART12_PLAN.md, docs/qa/QA_REVIEW_M4_PART12.md. [PART 2 of 2 - REMAINS (-> M4 Part 13): the NFR-ACC baseline completed from its M1 start (NFR-ACC-01..04) - text-first with no colour/audio-only cues, keyboard-only, screen-reader navigable, one-hand mobile layout; a Must from the first UI, finished here, never an M5 retrofit. T56 flips to done when Part 2 lands.]"
   },
   {
    "id": "T57",
@@ -998,6 +998,36 @@
    "id": "PL-M4-52",
    "from": "M4 Part 11 T55",
    "note": "Hearing-damage (tinnitus) as a PLAYED state (AUDIO §6.4): a close gunshot/blast dropping the world into muffle+ring for a stretch, deaf to threat cues, is a MECHANIC (it changes what the player can perceive) and so an engine concern - not this side-effect-free presentation pass. Noted for a later combat-audio task, alongside distinguishing the player's own gunshot as a discrete louder cue (§6.1/§6.3), a fidelity win the current 'it's loud here' line approximates."
+  },
+  {
+   "id": "PL-M4-53",
+   "from": "M4 Part 12 T56",
+   "note": "Dial calibration: the non-identity difficulty magnitudes (Story/Hardcore/Nightmare) are directional FIRST-PASS; the real numbers come from the M5 staged balance passes (GDD XIX - survivability/scarcity/pacing) against the 'one more day' target. Only the Survivor identity column is permanent."
+  },
+  {
+   "id": "PL-M4-54",
+   "from": "M4 Part 12 T56",
+   "note": "Dial resolution floor (audit's systemic note): lootContest/lootYield act on base magnitudes often equal to 1, where trunc(1 x m) erases any multiplier in the open interval (1,2) - so at Rivermouth's starting region activity Hardcore/Nightmare loot contest resolves IDENTICALLY to Survivor. M5 must fix this STRUCTURALLY (raise the base granularity or carry the fractional remainder across ticks), not by re-picking magnitudes alone (the same trap that made the pre-audit director dial dead; the director dial is now out of it via integer steps)."
+  },
+  {
+   "id": "PL-M4-55",
+   "from": "M4 Part 12 T56",
+   "note": "Ironman client enforcement: one save slot, autosave-over, no reload, delete-on-death. The engine records meta.ironman and exposes isIronman(state); the actual single-slot / no-take-back enforcement is a client save-slot policy, not the demo CLI's single zurvival-save.json. The Codex/banner readouts state the rule and name the full client as the enforcer (honesty)."
+  },
+  {
+   "id": "PL-M4-56",
+   "from": "M4 Part 12 T56",
+   "note": "Mid-run difficulty change (ACCESSIBILITY 6 [A] 'Difficulty adjustable mid-run'): interacts with Ironman / roguelite integrity - decide which modes allow it. Deferred; pairs with the Part-13 accessibility settings surface (see PL-M4-51)."
+  },
+  {
+   "id": "PL-M4-57",
+   "from": "M4 Part 12 T56",
+   "note": "Consequence sub-dials: infection advance rate, wound severity, combat lethality as their own difficulty dials for the 'harsher consequences' half of Hardcore/Nightmare, beyond needs+scarcity+pacing. The three-axis set shipped is deliberately minimal; finer consequence dials are an M5 tuning extension (and must honour rule 1 - no raw enemy-stat inflation)."
+  },
+  {
+   "id": "PL-M4-58",
+   "from": "M4 Part 12 T56",
+   "note": "needDrift scales the PLAYER's survival clock only (ratified scope decision: companions and residents are sustained by the shelter economy, so their scarcity rides the loot/stash dials, not a personal drift multiplier). Extending needDrift to companion/NPC drift so a harder mode's clock reaches everyone is a coherent M5 tuning option."
   }
  ],
  "loopFeelCheck": {

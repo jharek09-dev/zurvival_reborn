@@ -24,6 +24,7 @@ import type { GameState, Needs } from "../state/types.js";
 import type { Action } from "../pipeline/contract.js";
 import { isWounded, treatWound, woundRemainder, worstWound } from "./wounds.js";
 import { advanceInfection, hasSuccumbed, stageFatigue } from "./infection.js";
+import { profileOf, scaleInt } from "./difficulty.js";
 
 // Infection is now a staged identity (T49 · `sim/infection.ts`). survival.ts keeps owning the needs +
 // wound-decline drift and the run-end derivation, and re-exports the infection dials it drives so the
@@ -123,13 +124,22 @@ function consume(state: GameState, type: string): GameState["player"]["inventory
 
 // --- needs drift + wound decline (pipeline stage 4) -----------------------------------------
 
-/** Drift needs by the hours spent; rest recovers fatigue instead of adding it. Pure. */
-export function driftNeeds(needs: Needs, isRest: boolean, hours: number): Needs {
+/**
+ * Drift needs by the hours spent; rest recovers fatigue instead of adding it. Pure.
+ *
+ * `drift` is the difficulty survivability dial (T56): it scales how fast hunger/thirst/fatigue *climb*
+ * (rest recovery is unscaled — recovery is the counterplay, not the clock). It defaults to `1`, and
+ * {@link scaleInt} short-circuits at `1`, so a Survivor / unset run — and every existing direct caller —
+ * computes the identical integers with no multiply in the path (byte-identical to before T56).
+ */
+export function driftNeeds(needs: Needs, isRest: boolean, hours: number, drift = 1): Needs {
   if (hours === 0) return needs;
   return {
-    hunger: clampPct(needs.hunger + HUNGER_RATE * hours),
-    thirst: clampPct(needs.thirst + THIRST_RATE * hours),
-    fatigue: isRest ? clampPct(needs.fatigue - REST_RECOVERY) : clampPct(needs.fatigue + FATIGUE_RATE * hours),
+    hunger: clampPct(needs.hunger + scaleInt(HUNGER_RATE * hours, drift)),
+    thirst: clampPct(needs.thirst + scaleInt(THIRST_RATE * hours, drift)),
+    fatigue: isRest
+      ? clampPct(needs.fatigue - REST_RECOVERY)
+      : clampPct(needs.fatigue + scaleInt(FATIGUE_RATE * hours, drift)),
   };
 }
 
@@ -147,7 +157,9 @@ export function updateCondition(state: GameState, action: Action): GameState {
   const cond = state.player.condition;
   const isRest = action.type === "rest" || action.type === "quarantine";
 
-  let needs = driftNeeds(cond.needs, isRest, hours);
+  // Survivability dial (T56): scale how fast needs climb by the run's difficulty. Survivor / unset ⇒ 1 ⇒
+  // driftNeeds computes exactly as before (byte-identical); harder modes bite faster, Story slower.
+  let needs = driftNeeds(cond.needs, isRest, hours, profileOf(state).needDrift);
 
   // Wound decline: each open wound tires you; an untreated bite is the infection driver.
   const openWounds = cond.wounds.filter((w) => woundRemainder(w) > 0);
@@ -196,7 +208,9 @@ export function eat(state: GameState): GameState {
   const food = foodOnHand(state);
   if (food === null) return state;
   const inventory = consume(state, food);
-  const relief = FOOD_RELIEF[food] ?? EAT_RELIEF;
+  // Survivability dial (T56): scale how much a ration buys back. Survivor / unset ⇒ 1 ⇒ the exact prior
+  // relief (byte-identical); Story feeds you more, harsher modes less.
+  const relief = scaleInt(FOOD_RELIEF[food] ?? EAT_RELIEF, profileOf(state).needRelief);
   const needs = { ...state.player.condition.needs, hunger: clampPct(state.player.condition.needs.hunger - relief) };
   return { ...state, player: { ...state.player, inventory, condition: { ...state.player.condition, needs } } };
 }
@@ -205,7 +219,9 @@ export function eat(state: GameState): GameState {
 export function drink(state: GameState): GameState {
   if (!carries(state, WATER_ITEM)) return state;
   const inventory = consume(state, WATER_ITEM);
-  const needs = { ...state.player.condition.needs, thirst: clampPct(state.player.condition.needs.thirst - DRINK_RELIEF) };
+  // Survivability dial (T56): Survivor / unset ⇒ 1 ⇒ the exact prior DRINK_RELIEF (byte-identical).
+  const relief = scaleInt(DRINK_RELIEF, profileOf(state).needRelief);
+  const needs = { ...state.player.condition.needs, thirst: clampPct(state.player.condition.needs.thirst - relief) };
   return { ...state, player: { ...state.player, inventory, condition: { ...state.player.condition, needs } } };
 }
 

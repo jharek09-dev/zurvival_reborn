@@ -70,6 +70,10 @@ import {
   audibleSignals,
   hasRadio,
   humanityBand,
+  // difficulty / run info (T56 · GDD XVI)
+  difficultyOf,
+  isIronman,
+  modeInfo,
   // condition
   isWounded,
   worstWound,
@@ -707,6 +711,18 @@ export function renderMap(state: GameState, graph?: RegionGraph): readonly strin
 /** SCR-07 · Journal. Three layers at your pace; the radio is alive; the memorial remembers by name and how. */
 export function renderCodex(state: GameState, graph?: RegionGraph): readonly string[] {
   const body: string[] = ["The story you uncover, and the people you couldn't keep."];
+
+  // This run — the difficulty floor the player set (T56 · GDD XVI), so a returning player re-orients
+  // (ACCESSIBILITY §6 "where am I"). Words only: the mode name + its gloss, never a dial number.
+  const mode = modeInfo(difficultyOf(state));
+  section(body, "This run", [
+    `  - ${mode.label}${isIronman(state) ? " · Ironman" : ""} — ${mode.gloss}`,
+    // Ironman is a persisted intent; the single-slot / no-reload rule is enforced by the full client's save
+    // slots, not this demo — so state the RULE without claiming the demo delivers permadeath (honesty).
+    ...(isIronman(state)
+      ? ["  - Ironman: one save, no take-backs — death is meant to be final. (The full client's save slots enforce it.)"]
+      : []),
+  ]);
 
   // Lore — discovered fragments.
   const lore = state.story.lore;

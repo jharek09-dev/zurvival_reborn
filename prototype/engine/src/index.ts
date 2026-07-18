@@ -456,6 +456,24 @@ export {
   type DirectorBeat,
 } from "./sim/director.js";
 
+// Explicit difficulty modes — the floor a player sets on top of the adaptive Director; scalar dials on
+// survivability/scarcity/pacing where Survivor (and an unset difficulty) is the identity, so a baseline run
+// is byte-identical to a pre-difficulty-modes run. Ironman is a layerable, persisted intent (T56 · GDD XVI).
+// `DifficultyMode` itself is re-exported via `export * from state/types` above.
+export {
+  DIFFICULTY_MODES,
+  IDENTITY_PROFILE,
+  difficultyProfile,
+  profileOf,
+  difficultyOf,
+  isIronman,
+  modeInfo,
+  parseDifficulty,
+  scaleInt,
+  type DifficultyProfile,
+  type DifficultyModeInfo,
+} from "./sim/difficulty.js";
+
 // Living History — append-only log of notable world events (T31 · FR-SIM-11)
 export {
   recordHistory,
