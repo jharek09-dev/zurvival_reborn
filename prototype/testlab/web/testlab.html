@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en" data-contrast="normal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Zurvival Test Lab</title>
+<style>__CSS__</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">◍</span>
+      <span class="title">Zurvival <b>Test Lab</b></span>
+      <span class="build" id="build"></span>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Views">
+      <button class="tab" role="tab" data-tab="lab" aria-selected="true">Lab</button>
+      <button class="tab" role="tab" data-tab="results" aria-selected="false">Results <span class="pill" id="results-pill" hidden>0</span></button>
+      <button class="tab" role="tab" data-tab="checks" aria-selected="false">Checks</button>
+    </nav>
+    <div class="topctl">
+      <button class="btn" id="btn-load" title="Load a saved run and test from it">Load save</button>
+      <button class="btn" id="btn-export" title="Download the batch report as JSON" disabled>Export report</button>
+      <button class="btn ghost iconbtn" id="btn-contrast" aria-label="Toggle high contrast" title="High contrast">◐</button>
+      <button class="btn ghost iconbtn" id="btn-text" aria-label="Cycle larger text" title="Larger text">A+</button>
+    </div>
+  </header>
+
+  <main id="view-lab" class="view" data-view="lab">
+    <aside id="setup" class="panel" aria-label="Run setup">
+      <h2>Batch</h2>
+      <div class="field two">
+        <div><label for="in-seeds">Seeds</label><input id="in-seeds" type="number" min="1" max="200" value="8"></div>
+        <div><label for="in-turns">Actions per run</label><input id="in-turns" type="number" min="1" max="5000" value="400"></div>
+      </div>
+      <div class="field">
+        <label for="in-seedlist">…or exact seeds (comma-separated)</label>
+        <input id="in-seedlist" type="text" placeholder="tl-1, rivermouth-demo">
+      </div>
+      <div class="field">
+        <label>Policies</label>
+        <div id="in-policies" class="checks"></div>
+      </div>
+      <div class="field two">
+        <div>
+          <label>Pack</label>
+          <div class="checks">
+            <label class="check"><input type="checkbox" id="in-stocked" checked> stocked</label>
+            <label class="check"><input type="checkbox" id="in-unstocked" checked> unstocked</label>
+          </div>
+        </div>
+        <div>
+          <label for="in-difficulty">Difficulty</label>
+          <select id="in-difficulty"></select>
+          <label class="check" style="margin-top:6px"><input type="checkbox" id="in-ironman"> ironman</label>
+        </div>
+      </div>
+      <details class="adv">
+        <summary>Check settings</summary>
+        <div class="field two">
+          <div><label for="in-budget">Perf budget (ms/turn)</label><input id="in-budget" type="number" min="0" value="100"></div>
+          <div><label for="in-savesample">Save check every N</label><input id="in-savesample" type="number" min="0" value="10"></div>
+        </div>
+        <div class="field two">
+          <div><label for="in-detsample">Determinism every N</label><input id="in-detsample" type="number" min="0" value="1"></div>
+          <div><label class="check" style="margin-top:22px"><input type="checkbox" id="in-replay" checked> replay at end</label></div>
+        </div>
+      </details>
+      <div class="row">
+        <button class="btn accent" id="btn-run">Run batch</button>
+        <button class="btn" id="btn-stop" disabled>Stop</button>
+      </div>
+      <div class="progress" id="progress" hidden>
+        <div class="bar"><div class="fill" id="progress-fill"></div></div>
+        <div class="ptext" id="progress-text"></div>
+      </div>
+      <div class="from-save" id="from-save" hidden>
+        <span class="tag">from save</span> <span id="from-save-text"></span>
+        <button class="btn ghost" id="btn-clear-save">✕</button>
+      </div>
+    </aside>
+
+    <section id="watch" aria-label="Watch">
+      <div class="botstrip">
+        <div class="bs-left">
+          <label for="w-policy" class="sr">Policy</label>
+          <select id="w-policy" title="Which bot plays"></select>
+          <label for="w-seed" class="sr">Seed</label>
+          <input id="w-seed" type="text" value="tl-1" title="Seed" style="width:110px">
+          <label class="check small"><input type="checkbox" id="w-stocked" checked> stocked</label>
+          <button class="btn" id="w-new" title="Start a fresh watched run">New run</button>
+        </div>
+        <div class="bs-mid">
+          <button class="btn accent" id="w-play" title="Play / pause (Space)">▶ Play</button>
+          <button class="btn" id="w-step" title="One action (.)">Step</button>
+          <button class="btn" id="w-takeover" title="Pause the bot and click choices yourself">Take over</button>
+          <label for="w-speed" class="speedlbl">Speed <span id="w-speed-val">6</span>/s</label>
+          <input id="w-speed" type="range" min="1" max="30" value="6">
+        </div>
+        <div class="bs-right">
+          <span class="who" id="w-who">bot</span>
+          <span class="ms" id="w-ms"></span>
+        </div>
+      </div>
+      <div class="checkstrip" id="checkstrip" aria-label="Per-turn checks"></div>
+      <div id="scene">
+        <div class="meta" id="meta"></div>
+        <div id="pane" role="region" aria-live="polite" aria-label="Scene"></div>
+        <div id="choices" aria-label="Choices"></div>
+      </div>
+      <nav id="screens" aria-label="Depth screens"></nav>
+    </section>
+
+    <aside id="telemetry" class="panel" aria-label="Live telemetry">
+      <h2>This run</h2>
+      <div class="kv" id="run-kv"></div>
+      <div class="charts" id="charts"></div>
+      <h3>Coverage</h3>
+      <div class="kv" id="cov-kv"></div>
+      <h3>Failures this run</h3>
+      <div id="run-failures" class="faillist small">none</div>
+    </aside>
+  </main>
+
+  <main id="view-results" class="view" data-view="results" hidden>
+    <section class="panel wide">
+      <div class="tiles" id="tiles"></div>
+      <div class="row" style="margin:8px 0 12px">
+        <button class="btn" id="btn-copy-summary">Copy summary</button>
+        <span class="hint" id="results-hint">Run a batch from the Lab tab to fill this in.</span>
+      </div>
+      <div class="tablewrap"><table id="runs-table"><thead></thead><tbody></tbody></table></div>
+    </section>
+    <section class="panel wide">
+      <h2>Failures</h2>
+      <div id="failures"></div>
+    </section>
+  </main>
+
+  <main id="view-checks" class="view" data-view="checks" hidden>
+    <section class="panel wide">
+      <h2>What the Lab checks every turn</h2>
+      <p class="hint">Every action — taken by a bot or by you — runs all of these. A red id in the check strip or the results table is one of these failing at that turn.</p>
+      <div id="checks-list"></div>
+    </section>
+    <section class="panel wide">
+      <h2>How to reproduce a failure</h2>
+      <p class="hint">Runs are deterministic. The seed, policy, pack and action count identify a run exactly; <b>Jump to turn</b> replays the recorded choices to the failing step and drops you into the Watch pane there. <b>Download save</b> gives you the exact state to attach to a bug report; the terminal client resumes it with <code>npm run play -- --resume &lt;file&gt;</code>.</p>
+    </section>
+  </main>
+</div>
+<div id="modal-root"></div>
+<noscript>The Test Lab needs JavaScript enabled.</noscript>
+<script>__BUNDLE__</script>
+<script>window.CONTENT=__CONTENT__;window.BUILT="__BUILT__";</script>
+<script>__UI__</script>
+</body>
+</html>

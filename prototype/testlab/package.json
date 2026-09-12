@@ -1,0 +1,25 @@
+{
+  "name": "@zurvival/testlab",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Zurvival Reborn Test Lab — a visual autoplay + invariant-checker client for the M4 build. Plays the real engine under scripted policies, checks every turn, and reports. Side tool (not a roadmap task).",
+  "type": "module",
+  "main": "./src/entry.ts",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node web/build.mjs",
+    "check": "tsx src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}

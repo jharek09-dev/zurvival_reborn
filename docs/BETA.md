@@ -75,3 +75,5 @@ in the text, and the soundscape has a text equivalent for every meaningful cue (
 
 Found something? The run is deterministic — **note the seed** (and the save file if you have one) so it can be
 reproduced exactly.
+The **Test Lab** (`prototype/testlab`, `npm run build`, then open `dist/zurvival-testlab.html`) can load that save,
+play on from it under several bot policies, and check every turn automatically.
