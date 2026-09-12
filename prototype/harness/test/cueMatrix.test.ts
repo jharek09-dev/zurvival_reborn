@@ -82,7 +82,7 @@ const discover = (b: Run, id: string): Run => patchNode(b, id, { discovered: tru
 const SCENARIOS: { readonly [id: string]: () => Run } = {
   // bed
   "bed.day": () => setPhase(base(), "midday"),
-  "bed.evening": () => setPhase(base(), "evening"),
+  "bed.dusk": () => setPhase(base(), "dusk"),
   "bed.night": () => setPhase(base(), "night"),
   "bed.onEdge": () => patchRegion(setPhase(base(), "midday"), { threat: 60 }),
   "bed.shelterDay": () => shelterHere(setPhase(base(), "midday")),

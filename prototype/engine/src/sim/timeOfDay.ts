@@ -1,14 +1,15 @@
 /**
  * Time-of-day danger — the phase-of-day raises or lowers danger (M2 task T28 · FR-SIM-04 · GDD IV).
  *
- * The clock (T12) already rolls through five phases; until now the phase was only *narration* plus a
- * hardcoded stealth term buried in the combat roll. T28 gives the phase a single owner and makes it
- * mean something for danger across three systems, each a pure read so nothing new is randomised:
+ * The clock (T12) rolls through seven phases (T71: early morning · dawn · morning · midday · late
+ * afternoon · dusk · night); the phase is narration plus a stealth term the combat roll reads. T28 gives
+ * the phase a single owner and makes it mean something for danger across three systems, each a pure read
+ * so nothing new is randomised:
  *
- *   - **Stealth concealment** — darkness cuts visibility, so a slip-away is *harder to spot* at night
+ *   - **Stealth concealment** — darkness cuts visibility, so a slip-away is *harder to spot* after dark
  *     (the countervailing realism). The T15 `detectChance` sources its phase term from
- *     {@link phaseConcealment} here (the same numbers it always used, now with one owner), so the
- *     combat/stealth golden behaviour is unchanged.
+ *     {@link phaseConcealment} here. (T71 retuned these vectors for the seven-phase day — the darkest
+ *     phases, night and early morning, conceal most and press hardest; midday is the safe floor.)
  *   - **Harder searches** — a search in the dark is louder (you can't see what you're knocking over):
  *     the search action deposits {@link phaseSearchNoise} extra points into node memory, so the dead
  *     are likelier to hear you rummaging after dark. This routes through the existing T14 model — the
@@ -25,6 +26,7 @@
  */
 
 import type { GameState, Phase } from "../state/types.js";
+import { relax } from "./clocks.js";
 
 // --- the phase danger vectors (tunable engine constants) ------------------------------------
 
@@ -34,28 +36,34 @@ import type { GameState, Phase } from "../state/types.js";
  * (These are exactly the phase numbers `detectChance` has used since T15, now named and owned here.)
  */
 export const PHASE_CONCEALMENT: { readonly [p in Phase]: number } = {
+  "early morning": 12,
   dawn: 5,
   morning: 0,
   midday: 0,
-  evening: 5,
+  "late afternoon": 0,
+  dusk: 5,
   night: 15,
 };
 
 /** Extra noise (points) a search deposits by phase — the dark makes rummaging louder / riskier. */
 export const PHASE_SEARCH_NOISE: { readonly [p in Phase]: number } = {
+  "early morning": 10,
   dawn: 0,
   morning: 0,
   midday: 0,
-  evening: 6,
+  "late afternoon": 0,
+  dusk: 6,
   night: 12,
 };
 
 /** The city-wide `globalThreat` level each phase pulls toward — the diurnal danger tide (0–100). */
 export const PHASE_THREAT_TARGET: { readonly [p in Phase]: number } = {
+  "early morning": 45,
   dawn: 30,
   morning: 25,
   midday: 15,
-  evening: 40,
+  "late afternoon": 22,
+  dusk: 40,
   night: 55,
 };
 
@@ -85,14 +93,6 @@ export function phaseThreatTarget(phase: Phase): number {
 
 const clampPct = (n: number): number => Math.max(0, Math.min(100, Math.trunc(n)));
 
-/** Move `current` toward `target` by at most `maxStep`, at least one point when there is a gap. */
-function stepToward(current: number, target: number, maxStep: number): number {
-  const gap = target - current;
-  if (gap === 0) return current;
-  const mag = Math.min(Math.abs(gap), Math.max(1, maxStep));
-  return current + Math.sign(gap) * mag;
-}
-
 /**
  * The body of the `timeOfDay` world-sim layer (pipeline stage 8, after weather). Relax
  * `world.globalThreat` toward the current phase's target as the tick's hours pass — the diurnal
@@ -104,7 +104,15 @@ export function tickTimeOfDay(state: GameState, hours: number): GameState {
   const h = Math.max(0, Math.trunc(hours));
   if (h === 0) return state;
   const target = phaseThreatTarget(state.meta.phase);
-  const globalThreat = clampPct(stepToward(state.world.globalThreat, target, Math.trunc(h / GLOBAL_THREAT_HOURS_PER_STEP)));
-  if (globalThreat === state.world.globalThreat) return state;
-  return { ...state, world: { ...state.world, globalThreat } };
+  // The tide banks its remainder hours (T74). Before, the old stepToward's `Math.max(1, ...)` floor made
+  // GLOBAL_THREAT_HOURS_PER_STEP a dead knob — the tide moved one point per turn whatever the period.
+  // NOTE, honestly: fixing the knob makes the tide SLOWER, not wider. Measured over five in-game days of
+  // 2-hour turns the band went 26..32 (pre-T74) to 28..32, against a night target of 55 and a midday
+  // target of 15. The tide's failure to reach its phase targets is NOT the truncation bug — it is that a
+  // 3-hour period cannot cross a 25-point gap inside a 3-6 hour phase. Re-tuning that against the T71
+  // seven-phase day belongs to T78 (the director/drift pass), not here; T74 only makes the knob live.
+  const tide = relax(state.world.globalThreat, target, state.world.threatTideHours, h, GLOBAL_THREAT_HOURS_PER_STEP);
+  const globalThreat = clampPct(tide.value);
+  if (globalThreat === state.world.globalThreat && tide.rest === (state.world.threatTideHours ?? 0)) return state;
+  return { ...state, world: { ...state.world, globalThreat, threatTideHours: tide.rest } };
 }

@@ -165,11 +165,72 @@ export function renderRegions(scene: Scene, state: GameState, graph?: RegionGrap
   };
 }
 
+/** A narration reflowed for reading: the where/when locator lifted out, the body split into paragraphs. */
+export interface StoryLayout {
+  /** The "(Day N, phase HH:00 — at Place.)" locator, lifted to lead the scene, or null if absent. */
+  readonly dateline: string | null;
+  /** The body prose as short paragraphs (a long descriptive sentence stands alone; short beats pair up). */
+  readonly paragraphs: readonly string[];
+}
+
+/**
+ * Reflow one narration blob into a readable layout — the single source of truth every client shares (this
+ * terminal renderer, and the browser client via the same export). Presentation only: the engine's
+ * `scene.narration` is never mutated, so determinism, saves, and the T20 accessibility seam are untouched.
+ * The engine joins its narration beats with single spaces and ends the `setting` beat with the where/when
+ * locator; here we lift that locator to lead the scene (readers want the where/when first), then group
+ * sentences into short paragraphs so a dense scene never reads as one wall.
+ */
+export function layoutStory(narration: string): StoryLayout {
+  let raw = (narration ?? "").trim();
+  if (raw.length === 0) return { dateline: null, paragraphs: [] };
+  let dateline: string | null = null;
+  const loc = raw.match(/\s*(\(Day\b[^)]*\))\s*$/); // the where/when locator — always the tail of `setting`
+  if (loc) {
+    dateline = loc[1]!;
+    raw = raw.slice(0, loc.index).trim();
+  }
+  const paragraphs: string[] = [];
+  for (const block of raw.split(/\n{2,}/)) {
+    const b = block.replace(/\s*\n\s*/g, " ").trim();
+    if (b.length === 0) continue;
+    const sentences = (b.match(/[^.!?]+(?:[.!?]+["')\]]*|$)/g) ?? [b]).map((s) => s.trim()).filter(Boolean);
+    let cur: string[] = [];
+    const flush = (): void => {
+      if (cur.length > 0) {
+        paragraphs.push(cur.join(" "));
+        cur = [];
+      }
+    };
+    for (const s of sentences) {
+      if (s.length >= 90 && cur.length > 0) flush(); // a long descriptive sentence begins its own paragraph
+      cur.push(s);
+      if (s.length >= 90 || cur.length >= 2) flush(); // otherwise ~2 short sentences per paragraph
+    }
+    flush();
+  }
+  return { dateline, paragraphs };
+}
+
+/** The `story` region reflowed into display lines: the dateline, then blank-separated paragraphs. */
+function storyLines(story: readonly string[]): readonly string[] {
+  const { dateline, paragraphs } = layoutStory(story.join("\n"));
+  if (dateline === null && paragraphs.length === 0) return story; // nothing to reflow — keep as-is
+  const out: string[] = [];
+  if (dateline !== null) out.push(dateline);
+  for (const p of paragraphs) {
+    if (out.length > 0) out.push(""); // blank line after the dateline and between paragraphs
+    out.push(p);
+  }
+  return out.length > 0 ? out : story;
+}
+
 /**
  * Render a Scene + state as the story-first screen: header → status → soundscape → story → choices →
  * footer, in that fixed order (FR-UI-01). Pure — returns lines, prints nothing. A blank line separates
- * regions so the column reads cleanly top-to-bottom (FR-UI-05 one-hand shape). `graph` (optional) gives
- * the soundscape its directional read (FR-AUD-02).
+ * regions so the column reads cleanly top-to-bottom (FR-UI-05 one-hand shape). The `story` region is
+ * reflowed by {@link layoutStory} — locator lifted to lead, body in short paragraphs. `graph` (optional)
+ * gives the soundscape its directional read (FR-AUD-02).
  */
 export function renderScene(scene: Scene, state: GameState, graph?: RegionGraph): readonly string[] {
   const r = renderRegions(scene, state, graph);
@@ -177,7 +238,7 @@ export function renderScene(scene: Scene, state: GameState, graph?: RegionGraph)
   SCREEN_REGION_ORDER.forEach((region, i) => {
     // Blank line between regions, except keep the prompt attached to its choice list (one Q&A block).
     if (i > 0 && region !== "choices") lines.push("");
-    lines.push(...r[region]);
+    lines.push(...(region === "story" ? storyLines(r.story) : r[region]));
   });
   return lines;
 }

@@ -5,6 +5,8 @@ import { dirname, join } from "node:path";
 import {
   startRun,
   sceneOf,
+  THE_LAST_CUSTOMER,
+  ARC_PLEA,
   type GameState,
   type Survivor,
   type NodeDef,
@@ -99,6 +101,28 @@ function withCompanion(s: GameState): GameState {
     flags: { companion: true },
   };
   return { ...s, actors: { ...s.actors, [c.id]: c } };
+}
+
+/**
+ * A live "Last Customer" plea (T40 beat ARC_PLEA) at the player's own base, with the cache set to
+ * `cacheUnits` banked supplies. Seeds the beat directly (the render is a pure read of it), so the two
+ * cache states — short vs. sufficient — can be checked without driving stage 13's trigger.
+ */
+function withPlea(s: GameState, cacheUnits: number): GameState {
+  const sid = s.player.location;
+  const node = s.nodes[sid]!;
+  const ruth = s.npcs["npc.ruth"]!;
+  return {
+    ...s,
+    player: {
+      ...s.player,
+      shelterId: sid,
+      stash: cacheUnits > 0 ? [{ type: "item.canned-food", quantity: cacheUnits }] : [],
+    },
+    nodes: { ...s.nodes, [sid]: { ...node, barricades: 40 } },
+    npcs: { ...s.npcs, "npc.ruth": { ...ruth, met: true, needs: { hunger: 78, thirst: 78, fatigue: 40 } } },
+    story: { ...s.story, progress: { ...s.story.progress, [THE_LAST_CUSTOMER.id]: ARC_PLEA } },
+  };
 }
 
 /** Turn the player's current node into a claimed, partly-built base with stores. */
@@ -329,6 +353,32 @@ describe("Companions (SCR-04) — condition, trust, orders", () => {
     const text = renderCompanions(s, graph).join("\n").toLowerCase();
     expect(text).toContain("scavenge  [locked — needs a base"); // the real gate, not "needs their trust"
     expect(text).toMatch(/guard \(available\)/); // guard only needs trust, which is met
+  });
+
+  it("surfaces the cache-vs-pack requirement when a survivor is pleading for shelter (T73)", () => {
+    const { state, graph } = base();
+    // Cache short of the 2-unit draw: the hint must make the CACHE (not the pack) the named source, and
+    // point at the concrete remedy — stash supplies at the base — rather than leave the player stuck.
+    const short = renderCompanions(withPlea(state, 1), graph).join("\n");
+    expect(short).toContain("Ruth is at your barricade");
+    expect(short).toContain("from your base cache"); // the source is named
+    expect(short.toLowerCase()).toContain("not what you carry in your pack"); // the pack/cache split, in words
+    expect(short).toMatch(/Stash.*until the cache holds 2/); // the concrete remedy, with the target count
+    expect(short).toContain('"Take Ruth in"'); // names the exact choice they are hunting for
+  });
+
+  it("tells the player the cache is sufficient once it covers the draw (T73)", () => {
+    const { state, graph } = base();
+    const ready = renderCompanions(withPlea(state, 2), graph).join("\n");
+    expect(ready).toContain("Your cache holds 2 — enough");
+    expect(ready).toContain('"Take Ruth in" is in your choices');
+  });
+
+  it("shows no plea callout when nobody is pleading — the hint is scoped to the beat (T73)", () => {
+    const { state, graph } = base();
+    const text = renderCompanions(state, graph).join("\n").toLowerCase();
+    expect(text).not.toContain("barricade");
+    expect(text).not.toContain("base cache");
   });
 });
 

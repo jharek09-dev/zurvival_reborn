@@ -23,6 +23,7 @@
 
 import type { GameState, NodeId, RouteState } from "../state/types.js";
 import { weatherEffect } from "./weather.js";
+import { bankHours, stepToward, wholeHours } from "./clocks.js";
 
 // --- condition thresholds & costs (tunable) -------------------------------------------------
 
@@ -88,14 +89,6 @@ export function routeCondition(state: GameState, a: NodeId, b: NodeId): RouteCon
 
 // --- the drift -------------------------------------------------------------------------------
 
-/** Move `current` toward `target` by at most `maxStep`, at least one point when there is a gap. */
-function stepToward(current: number, target: number, maxStep: number): number {
-  const gap = target - current;
-  if (gap === 0) return current;
-  const mag = Math.min(Math.abs(gap), Math.max(1, maxStep));
-  return current + Math.sign(gap) * mag;
-}
-
 /**
  * The wear a route trends toward, from the world: worse weather (movement delta), lower endpoint
  * `roads`, and any endpoint `fire`. Clamped 0–100. Full roads + clear sky ⇒ 0 (clear).
@@ -121,17 +114,22 @@ export function targetWear(state: GameState, a: NodeId, b: NodeId): number {
 export function tickRoutes(state: GameState, hours: number): GameState {
   const h = Math.max(0, Math.trunc(hours));
   if (h === 0) return state;
-  const steps = Math.max(1, Math.trunc(h / ROUTE_HOURS_PER_STEP));
-  const riseMax = steps * ROUTE_WEAR_RISE_PER_STEP;
-  const recoverMax = steps * ROUTE_WEAR_RECOVER_PER_STEP;
+  // One world-level clock for the whole routes layer (T74): every route shares ROUTE_HOURS_PER_STEP, and
+  // the old `Math.max(1, trunc(h / 3))` floored the step count at 1 — so the period was a dead knob and
+  // wear moved a full rise/recover step every single turn regardless of how little time had passed.
+  const banked = bankHours(state.world.routeWearHours, h, ROUTE_HOURS_PER_STEP);
+  const riseMax = banked.steps * ROUTE_WEAR_RISE_PER_STEP;
+  const recoverMax = banked.steps * ROUTE_WEAR_RECOVER_PER_STEP;
 
   let changed = false;
+  let anyGap = false;
   const routes: Record<string, RouteState> = {};
   for (const [key, route] of Object.entries(state.routes)) {
     const sep = key.indexOf("|");
     const a = key.slice(0, sep);
     const b = key.slice(sep + 1);
     const target = targetWear(state, a, b);
+    if (target !== route.wear) anyGap = true;
     const maxStep = target > route.wear ? riseMax : recoverMax;
     const wear = stepToward(route.wear, target, maxStep);
     if (wear !== route.wear) {
@@ -141,7 +139,17 @@ export function tickRoutes(state: GameState, hours: number): GameState {
       routes[key] = route;
     }
   }
-  return changed ? { ...state, routes } : state;
+  // Every route already at its target ⇒ the layer is idle, so its clock HOLDS: it accrues nothing and
+  // keeps what it had, which both preserves the banked hours and leaves the world slice (and the save)
+  // untouched on a settled map — the same rule `relax` applies per dial.
+  const rest = anyGap ? banked.rest : wholeHours(state.world.routeWearHours);
+  const clockMoved = rest !== (state.world.routeWearHours ?? 0);
+  if (!changed && !clockMoved) return state;
+  return {
+    ...state,
+    ...(changed ? { routes } : {}),
+    ...(clockMoved ? { world: { ...state.world, routeWearHours: rest } } : {}),
+  };
 }
 
 /** Seed the `routes` slice from a graph's undirected edges, every route clear (`wear: 0`). */

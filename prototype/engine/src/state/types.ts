@@ -50,7 +50,7 @@ export type ContentId = string;
 export type Flags = { readonly [flag: string]: boolean };
 
 /** Day phase; time cost per action moves through these (GDD IV). */
-export type Phase = "dawn" | "morning" | "midday" | "evening" | "night";
+export type Phase = "early morning" | "dawn" | "morning" | "midday" | "late afternoon" | "dusk" | "night";
 
 /**
  * Explicit difficulty modes (T56 · GDD XVI) that sit on top of the adaptive Director, letting a player set
@@ -295,6 +295,15 @@ export interface Survivor {
    * (0 when unset) — written only under an active faction pool, so no rung.
    */
   readonly desertPressure?: number;
+  /**
+   * Hour accumulators (T74) for this survivor's three periodic clocks — banked hours toward their next
+   * job cycle, their next morale step, and their next scavenged supply. Optional; absent reads as 0, so
+   * a pre-T74 save (and any companion who has never worked, drifted or scavenged) carries none of them.
+   * See `sim/clocks.ts`.
+   */
+  readonly jobHours?: number;
+  readonly moraleHours?: number;
+  readonly scavengeHours?: number;
 }
 
 /**
@@ -379,6 +388,20 @@ export interface World {
   readonly globalThreat: number;
   readonly knownSafeZones: readonly NodeId[];
   readonly flags: Flags;
+  /**
+   * Hour accumulators (M4 task T74) — banked remainder hours for the world's periodic clocks, so a
+   * sub-cycle turn still counts toward the next cycle instead of truncating to nothing. Every one is
+   * optional and reads as 0 when absent, so a pre-T74 save loads with all clocks at zero and needs no
+   * `SAVE_SCHEMA_VERSION` rung (the {@link Survivor.desertPressure} precedent). See `sim/clocks.ts`.
+   */
+  readonly spoilHours?: number;
+  readonly threatTideHours?: number;
+  readonly routeWearHours?: number;
+  readonly regroupHours?: number;
+  readonly wallDecayHours?: number;
+  /** Weather pressure-hours (pressure x hours), not plain hours — the two infrastructure drains. */
+  readonly powerDrainHours?: number;
+  readonly roadDrainHours?: number;
 }
 
 /** Regions live on their own clock (pipeline stage 7) — 0–100 ints throughout. */
@@ -395,6 +418,14 @@ export interface RegionState {
   /** Road passability 0–100 int. */
   readonly roads: number;
   readonly storyFlags: Flags;
+  /**
+   * Hour accumulators (T74) for this region's two drift clocks — banked hours toward the next density
+   * / threat point. Optional; absent reads as 0. See `sim/clocks.ts`.
+   */
+  readonly densityHours?: number;
+  readonly threatHours?: number;
+  /** Banked pressure-hours (survivorActivity x hours) toward the next point of off-screen loot contest. */
+  readonly lootContestHours?: number;
 }
 
 /** Nodes remember: never reset within a run (GDD VII, DESIGN §4). */
@@ -479,6 +510,11 @@ export interface Horde {
   readonly awareness: number;
   /** Zombie-type content ids composing the horde. */
   readonly types: readonly ContentId[];
+  /**
+   * Hour accumulator (T74) — banked hours toward this horde's next node of movement, so a horde
+   * advances on ordinary turns instead of only when the player rests. Optional; absent reads as 0.
+   */
+  readonly stepHours?: number;
 }
 
 /** A tracked unique item instance — identical items are not interchangeable (Principle 6). */

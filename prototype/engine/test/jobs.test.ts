@@ -212,6 +212,9 @@ describe("jobs produce and consume the shared stash (FR-SHL-03)", () => {
     const ticked = tickShelterOps(s, graph, 24);
     expect(ticked).toBe(s); // no headroom ⇒ inert, fuel untouched
     expect(stashCount(ticked, "item.fuel")).toBe(2);
+    // T74: inert for ANY turn length, not just a whole number of cycles — a job with no headroom is
+    // waiting, not working, so its hour accumulator holds rather than cycling and rewriting `actors`.
+    for (const hours of [1, 2, 5, 25]) expect(tickShelterOps(s, graph, hours)).toBe(s);
   });
 
   it("the watch job keeps the shelter's barricades up (the upkeep shape)", () => {
@@ -224,10 +227,18 @@ describe("jobs produce and consume the shared stash (FR-SHL-03)", () => {
     expect(tickShelterOps(full, graph, 12).nodes["node.s"]!.barricades).toBe(100);
   });
 
-  it("a sub-cycle tick banks nothing (the scavenge idiom)", () => {
+  it("a sub-cycle tick BANKS its remainder and the next hour completes the cycle (T74)", () => {
+    // Rebaselined at T74. This used to assert `toBe(s)` — a 5-hour tick against a 6-hour cycle produced
+    // nothing AND threw the five hours away, which is why the whole jobs layer was inert on ordinary
+    // 1-2 hour turns and only ever paid out across the 9-hour sleep.
     const { state, graph } = shelterWith(["room.garden"]);
     const s = take(state, graph, "assign-job:c.ruth:job.garden");
-    expect(tickShelterOps(s, graph, 5)).toBe(s); // 5h < 6h per cycle
+    const partial = tickShelterOps(s, graph, 5);
+    expect(stashCount(partial, "item.food-fresh")).toBe(stashCount(s, "item.food-fresh")); // no cycle due yet
+    expect(partial.actors["c.ruth"]!.jobHours).toBe(5); // …but the five hours are banked on the worker
+    const completed = tickShelterOps(partial, graph, 1); // the 6th hour turns the cycle
+    expect(stashCount(completed, "item.food-fresh")).toBe(stashCount(s, "item.food-fresh") + 1);
+    expect(completed.actors["c.ruth"]!.jobHours).toBe(0);
   });
 
   it("only a resident with the job flag works — an unassigned companion produces nothing", () => {

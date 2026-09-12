@@ -36,9 +36,9 @@ describe("recordHistory diffs notable events (T31 · FR-SIM-11)", () => {
 
   it("logs nightfall on the phase crossing into night", () => {
     const { state } = run();
-    const evening = { ...state, meta: { ...state.meta, phase: "evening" as const } };
+    const dusk = { ...state, meta: { ...state.meta, phase: "dusk" as const } };
     const night = { ...state, meta: { ...state.meta, phase: "night" as const } };
-    expect(types(recordHistory(evening, night))).toContain("nightfall");
+    expect(types(recordHistory(dusk, night))).toContain("nightfall");
     // no false positive when already night
     expect(types(recordHistory(night, night))).not.toContain("nightfall");
   });

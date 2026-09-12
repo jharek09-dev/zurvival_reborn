@@ -25,7 +25,7 @@ function busyState(): GameState {
   return {
     ...base,
     rng,
-    meta: { ...base.meta, day: 4, hour: 19, phase: "evening", turn: 12 },
+    meta: { ...base.meta, day: 4, hour: 19, phase: "dusk", turn: 12 },
     player: {
       ...base.player,
       location: "node.transit-yard",

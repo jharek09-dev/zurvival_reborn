@@ -27,12 +27,12 @@ const NODES: NodeDef[] = [
 const opts = { seed: "tod-seed", createdAt: "2026-07-05T00:00:00Z" };
 const run = (): { state: GameState; graph: RegionGraph } => startRun(opts, REGIONS, NODES);
 const at = (s: GameState, phase: Phase): GameState => ({ ...s, meta: { ...s.meta, phase } });
-const ALL: readonly Phase[] = ["dawn", "morning", "midday", "evening", "night"];
+const ALL: readonly Phase[] = ["early morning", "dawn", "morning", "midday", "late afternoon", "dusk", "night"];
 
 describe("phase danger vectors (T28 · FR-SIM-04)", () => {
   it("night conceals a stealth mover most; midday least", () => {
     expect(phaseConcealment("night")).toBeGreaterThan(phaseConcealment("midday"));
-    expect(phaseConcealment("night")).toBeGreaterThanOrEqual(phaseConcealment("evening"));
+    expect(phaseConcealment("night")).toBeGreaterThanOrEqual(phaseConcealment("dusk"));
     expect(phaseConcealment("midday")).toBe(0);
   });
 

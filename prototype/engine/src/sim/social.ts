@@ -46,6 +46,7 @@ import type { Action, SceneChoice } from "../pipeline/contract.js";
 import type { RegionGraph } from "../map/types.js";
 import type { NPCDef, NpcLead } from "./npcs.js";
 import { companionIds, isCompanion } from "./companions.js";
+import { bankHours, wholeHours } from "./clocks.js";
 import { humanityOf } from "./events.js";
 import { neighborsOf } from "../map/regionGraph.js";
 
@@ -548,7 +549,6 @@ export function tickPeople(state: GameState, graph: RegionGraph | undefined, hou
   const ids = companionIds(cur);
   if (ids.length === 0) return cur;
 
-  const steps = Math.trunc(h / MORALE_HOURS_PER_STEP);
   const humanity = humanityOf(cur); // fixed across the tick — the cruel-leader betrayal driver
 
   for (const id of ids) {
@@ -557,6 +557,22 @@ export function tickPeople(state: GameState, graph: RegionGraph | undefined, hou
 
     // 1. Drift morale toward its target by up to MORALE_STEP·steps (a short action barely moves it).
     const target = moraleTarget(cur, c);
+    // Each companion banks their own remainder hours toward the next morale step (T74). Before, the shared
+    // `trunc(h / 6)` moved morale one 4-point step only on a turn of SIX HOURS OR MORE — the nightly sleep
+    // and the 8-hour quarantine — and nothing on any of the 1-4 hour turns that make up ordinary play, so
+    // the morale-driven desertion path took about ten nights of neglect to reach DESERT_MORALE 25. (The
+    // FEAR-driven path was never broken: `desertPressure` below accrues by elapsed hours, so a companion
+    // menaced before recruiting always deserted on ordinary turns. It is the morale half this restores.)
+    // The clock HOLDS while a companion has nothing to count — morale already at target and no neglect to
+    // erode trust — so a settled party does not rewrite `actors` (and the save) every single turn.
+    const worstNeed = Math.max(c.condition.needs.hunger, c.condition.needs.thirst);
+    const counting = c.condition.mind.morale !== target || worstNeed >= NEGLECT_TRUST_AT;
+    const banked = counting
+      ? bankHours(c.moraleHours, h, MORALE_HOURS_PER_STEP)
+      : { steps: 0, rest: wholeHours(c.moraleHours) };
+    const steps = banked.steps;
+    const clockMoved = banked.rest !== (c.moraleHours ?? 0);
+
     let morale = c.condition.mind.morale;
     if (steps > 0 && morale !== target) {
       const room = MORALE_STEP * steps;
@@ -567,7 +583,6 @@ export function tickPeople(state: GameState, graph: RegionGraph | undefined, hou
     // 1b. Sustained severe neglect erodes TRUST too — the reachable "low trust" desertion path (FR-NPC-05).
     //     Trust only ever ROSE before (feeding, T45); a companion you keep badly starved now loses faith in
     //     you, which feeds the distrust morale penalty and can cost them the dangerous standing orders.
-    const worstNeed = Math.max(c.condition.needs.hunger, c.condition.needs.thirst);
     let trust = c.trust ?? MORALE_BASELINE;
     if (worstNeed >= NEGLECT_TRUST_AT && steps > 0) trust = Math.max(0, trust - steps);
 
@@ -606,10 +621,11 @@ export function tickPeople(state: GameState, graph: RegionGraph | undefined, hou
     // content companion in a social run gains no spurious field, and a zero-hour/steady tick is a no-op).
     const priorPressure = c.desertPressure ?? 0;
     const trustMoved = trust !== (c.trust ?? MORALE_BASELINE);
-    if (morale !== c.condition.mind.morale || pressure !== priorPressure || trustMoved) {
+    if (morale !== c.condition.mind.morale || pressure !== priorPressure || trustMoved || clockMoved) {
       const updated: Survivor = {
         ...c,
         ...(trustMoved ? { trust } : {}),
+        ...(clockMoved ? { moraleHours: banked.rest } : {}),
         desertPressure: pressure,
         condition: { ...c.condition, mind: { ...c.condition.mind, morale } },
       };
@@ -671,31 +687,60 @@ function homeForNpc(graph: RegionGraph | undefined, npcId: ContentId): NodeId | 
 export function tickGroups(state: GameState, graph: RegionGraph | undefined, hours: number): GameState {
   if (!socialActive(graph) || graph === undefined) return state;
   const h = Math.max(0, Math.trunc(hours));
-  const steps = Math.trunc(h / MOVE_HOURS);
-  if (steps === 0) return state;
+  if (h === 0) return state;
+  // One world-level clock for the regroup layer — every survivor moves on the same MOVE_HOURS cadence.
+  // T74: `trunc(h / 12)` never reached 1 on any turn the game can produce (the longest is the 9-hour
+  // sleep), so off-screen survivor movement never fired even once in a whole run.
+  // The clock HOLDS while there is nobody to move — everyone home, or no survivors at all — so a run with
+  // a faction pool and a settled map does not rewrite `world` (and the save) every single turn.
+  const anyAway = Object.keys(state.npcs).some((id) => {
+    const npc = state.npcs[id]!;
+    if (!npc.alive || npc.location === null) return false;
+    const home = homeForNpc(graph, npc.id);
+    return home !== null && npc.location !== home;
+  });
+  const banked = anyAway
+    ? bankHours(state.world.regroupHours, h, MOVE_HOURS)
+    : { steps: 0, rest: wholeHours(state.world.regroupHours) };
+  // The old `Math.min(steps, 2)` cap is GONE (T74). It existed to stop one long fast-forward teleporting a
+  // survivor across the city back when `steps` was unbanked — and it could never actually fire, since
+  // MOVE_HOURS 12 exceeds the 9-hour sleep, the longest action the game produces. Once it could fire it was
+  // a liability: capping dropped or deferred hops, so a single long advance under-moved every survivor
+  // while the same span played out did not, and the withheld hours piled into an unbounded stored burst.
+  // MOVE_HOURS is the rate limit; nothing else needs to be.
+  const steps = banked.steps;
+  const rest = banked.rest;
+  const clockMoved = rest !== (state.world.regroupHours ?? 0);
 
   let npcs = state.npcs;
   let changed = false;
-  for (const id of Object.keys(state.npcs).sort()) {
-    const npc = npcs[id]!;
-    if (!npc.alive || npc.location === null) continue;
-    const home = homeForNpc(graph, npc.id);
-    if (home === null || npc.location === home) continue;
-    // Step up to `steps` hops toward home, capped so one long fast-forward can't teleport across the city.
-    let loc = npc.location;
-    let hops = Math.min(steps, 2);
-    while (hops > 0 && loc !== home) {
-      const next = nextHopToward(graph, loc, home);
-      if (next === null) break;
-      loc = next;
-      hops -= 1;
-    }
-    if (loc !== npc.location) {
-      npcs = { ...npcs, [id]: { ...npc, location: loc } };
-      changed = true;
+  if (steps > 0) {
+    for (const id of Object.keys(state.npcs).sort()) {
+      const npc = npcs[id]!;
+      if (!npc.alive || npc.location === null) continue;
+      const home = homeForNpc(graph, npc.id);
+      if (home === null || npc.location === home) continue;
+      // Step up to `steps` hops toward home — the banked hours are the only speed limit.
+      let loc = npc.location;
+      let hops = steps;
+      while (hops > 0 && loc !== home) {
+        const next = nextHopToward(graph, loc, home);
+        if (next === null) break;
+        loc = next;
+        hops -= 1;
+      }
+      if (loc !== npc.location) {
+        npcs = { ...npcs, [id]: { ...npc, location: loc } };
+        changed = true;
+      }
     }
   }
-  return changed ? { ...state, npcs } : state;
+  if (!changed && !clockMoved) return state;
+  return {
+    ...state,
+    ...(changed ? { npcs } : {}),
+    ...(clockMoved ? { world: { ...state.world, regroupHours: rest } } : {}),
+  };
 }
 
 // --- narration surfaced in sceneOf ------------------------------------------------------------

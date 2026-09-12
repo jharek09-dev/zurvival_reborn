@@ -179,7 +179,7 @@ function buildBed(state: GameState, graph: RegionGraph | undefined): string {
 
   const timeWord = isNight(state)
     ? "the late-night hush, and it feels wrong"
-    : state.meta.phase === "evening"
+    : state.meta.phase === "dusk"
       ? "the light going, the quiet thickening"
       : "a low, worn quiet";
   const head = atOwnShelter(state)
@@ -397,7 +397,7 @@ function fearBand(state: GameState, cues: readonly Cue[]): number {
   if (state.combat !== null) f += 35;
   if ((state.hordes ?? []).some((h) => h.pos === loc)) f += 25; // a mass on your own tile
   if (isNight(state)) f += 12;
-  else if (state.meta.phase === "evening") f += 6;
+  else if (state.meta.phase === "dusk") f += 6;
   const w = worstWound(state.player.condition);
   if (w && w.treated < 100 && w.severity >= 40) f += 15;
   const here = state.nodes[loc];

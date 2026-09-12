@@ -55,7 +55,7 @@ import {
   resolveShelterAction,
   applyShelterRest,
 } from "../sim/shelter.js";
-import { stashChoices, isStashAction, resolveStashAction } from "../sim/stash.js";
+import { stashChoices, isStashAction, resolveStashAction, atOwnShelter } from "../sim/stash.js";
 import { storyChoices, isStoryAction, resolveStoryAction, storyLine } from "../sim/story.js";
 import {
   activeEncounter,
@@ -87,10 +87,10 @@ import { economyChoices, isEconomyAction, resolveEconomyAction, economyLine, eco
 import { jobChoices, isJobAction, resolveJobAction, jobLine, jobIdOf, jobOf } from "../sim/jobs.js";
 import { socialChoices, isSocialAction, resolveSocialAction, socialLine, socialActive, attitudeRead, companionUnease, shelterMoodRead } from "../sim/social.js";
 
-/** Time cost, in in-game hours, of each core action (FR-CORE-03). */
+/** Time cost, in in-game hours, of each core action (FR-CORE-03). Rebalanced T72 (playtest time-economy pass). */
 export const MOVE_COST = 2;
-export const SEARCH_COST = 3;
-export const REST_COST = 6;
+export const SEARCH_COST = 2; // T72: 3→2 (a node still takes 3 searches to strip clean ⇒ 6h, was 9h)
+export const REST_COST = 4; // T72: 6→4 (the away-from-base rest; "Sleep until morning" is the in-base recovery)
 /** Managing the pack costs no in-game time (T18). */
 export const DROP_COST = 0;
 
@@ -98,6 +98,34 @@ export const DROP_COST = 0;
 export const SEARCH_GAIN = 34;
 /** Fatigue a single rest recovers — re-exported from the survival module (T22 owns needs). */
 export { REST_RECOVERY } from "../sim/survival.js";
+/** Fatigue recovered per hour of sleep — re-exported from survival (T22/T58 owns needs). */
+export { SLEEP_RECOVERY_PER_HOUR } from "../sim/survival.js";
+
+/**
+ * The nightly sleep window and wake time (T58, retuned T71 · GDD IV). You can bed down for the night only
+ * at your own base and only within the window 21:00–03:00 (wraps midnight); a sleep always runs the clock
+ * forward to the next {@link SLEEP_WAKE_HOUR} — 06:00. The action is still called "Sleep until morning"
+ * even though 06:00 falls in the "dawn" phase (the wake time is the player-facing "morning", by design).
+ * Hour-only and pure.
+ */
+export const SLEEP_WAKE_HOUR = 6;
+export const SLEEP_WINDOW_FROM = 21;
+export const SLEEP_WINDOW_TO = 3;
+
+/** Normalize any integer hour into [0, 24). */
+const normHour = (hour: number): number => ((Math.trunc(hour) % 24) + 24) % 24;
+
+/** Whether `hour` falls in the nightly sleep window 21:00–03:00 (inclusive, wrapping midnight). */
+export function inSleepWindow(hour: number): boolean {
+  const h = normHour(hour);
+  return h >= SLEEP_WINDOW_FROM || h <= SLEEP_WINDOW_TO;
+}
+
+/** Whole hours from `hour` forward to the next wake time (06:00) — always 1..24, never 0. */
+export function hoursUntilWake(hour: number): number {
+  const delta = (SLEEP_WAKE_HOUR - normHour(hour) + 24) % 24;
+  return delta === 0 ? 24 : delta;
+}
 
 /** Thrown when a submitted action was not among the Scene's offered choices (FR-CORE-01). */
 export class IllegalActionError extends Error {
@@ -202,6 +230,21 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
     timeCost: REST_COST,
     action: { type: "rest", choiceId: "rest", timeCost: REST_COST },
   });
+
+  // Sleep the night through at your own base (T58, retuned T71 · GDD IV): a dedicated wind-down offered only
+  // while you stand in your claimed shelter within the nightly window (21:00–03:00). It runs the clock to the
+  // next morning (06:00) and recovers fatigue by the hours slept (survival.ts) — hunger/thirst still climb, so
+  // you wake rested but hungry. Gated (the `sleep` type, shelter-and-window only) and a fight / active
+  // encounter / walkers above already pre-empt this branch.
+  if (atOwnShelter(state) && inSleepWindow(state.meta.hour)) {
+    const sleepHours = hoursUntilWake(state.meta.hour);
+    choices.push({
+      id: "sleep",
+      label: "Sleep until morning",
+      timeCost: sleepHours,
+      action: { type: "sleep", choiceId: "sleep", timeCost: sleepHours },
+    });
+  }
 
   // Shelter (T37/T38 · FR-SHL): claim a searched-clean node as your base, or fortify the base you stand in.
   // Appended after rest — both are "at this place" actions — and before the people/drop blocks. Inert until a

@@ -24,6 +24,7 @@
 
 import type { GameState, RegionState } from "../state/types.js";
 import { drawInt } from "../rng/streams.js";
+import { relax } from "./clocks.js";
 
 /** Clamp to a 0–100 integer — the discipline every sim quantity keeps. */
 const clampPct = (n: number): number => Math.max(0, Math.min(100, Math.trunc(n)));
@@ -50,14 +51,6 @@ export function threatTarget(region: RegionState): number {
   return clampPct(Math.trunc(region.zombieDensity / 2) + Math.trunc(region.fire / 2));
 }
 
-/** Move `current` toward `target` by at most `maxStep`, but always at least one point when there is a gap. */
-function stepToward(current: number, target: number, maxStep: number): number {
-  const gap = target - current;
-  if (gap === 0) return current;
-  const mag = Math.min(Math.abs(gap), Math.max(1, maxStep));
-  return current + Math.sign(gap) * mag;
-}
-
 /**
  * Drift one region by `hours`, given a jitter draw for its density equilibrium. Density relaxes first
  * (it feeds threat), then threat relaxes toward the new density. Returns the same reference when
@@ -67,13 +60,19 @@ export function driftRegion(region: RegionState, hours: number, jitter: number):
   const h = Math.max(0, Math.trunc(hours));
   if (h === 0) return region;
 
+  // Each dial banks its own remainder hours (T74): before, `trunc(h / 3)` on a 2-hour turn was 0 steps
+  // and the `Math.max(1, ...)` inside the old stepToward then moved it a full point anyway — so both
+  // periods were dead knobs and every region crept at exactly 1 point per turn. Now the period governs.
   const densTarget = clampPct(equilibriumDensity(region) + jitter);
-  const zombieDensity = stepToward(region.zombieDensity, densTarget, Math.trunc(h / DENSITY_HOURS_PER_STEP));
-  const withDensity = zombieDensity === region.zombieDensity ? region : { ...region, zombieDensity };
+  const dens = relax(region.zombieDensity, densTarget, region.densityHours, h, DENSITY_HOURS_PER_STEP);
+  const withDensity =
+    dens.value === region.zombieDensity && dens.rest === (region.densityHours ?? 0)
+      ? region
+      : { ...region, zombieDensity: dens.value, densityHours: dens.rest };
 
-  const threat = stepToward(withDensity.threat, threatTarget(withDensity), Math.trunc(h / THREAT_HOURS_PER_STEP));
-  if (threat === withDensity.threat) return withDensity;
-  return { ...withDensity, threat };
+  const thr = relax(withDensity.threat, threatTarget(withDensity), withDensity.threatHours, h, THREAT_HOURS_PER_STEP);
+  if (thr.value === withDensity.threat && thr.rest === (withDensity.threatHours ?? 0)) return withDensity;
+  return { ...withDensity, threat: thr.value, threatHours: thr.rest };
 }
 
 /**

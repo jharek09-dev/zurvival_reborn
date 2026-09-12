@@ -290,7 +290,7 @@ export function saveGame(state: GameState, pretty = false): string {
   return JSON.stringify(serializeSave(state), null, pretty ? 2 : undefined);
 }
 
-const VALID_PHASES: readonly Phase[] = ["dawn", "morning", "midday", "evening", "night"];
+const VALID_PHASES: readonly Phase[] = ["early morning", "dawn", "morning", "midday", "late afternoon", "dusk", "night"];
 
 /** Narrow parsed JSON to a SaveFile, throwing SaveError with a precise reason otherwise. */
 function assertSaveFile(value: unknown): asserts value is SaveFile {

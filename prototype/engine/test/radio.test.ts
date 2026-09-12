@@ -31,6 +31,7 @@ import {
   type RegionDef,
   type RegionGraph,
   type SignalDef,
+  THREAT_HOURS_PER_STEP,
 } from "../src/index.js";
 
 /**
@@ -279,7 +280,9 @@ describe("determinism and save (no save-schema rung)", () => {
     const { state, graph } = run();
     // Deep + night so the anomaly is audible at stage 3; region drift will lower threat by stage 14. Use a
     // night HOUR (advanceClock recomputes phase from the hour at stage 2), so the listen turn resolves at night.
-    const deep: GameState = { ...withRadio(at(state, "node.home")), meta: { ...state.meta, hour: 22, phase: "night" }, regions: { ...state.regions, "region.home": { ...state.regions["region.home"]!, threat: ANOMALY_THREAT } } };
+    // T74: drift now runs on its banked period rather than a point per turn, so put the region's threat
+    // clock one hour short of its next step — the one-hour listen still tips it within the turn.
+    const deep: GameState = { ...withRadio(at(state, "node.home")), meta: { ...state.meta, hour: 22, phase: "night" }, regions: { ...state.regions, "region.home": { ...state.regions["region.home"]!, threat: ANOMALY_THREAT, threatHours: THREAT_HOURS_PER_STEP - 1 } } };
     const res = applyAction(deep, { type: "listen-radio", choiceId: "listen-radio", timeCost: 1 }, graph);
     expect(res.state.regions["region.home"]!.threat).toBeLessThan(ANOMALY_THREAT); // drift lowered it within the turn
     expect(res.scene.narration).toContain("we can wait"); // yet the anomaly caught at stage 3 is still in the digest

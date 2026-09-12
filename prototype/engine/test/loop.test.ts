@@ -58,8 +58,9 @@ function assertIntegerLeaves(value: unknown, path = "$"): void {
 describe("clock (T12 · FR-CORE-03)", () => {
   it("maps hours to phases at the boundaries", () => {
     const cases: Array<[number, string]> = [
-      [5, "dawn"], [7, "dawn"], [8, "morning"], [11, "morning"], [12, "midday"], [16, "midday"],
-      [17, "evening"], [20, "evening"], [21, "night"], [23, "night"], [0, "night"], [4, "night"],
+      [3, "early morning"], [5, "early morning"], [6, "dawn"], [8, "dawn"], [9, "morning"], [11, "morning"],
+      [12, "midday"], [14, "midday"], [15, "late afternoon"], [17, "late afternoon"], [18, "dusk"], [20, "dusk"],
+      [21, "night"], [23, "night"], [0, "night"], [2, "night"],
     ];
     for (const [h, p] of cases) expect(phaseOf(h)).toBe(p);
   });

@@ -29,6 +29,7 @@ import {
 } from "../../engine/src/index.js";
 import { applyAction, availableActions, sceneOf } from "../../engine/src/index.js";
 import { parseDifficulty, difficultyOf, modeInfo, isIronman } from "../../engine/src/index.js";
+import { STORY_ARCS } from "../../engine/src/index.js";
 import { parseCommand, renderScene, saveState } from "./play.js";
 import { renderDepthScreen } from "./screens.js";
 import { isRunOver } from "../../engine/src/index.js";
@@ -83,7 +84,9 @@ function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; 
     regions,
     nodes,
     npcs,
-    [],
+    // The authored story arcs (T40): registered so the full-city beta plays the story, not just the slice
+    // client (play:slice). Every prior golden generator still passes [] and stays byte-stable.
+    STORY_ARCS.map((a) => a.id),
     encounters,
     signals,
     recipes,
