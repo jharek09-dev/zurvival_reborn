@@ -52,6 +52,8 @@ import {
   type NodeId,
   type NodeState,
   type ContentId,
+  hordesEnabled,
+  overrunsPlayer,
 } from "../../engine/src/index.js";
 
 // ---------------------------------------------------------------------------
@@ -291,7 +293,9 @@ function buildDynamicCues(state: GameState, graph: RegionGraph | undefined): Cue
   }
 
   // 2. Hordes — the collective bed, swelling by distance (§6.2). A horde on your node is dire, and sized.
-  for (const h of [...(state.hordes ?? [])].sort((a, b) => (a.id < b.id ? -1 : 1))) {
+  //    Gated on `hordesEnabled` (T76): with `world.flags["hordes.disabled"]` set a mass is frozen and
+  //    has no mechanical existence anywhere in the engine, so it must not be audible here either.
+  for (const h of (hordesEnabled(state) ? [...state.hordes] : []).sort((a, b) => (a.id < b.id ? -1 : 1))) {
     const e = reach.get(h.pos);
     if (e === undefined) continue;
     cues.push(
@@ -395,7 +399,10 @@ function fearBand(state: GameState, cues: readonly Cue[]): number {
   let f = state.player.condition.mind.stress;
   f += Math.round(60 * dangerProximity(cues)); // the nearest threat's real closeness (a chase ≈ +54)
   if (state.combat !== null) f += 35;
-  if ((state.hordes ?? []).some((h) => h.pos === loc)) f += 25; // a mass on your own tile
+  // A mass on your own tile — but only one that can actually reach you: `overrunsPlayer` (T76) is
+  // false with the layer disabled and false inside your own claimed shelter, where the collision does
+  // not happen, so the dread read agrees with what the turn can actually do to you.
+  if (overrunsPlayer(state)) f += 25;
   if (isNight(state)) f += 12;
   else if (state.meta.phase === "dusk") f += 6;
   const w = worstWound(state.player.condition);

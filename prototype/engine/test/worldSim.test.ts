@@ -71,15 +71,31 @@ describe("layers are independently tickable (T23 · FR-SIM-01)", () => {
     expect(after.hordes).toBe(state.hordes);
   });
 
-  it("the live regions layer moves only the regions slice, nothing else", () => {
+  it("the live regions layer moves the regions slice and (T75) nodes, and nothing else", () => {
     const { state, graph } = run();
     const after = runLayer(state, "regions", { hours: 6, graph });
     expect(after.regions).not.toStrictEqual(state.regions); // rivals thinned loot
-    // every other tracked slice is untouched
-    expect(after.player).toBe(state.player);
-    expect(after.nodes).toBe(state.nodes);
-    expect(after.world).toBe(state.world);
-    expect(after.hordes).toBe(state.hordes);
+
+    // T75: repopulation lives in this layer, so `nodes` is now a legitimate output of it — this
+    // assertion USED to be `expect(after.nodes).toBe(state.nodes)` and passed only because one density
+    // roll happened to fail on this fixture at 6 hours. Assert the real boundary instead: the layer
+    // writes regions + nodes + rng, and never the player, the world dials or the hordes.
+    const long = runLayer(state, "regions", { hours: 30, graph });
+    expect(long.nodes).not.toBe(state.nodes); // bodies arrived over a longer span
+    for (const [id, node] of Object.entries(long.nodes)) {
+      const before = state.nodes[id]!;
+      // the only field repopulation may move is the roster triple; everything else is carried through
+      expect({ ...node, walkers: 0, roster: [], zombieTypes: [] }).toStrictEqual({ ...before, walkers: 0, roster: [], zombieTypes: [] });
+      expect(node.walkers).toBeGreaterThanOrEqual(before.walkers); // it never culls
+    }
+
+    // every other tracked slice is untouched, on both spans
+    for (const out of [after, long]) {
+      expect(out.player).toBe(state.player);
+      expect(out.world).toBe(state.world);
+      expect(out.hordes).toBe(state.hordes);
+      expect(out.meta).toBe(state.meta);
+    }
   });
 });
 

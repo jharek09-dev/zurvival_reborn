@@ -47,6 +47,8 @@ import {
   isCombatAction,
   resolveCombatAction,
 } from "../combat/combat.js";
+import { isOverrun, isOverrunAction, overrunChoices, overrunNarration, resolveOverrunAction } from "../sim/overrun.js";
+import { hordesEnabled } from "../sim/hordes.js";
 import { encounterPeople, isEncounterAction, resolveEncounterAction } from "../sim/encounters.js";
 import {
   shelterChoices,
@@ -87,12 +89,11 @@ import { economyChoices, isEconomyAction, resolveEconomyAction, economyLine, eco
 import { jobChoices, isJobAction, resolveJobAction, jobLine, jobIdOf, jobOf } from "../sim/jobs.js";
 import { socialChoices, isSocialAction, resolveSocialAction, socialLine, socialActive, attitudeRead, companionUnease, shelterMoodRead } from "../sim/social.js";
 
-/** Time cost, in in-game hours, of each core action (FR-CORE-03). Rebalanced T72 (playtest time-economy pass). */
-export const MOVE_COST = 2;
-export const SEARCH_COST = 2; // T72: 3→2 (a node still takes 3 searches to strip clean ⇒ 6h, was 9h)
-export const REST_COST = 4; // T72: 6→4 (the away-from-base rest; "Sleep until morning" is the in-base recovery)
-/** Managing the pack costs no in-game time (T18). */
-export const DROP_COST = 0;
+// The core action time costs moved to the leaf module `actions/costs.ts` (T77) so the combat layer —
+// which `coreActions` imports, and which must define `SLIP_COST` as `MOVE_COST + 1` — can read them
+// without closing an import cycle. Re-exported here so every existing importer is unchanged.
+export { MOVE_COST, SEARCH_COST, REST_COST, DROP_COST } from "./costs.js";
+import { MOVE_COST, SEARCH_COST, REST_COST, DROP_COST } from "./costs.js";
 
 /** How much a single search advances a node's searchPct (3 searches exhaust a node). */
 export const SEARCH_GAIN = 34;
@@ -152,6 +153,12 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   if (node === undefined) return [];
 
   if (isRunOver(state)) return []; // the run has ended — no actions follow a death (T22)
+  // A horde standing on you (T76) pre-empts EVERYTHING below, including a fight already in progress:
+  // FR-CBT-08 says a mass is routed or fled, never out-traded, so there is no fight choice while one
+  // is on your node — run, or go to ground. The branch sits above combat deliberately (a mass walking
+  // into your duel does not queue behind it) and always returns at least the hold, so it can never
+  // hand back an empty list. See `sim/overrun.ts`.
+  if (isOverrun(state)) return overrunChoices(state, graph);
   if (state.combat !== null) return combatChoices(state, graph);
   // An engaged multi-stage encounter (T47) owns the turn until it resolves — its stage choices only,
   // plus a guaranteed way out (eventChoices). Sits above the walker prompt so a wanderer arriving
@@ -342,6 +349,7 @@ function applySearch(state: GameState): GameState {
  * recovery is a needs change handled by {@link tickNeeds}).
  */
 export function applyPlayerAction(state: GameState, graph: RegionGraph, action: Action): GameState {
+  if (isOverrunAction(action)) return resolveOverrunAction(state, graph, action);
   if (isCombatAction(action)) return resolveCombatAction(state, graph, action);
   if (isEventAction(action)) return resolveEventAction(state, graph, action);
   if (isEncounterAction(action)) return resolveEncounterAction(state, action, graph);
@@ -433,9 +441,33 @@ function worldLead(state: GameState, graph: RegionGraph): string | null {
   const here = state.player.location;
   const neighbours = new Set(neighborsOf(graph, here));
 
-  // 1. A horde bearing down — at, next to, or headed for this node.
-  if (state.hordes.some((h) => h.pos === here || neighbours.has(h.pos) || h.dest === here)) {
-    return "You hear them before you see them — a horde on the move, and it is coming this way.";
+  // 1. A horde bearing down — a mass ONE hop out. Two changes from the baseline rule, and the second
+  //    one is the interesting one because the obvious version of it was measured and rejected:
+  //
+  //    (i) `h.pos === here` is dropped. A horde standing on this node is the overrun (T76), whose own
+  //        line has already led the scene by the time this runs; repeating it here only restates it
+  //        more weakly. With `hordes.disabled` there is no lead at all, which is correct — the whole
+  //        system is off.
+  //    (ii) `h.dest === here` is dropped too. That disjunct is the cry-wolf half: it fires for a mass
+  //        thirty nodes away that merely happens to be pathing here, and with three masses instead of
+  //        one it produced consecutive runs of up to 26 turns on a parked 100-turn run.
+  //
+  //    The tempting third change — widening to TWO hops, so a player gets four turns of warning rather
+  //    than two — was tried and REVERTED on measurement: a parked player over 100 turns saw it on 23%
+  //    of them, in runs of up to 20, which is worse cry-wolf than the very build this was meant to
+  //    repair. More warning is not more legible if it never stops talking.
+  //
+  //    Measured end-to-end through `sceneOf`, parked player, 5 seeds × 100 turns, shipped city:
+  //      · pre-T76 baseline — the lead fires **0 times in 500 turns**, and no mass ever arrives either;
+  //        that is the real complaint, and it is invisibility, not crying wolf.
+  //      · shipped rule — **7 fires in 500 turns, longest run 2**, against 10 actual overruns in the
+  //        same runs. It fires about as often as the thing it warns about happens.
+  //    And it is not merely quiet, it is early: across five scripted runs the one-hop lead preceded
+  //    **18 of 18** overruns. A player who moves away when it fires takes 12 overruns over 304 turns
+  //    where the same player ignoring it takes 18 over 261 — 3.9 per hundred turns against 6.9 — and
+  //    survives about a sixth longer.
+  if (hordesEnabled(state) && state.hordes.some((h) => neighbours.has(h.pos))) {
+    return "You hear them before you see them — a horde on the move on the next street, and it is coming this way.";
   }
 
   // 2. A roused or screaming node here or one step away.
@@ -578,7 +610,9 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   // An engaged encounter (T47) is the scene — its stage narration leads, ahead of the ambient world
   // reads. The felt moral read (`moral`) rides with the atmosphere, surfaced only at the extremes.
   const event = eventLine(state, graph);
-  const lead = threat ?? worldLead(state, graph);
+  // A horde on your node (T76) is the sharpest thing on the board — ahead of the fight read, which
+  // would otherwise describe the one walker you can no longer choose to fight.
+  const lead = overrunNarration(state) ?? threat ?? worldLead(state, graph);
   // Infection perception distortion (T49 · FR-INJ-06): at advanced/terminal the scene grows unreliable —
   // a hallucinated lead or a memory gap, framed as possibly-unreal. Suppressed whenever a REAL danger lead
   // is on the board, so a hallucinated "you hear them massing" can never sit beside — and undermine — a

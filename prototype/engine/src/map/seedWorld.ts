@@ -25,6 +25,20 @@ import type { SignalDef } from "../sim/radio.js";
 import type { RecipeDef } from "../sim/economy.js";
 import type { JobDef } from "../sim/jobs.js";
 import type { NodeDef, RegionDef, RegionGraph } from "./types.js";
+import { seedRoster, distinctTypes } from "../sim/roster.js";
+import type { ContentId } from "../state/types.js";
+
+/**
+ * The three coherent roster fields for one node def (T75). Kept here rather than calling `withRoster`
+ * so `seedNodeState` still builds each node in one object literal.
+ */
+function rosterFields(
+  walkers: number | undefined,
+  types: readonly ContentId[] | undefined,
+): { readonly roster: readonly ContentId[]; readonly walkers: number; readonly zombieTypes: readonly ContentId[] } {
+  const roster = seedRoster(walkers, types);
+  return { roster, walkers: roster.length, zombieTypes: distinctTypes(roster) };
+}
 
 /** Clamp to a 0–100 integer; content baselines are already ints, this guards bad data. */
 function pct(value: number | undefined, fallback: number): number {
@@ -76,10 +90,12 @@ export function seedNodeState(nodeDefs: readonly NodeDef[]): { readonly [id: str
       playerNotes: [],
       lastVisit: null,
       noise: 0,
-      walkers: Math.max(0, Math.trunc(def.walkers ?? 0)),
+      // T75: the roster is the source of truth; `walkers` and `zombieTypes` are derived from it, so a
+      // node authored with types but a smaller (or zero) walker count now gets a BODY for each type —
+      // the type/population divorce fixed at the source. `withRoster` writes all three coherently.
+      ...rosterFields(def.walkers, def.zombieTypes),
       // Zombie behavioural state starts dormant; the machine (T25) rouses it from senses.
       zombieState: "dormant",
-      zombieTypes: def.zombieTypes ? [...def.zombieTypes] : [],
       discovered: false,
       // Crafting rooms (T51) start empty on every node; only the claimed shelter ever gains any, built
       // by a shelter-category recipe. Empty here keeps a pre-economy run's node memory byte-identical.

@@ -23,6 +23,7 @@ import { conditionOf } from "./routes.js";
 import { runEndReason } from "./survival.js";
 import { isCompanion } from "./companions.js";
 import { stageRank } from "./infection.js";
+import { hordeMassAt, overrunsPlayer } from "./hordes.js";
 
 /** Stamp an event with the resolved clock (day/hour/turn from the after-state). */
 function stamp(after: GameState, type: string, subjects: readonly string[], data: HistoryEvent["data"]): HistoryEvent {
@@ -30,8 +31,9 @@ function stamp(after: GameState, type: string, subjects: readonly string[], data
 }
 
 /**
- * The notable events the turn produced, in a stable order (weather · nightfall · horde moves · route
- * turns · combat cleared · run ended). Empty when nothing worth remembering happened. Pure diff.
+ * The notable events the turn produced, in a stable order (weather · nightfall · horde moves · horde
+ * overrun · route turns · combat cleared · run ended). Empty when nothing worth remembering happened.
+ * Pure diff.
  */
 export function recordHistory(before: GameState, after: GameState): readonly HistoryEvent[] {
   const events: HistoryEvent[] = [];
@@ -53,6 +55,25 @@ export function recordHistory(before: GameState, after: GameState): readonly His
     if (was !== undefined && was !== h.pos) {
       events.push(stamp(after, "horde.move", [h.id], { from: was, to: h.pos, dest: h.dest }));
     }
+  }
+
+  // A mass arrived on the player (T76) — either it walked onto them or they walked into it. Level
+  // change, not a level: the beat fires on the EDGE, so standing under a horde for four turns writes
+  // one line rather than four. (T75's repopulation deliberately leaves no trace here — PL-M5-13 — but
+  // being overrun is exactly the kind of thing the FR-CORE-04 log exists to remember.)
+  // Gated on `hordesEnabled` for the same reason `evaluateEvents` is: with the layer off a frozen mass
+  // has no mechanical existence and must not write lines the harness renders. `hordeMassAt` rather
+  // than a raw `h.size` sum, so a hand-edited NaN size cannot reach `state.history` — a NaN there
+  // survives `JSON.stringify` as `null`, which would make the save lossy.
+  // `overrunsPlayer`, not a bare position test: the log must not narrate "a horde came down on you in
+  // the open" for a frozen mass, or for one crossing the player's own claimed shelter, where nothing
+  // is pre-empted and the player takes nothing. `hordeMassAt` rather than a raw `h.size` sum, so a
+  // hand-edited NaN size cannot reach `state.history` — a NaN there survives `JSON.stringify` as
+  // `null`, which would make the save lossy.
+  if (!overrunsPlayer(before) && overrunsPlayer(after)) {
+    events.push(stamp(after, "horde.overrun", [after.player.location], {
+      mass: hordeMassAt(after, after.player.location),
+    }));
   }
 
   // Routes whose *condition* (not just wear) changed.

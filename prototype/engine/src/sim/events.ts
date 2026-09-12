@@ -54,6 +54,9 @@ import { depositNoiseAt } from "./noise.js";
 import { adjustTrust } from "./trust.js";
 import { inflictNamedWound } from "./wounds.js";
 import { isRunOver } from "./survival.js";
+import { overrunsPlayer } from "./hordes.js";
+import { addBodies } from "./roster.js";
+import { ZOMBIE_WALKER } from "./zombies.js";
 
 // --- categories -------------------------------------------------------------------------------
 
@@ -437,9 +440,23 @@ export function applyEncounterEffect(state: GameState, effect: EncounterEffect, 
       const nid = effect.node ?? ctx.node;
       const node = state.nodes[nid];
       if (node === undefined) return state;
-      const walkers = Math.max(0, node.walkers + Math.max(0, Math.trunc(effect.count)));
-      const types = effect.types ? [...new Set([...node.zombieTypes, ...effect.types])] : node.zombieTypes;
-      return { ...state, nodes: { ...state.nodes, [nid]: { ...node, walkers, zombieTypes: types } } };
+      // T75: the effect now appends BODIES rather than bumping a count and unioning a type list. Each
+      // listed type takes one of the authored `count` bodies and the rest are plain walkers, so
+      // "3 walkers, one of them a screamer" arrives as three bodies, not four. The authored count is
+      // therefore exact whenever `types.length <= count` — which is every shipped use (all four are
+      // `count: 2|4` with `types: ["zombie.walker"]`, so they add exactly what they always did). A type
+      // list LONGER than the count is the one place the count is exceeded: every type still lands a
+      // body, because silently dropping an authored type is worse than adding one, and it is the same
+      // contract `seedRoster` keeps.
+      // Incidental: the old union wrote the literal "zombie.walker" into `zombieTypes`, which the
+      // harness soundscape read as "a special is here" and used to SUPPRESS the collective-moan cue at
+      // those three nodes. `distinctTypes` drops it, so the cue now fires — an undeclared-until-now
+      // FR-AUD change, recorded in QA_REVIEW_T75.
+      const count = Math.max(0, Math.trunc(effect.count));
+      const listed = effect.types ?? [];
+      const bodies: ContentId[] = [...listed];
+      while (bodies.length < count) bodies.push(ZOMBIE_WALKER);
+      return { ...state, nodes: { ...state.nodes, [nid]: addBodies(node, bodies) } };
     }
     case "addNoise": {
       const nid = effect.node ?? ctx.node;
@@ -649,6 +666,15 @@ export function evaluateEvents(state: GameState, graph: RegionGraph | undefined)
   // come first. Encounters fire on quiet nodes; a multi-stage one that turns violent seeds walkers and
   // ends, handing off to that prompt next turn.
   if (node === undefined || node.walkers > 0) return state;
+  // T76: nor under a horde. The overrun pre-empts every choice list while a mass stands on the player
+  // (`sim/overrun.ts`), so engaging a beat here would strand it — begun this turn, unanswerable until
+  // the mass wanders off. This is the *opening* half of that guard; the flee/hold verbs abandon a beat
+  // that was already engaged when the mass arrived.
+  // `overrunsPlayer`, not a bare position test: a mass has no mechanical existence with the layer
+  // switched off, and none inside the player's own claimed shelter, so in neither case may it go on
+  // silently shutting beats out of the node it stands on. The guard exists because the overrun
+  // pre-empts every choice list — where it cannot pre-empt, it must not suppress either.
+  if (overrunsPlayer(state)) return state;
   const { def, rng } = chooseEncounter(state, graph);
   // No draw ⇒ rng === state.rng ⇒ strictly inert (empty pool, nothing eligible, or a single candidate),
   // so every prior run stays byte-identical; a real weighted pick only advances the `encounter` stream.

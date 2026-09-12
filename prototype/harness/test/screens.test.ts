@@ -33,6 +33,7 @@ import {
   renderShelter,
   renderMap,
   renderCodex,
+  historyLine,
   parseCommand,
   playByInputs,
   playSession,
@@ -440,5 +441,52 @@ describe("Codex (SCR-07) — lore, radio, rumors, memorial", () => {
     expect(text).toContain("Memorial");
     expect(text).toMatch(/† .*(sarah|companion)/i); // a death, marked
     expect(text.toLowerCase()).toContain("left in the night"); // the desertion
+  });
+});
+
+/**
+ * T76 — the horde collision, harness side. The engine tests own the mechanics; these two own the
+ * things a player actually reads, which no engine test can see: the Living-History line the map
+ * screen renders for the new `horde.overrun` beat, and the scene the overrun turn renders.
+ */
+describe("the horde collision reads correctly (T76)", () => {
+  const REGIONS76: RegionDef[] = [{ id: "region.h", name: "H", description: "h", baseline: { zombieDensity: 60 } }];
+  const NODES76: NodeDef[] = [0, 1, 2].map((i) => ({
+    id: `node.h.${i}`,
+    regionId: "region.h",
+    name: `H${i}`,
+    description: `h${i}`,
+    adjacent: [i - 1, i + 1].filter((j) => j >= 0 && j <= 2).map((j) => `node.h.${j}`),
+    ...(i === 0 ? { start: true } : {}),
+  }));
+
+  it("renders the horde.overrun beat as a past-tense map annotation", () => {
+    const ev: HistoryEvent = {
+      turn: 12, day: 3, hour: 21, type: "horde.overrun", subjects: ["node.h.1"], data: { mass: 33 },
+    } as HistoryEvent;
+    const line = historyLine(ev);
+    expect(line).toContain("Day 3, 21:00");
+    expect(line).toContain("a horde came down on you in the open");
+    // no raw ids and no numbers leaking into player-facing prose
+    expect(line).not.toContain("node.h.1");
+    expect(line).not.toContain("33");
+  });
+
+  it("renders an overrun turn as a scene with only flight and the hold", () => {
+    const { state, graph } = startRun({ seed: "t76-screens", createdAt: "2026-09-12T00:00:00Z" }, REGIONS76, NODES76);
+    const at = "node.h.1";
+    const s: GameState = {
+      ...state,
+      nodes: Object.fromEntries(Object.entries(state.nodes).map(([id, n]) => [id, { ...n, discovered: true }])),
+      player: { ...state.player, location: at },
+      hordes: [{ id: "horde.x", size: 33, pos: at, dest: null, speed: 1, awareness: 2, types: ["zombie.walker"] }],
+    };
+    const scene = sceneOf(s, graph);
+    expect(scene.narration.startsWith("They are on you")).toBe(true);
+    expect(scene.narration).toContain("no fighting this");
+    expect(scene.choices.map((c) => c.id)).toStrictEqual(["flee:node.h.0", "flee:node.h.2", "hold"]);
+    // the whole read is words — a screen reader gets the same scene (FR-AUD-06 / FR-UI)
+    expect(scene.narration).not.toMatch(/\bhorde\.x\b/);
+    expect(scene.narration).not.toContain("33");
   });
 });

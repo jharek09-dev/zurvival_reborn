@@ -426,6 +426,13 @@ export interface RegionState {
   readonly threatHours?: number;
   /** Banked pressure-hours (survivorActivity x hours) toward the next point of off-screen loot contest. */
   readonly lootContestHours?: number;
+  /**
+   * Banked hours toward this region's next zombie-repopulation attempt (T75). Optional; absent reads
+   * as 0, so schema v10 holds and a pre-T75 save needs no migration rung. HOLDS (neither accrues nor
+   * resets) while the region has nothing to do — density 0, or already at carrying capacity. See
+   * `sim/repopulate.ts`.
+   */
+  readonly repopHours?: number;
 }
 
 /** Nodes remember: never reset within a run (GDD VII, DESIGN §4). */
@@ -455,8 +462,27 @@ export interface NodeState {
   /**
    * Walkers loitering here — the seed of an avoidable encounter (FR-CBT-01, task T15). Node
    * memory: killing one lowers the count and the rest persist across turns; 0 on a quiet node.
+   *
+   * As of T75 this is the **length of {@link roster}** and is written through
+   * `sim/roster.ts#withRoster`, which keeps the two in step. Every existing reader is unchanged **as
+   * code** — but note that `actions/coreActions.ts` and `sim/events.ts` both branch on `walkers > 0`,
+   * so any body this field gains suppresses the whole explore branch and all encounter selection at
+   * that node. Repopulation (T75) moves this field for the first time, so those two gates now fire on
+   * far more nodes than they used to: see the shadowing note in `sim/repopulate.ts`.
    */
   readonly walkers: number;
+  /**
+   * The bodies standing here, **one content id per body** (M4 task T75) — e.g.
+   * `["zombie.riot", "zombie.walker", "zombie.walker"]`. The single source of truth that reconciles
+   * {@link walkers} (how many) with {@link zombieTypes} (which kinds), which were divorced before
+   * T75: a node with one listed riot and three walkers fought three riots, and killing one never
+   * removed the type.
+   *
+   * Optional-tolerated-absent (the T74 idiom): absent on a pre-T75 save, where `rosterOf` synthesizes
+   * it on read from the legacy pair — so schema v10 holds with no migration rung. Seeded for every
+   * node on a fresh run. See `sim/roster.ts`.
+   */
+  readonly roster?: readonly ContentId[];
   /**
    * Aggregate behavioural state of the dead loitering here — the FR-CBT-06 machine (T25). Ticked by
    * the zombies sim layer from senses (this node's noise, the player's presence/scent, the phase).
@@ -465,6 +491,10 @@ export interface NodeState {
   /**
    * Content ids of the distinct zombie *types* present here (FR-CBT-07) — e.g. "zombie.screamer",
    * "zombie.stalker". Empty for a plain node of walkers. Seeded from `NodeDef.zombieTypes`.
+   *
+   * As of T75 this is **derived from {@link roster}** — its distinct non-walker set — and written
+   * only through `sim/roster.ts#withRoster`. Its meaning and every consumer (`hasTag`, the screamer
+   * prose, the encounter requirement gates) are unchanged.
    */
   readonly zombieTypes: readonly ContentId[];
   /**
