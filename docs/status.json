@@ -1,5 +1,5 @@
 {
- "updated": "2026-07-18 (M4 Part 13 - T56 pt 2/2: NFR-ACC accessibility baseline). T56 is now DONE (both halves - difficulty modes + the accessibility baseline). Part 2 completes the NFR-ACC baseline at the M4 tier, byte-identity BY CONSTRUCTION (engine + content untouched, diff EMPTY - the T54/T55 shape). Three deliverables: (1) the FR-AUD-06 cue-redundancy matrix - 48 cues the T55 soundscape emits -> text (cueMatrix.ts + an acceptance proving each surfaces AND a reverse DRIFT GUARD so no cue slips in untracked; un-emitted AUDIO-bible cues tracked in DEFERRED_CUES; rendered to docs/reference/AUDIO_CUE_MATRIX.md); (2) a palette contrast + colourblind CI gate over design/tokens.css (content-loader `npm run validate:a11y`) - WCAG §11 contrast matched to 4dp, Machado CVD separation, the --danger/--info-never-body lint; rejects a malformed palette (proven teeth); (3) the consolidated NFR-ACC-01 acceptance + ACCESSIBILITY.md completed (§0 status block + 10 ticks + Appendix A M4). Two-subagent adversarial audit + verify: 0 blockers; fixed an 'AUDIO bible' over-claim (-> 'cues the soundscape emits' + DEFERRED_CUES), added the drift guard (teeth proven live), wrote the QA doc, corrected the CVD-pair prose (warm cluster, not the guessed hope/infection). CI green: engine 580 (+0) / content-loader 23 (+14) / harness 232 (+57) / schema 160-13 / a11y gate OK / both malformed rejected / smoke exit 0. Save stays v10; 14-stage pipeline untouched. M5-deferred (Appendix A): web SR runtime, mobile layout, reduced-motion runtime, dyslexia font, the client colour-lint, the human playtest. Next: T57 (M4 exit - content-complete city & public-beta hardening).",
+ "updated": "2026-09-12 (T74 - hour accumulators, design review step 1 of 12): the simulation now runs on the turns you actually play. Fourteen periodic systems computed trunc(hours / period) against the current action's hour cost and threw the remainder away - and ordinary turns cost 1-2 hours against periods of 2-12, so the work never happened: a gardener made ~1 fresh food per in-game DAY against the ~7 items a search run pulls, morale never moved on any turn under six hours, off-screen survivors never regrouped once in a whole run, four of the six shipped regions never lost a point of loot while you were away, a storm never eroded a road, and a horde could be 'on the move, and it is coming this way' for twenty turns while standing still. Three copies of stepToward compounded it: Math.max(1, maxStep) moved a full step on a zero-step tick, so every *_HOURS_PER_STEP constant was a dead knob. Each subject now BANKS its remainder hours in an optional integer field that reads as 0 when absent - the desertPressure idiom - so no save rung is needed (v10 holds), and the invariant the module headers have claimed since T23 is finally true: a played hour == a fast-forwarded hour, with its residual limits declared rather than glossed. Base output over a day of ordinary turns went 0 -> 4; a neglected companion now actually leaves; hordes, regional drift, the loot contest and the weather drains all move on normal turns for the first time. Intentional behaviour change, not byte-identical (the T71/T72 discipline). Two adversarial audits + a verify pass: 12 findings, all fixed or declared, including a fourteenth truncating site the task note had missed and five overstated claims about the old behaviour corrected against measurement. NEXT: T75 - zombie repopulation, the keystone.",
  "phase": "M4 Content-complete city — breadth without repetition, the full first city. The launch Content Bible for one city: all regions & nodes, the target survivor pool with several companions, full encounter categories with chains & evolution, infection as staged identity, the radio network, a crafting/rooms/jobs economy, factions & inter-NPC relationships, depth screens, an adaptive audio mix with non-audio equivalents, difficulty modes, and the accessibility baseline complete — all content schema-validated in CI. Exit: MVP / public beta. Entry: M3 done and the Slice Fun Gate passed; content schemas frozen for authoring.",
  "currentMilestone": "M4",
  "milestones": [
@@ -451,91 +451,240 @@
    "title": "M4 exit — content-complete city & public-beta hardening",
    "milestone": "M4",
    "status": "todo",
-   "note": "The M4 Definition of Done. The first city is content-complete and schema-valid (CI green, FR-CNT-02); verbatim encounter repetition sits under the PRD §4 target across a full run; infection-as-identity plays as 'a harder way to keep going', comprehension-tested with players; and the beta is stable enough to hand out. A pass opens M5 (release candidate). This milestone is the MVP / public beta."
+   "note": "EXIT-READY - OWNER GATE PENDING (M4 Part 14, 2026-07-18). The M4 exit gate: the machine-provable half of the M4 Definition of Done is PROVEN + packaged; the human verdict (does infection READ as identity; does the beta FEEL handable / 'one more day') is the OWNER PLAYTEST (docs/qa/M4_EXIT_GATE.md), exactly as the M3 Slice Fun Gate (T42) was owner-rendered - so M4 stays active and T57 flips to done only when the owner records the verdict. Delivered HARNESS-ONLY + docs, byte-identity BY CONSTRUCTION (diff -r prototype/engine/src AND content/ vs the pre-part baseline are EMPTY - the T54/T55/T56 shape): (1) a consolidated exit-gate suite prototype/harness/test/exitGate.test.ts (23 assertions) re-proving the four DoD criteria at the content-complete FULL-CITY tier - a content-completeness MANIFEST (every in-scope pool -> count-vs-floor against the engine's own constants + the zombie roster/named wounds + the client-side depth-screen/audio systems + all cross-refs resolve + the beta boot REGISTERS the authored arc), the PRD-S4 sweep over the all-pools boot (136 fires / 0.00% verbatim / 0 immediate / 20 distinct / 12.5% max share / 5 ambient categories; combat+shelter out of the ambient probe by construction, all 7 authored), repro-from-seed byte-identity + lossless save-format round-trip + resume-at-every-boundary + a MULTI-SEED no-soft-lock invariant, and infection FR-INJ-08 (terminal survivable = a cure race not a loss screen, cure actionable at the worst stage, no hidden number leaked); (2) the gate packet docs/qa/M4_EXIT_GATE.md (evidence table per criterion + the scripted OWNER PLAYTEST Q1 infection-as-identity / Q2 handable+'one more day' + a PENDING verdict table, the FUN_GATE_LOG shape); (3) the beta handout docs/BETA.md (run/controls/scope). One client fix (harness-only, byte-identity intact): playCli.ts now registers the authored arc(s) so `npm run play` plays the STORY, not just play:slice; README's stale 'no engine committed yet' line refreshed to point at the prototype+beta. Two-subagent adversarial audit (engineering teeth/correctness/byte-identity + completeness/honesty reverse-coverage) + a verify pass: 0 BLOCKERS, ~10 findings all fixed+re-verified - a DEAD liveness longevity branch (run succumbs ~turn 59) -> an honest MULTI-SEED anti-soft-lock invariant; the missing zombie-roster (T46, a Must) + client-side-systems manifest coverage (HIGH reverse-completeness); an 'enumerates every in-scope system' over-claim corrected; the authored arc now boot-REGISTERED at runtime not just cross-ref'd. Both auditors reproduced every measured number; NO doc over-claims the human or M5/T66 half (the failure mode this gate worried about does not occur). CI green in a clean sandbox: engine 580 (+0, untouched) / content-loader 23 / harness 255 (+23) / schema gate 160-13 / a11y gate OK / both malformed rejected / smoke exit 0. Save stays v10; 14-stage pipeline untouched. Focused hardening deliberately respects the M5 line (crash-free>=99.5%, perf budget, long-run soak, bounded history -> T66). Next: the OWNER PLAYTEST renders the verdict -> close M4 / open M5. See docs/plans/M4_PART14_PLAN.md, docs/qa/QA_REVIEW_M4_PART14.md, docs/qa/M4_EXIT_GATE.md. || UPDATED 2026-09-12 (design review): the owner playtest this gate waits on is now scheduled AFTER T74-T77 — the Tier-A reconnection work. The review found that the world cannot currently apply pressure (zombies never respawn, hordes have no mechanical effect, the arousal ladder and the threat dials are consumed only by narration, and nine trunc(h/N) sites switch off the base economy on ordinary turns), so a playtest today would test the social/shelter thesis with the pressure thesis still dark — the same blind spot as the M3 fun-gate transcript, which contains zero combat, zero zombies and zero encounters. Render the verdict on a build that includes T74-T77.",
+   "seq": 78
   },
   {
    "id": "T58",
    "title": "Monetization & business-model decision",
    "milestone": "M5",
    "status": "todo",
-   "note": "PRD Open Question 5 (PRODUCTION §9 decision schedule, resolve by M5): decide the monetization / business model — premium / free+cosmetic / episodic — so launch planning can finalize. A written decision against its criteria, logged like an ADR. Licensing (Open Q8) was already settled at the M4 beta gate (T43); this closes the last open commercial decision before v1.0."
+   "note": "PRD Open Question 5 (PRODUCTION §9 decision schedule, resolve by M5): decide the monetization / business model — premium / free+cosmetic / episodic — so launch planning can finalize. A written decision against its criteria, logged like an ADR. Licensing (Open Q8) was already settled at the M4 beta gate (T43); this closes the last open commercial decision before v1.0.",
+   "seq": 120
   },
   {
    "id": "T59",
    "title": "Staged balance pass 1 — survivability & scarcity",
    "milestone": "M5",
    "status": "todo",
-   "note": "GDD XVI / PRODUCTION §8 staged balance, passes 1–2 (survivability → scarcity). Tune death timing / causes / margins and resource scarcity against the M2 telemetry baseline (§4 proxies), never by feel — every change justified by telemetry or a logged playtest and re-checked against the Survival Triangle (no strategy escapes a trade). Begins retiring the balance-fragility risk (§10)."
+   "note": "GDD XVI / PRODUCTION §8 staged balance, passes 1–2 (survivability → scarcity). Tune death timing / causes / margins and resource scarcity against the M2 telemetry baseline (§4 proxies), never by feel — every change justified by telemetry or a logged playtest and re-checked against the Survival Triangle (no strategy escapes a trade). Begins retiring the balance-fragility risk (§10). || SEQUENCED 2026-09-12 (design review): now runs AFTER T78-T87. Balancing survivability and scarcity against the current build would tune a game in which firing cannot hurt you, slipping away costs exactly what walking costs, the director eases off whenever you carry an untreated wound, and the zombie population only ever falls — the dials would be fitted to systems that are about to change shape. Also retires PL-M4-54's dial-resolution floor and the untuned-dial entries PL-M4-16/22/31/37/40.",
+   "seq": 113
   },
   {
    "id": "T60",
    "title": "Staged balance pass 2 — pacing/director & difficulty modes",
    "milestone": "M5",
    "status": "todo",
-   "note": "PRODUCTION §8 staged balance, passes 3–4 (pacing/director → difficulty modes). Tune the Apocalypse Director's escalate/relief bands (T30) and the M4 difficulty dials (T56) against pacing telemetry (mean/peak pressure, oscillations, longest calm streak); director + comeback mechanics carry the tension. Verify no mode yields an impossible or trivial run. Completes the balance-fragility retirement (§10)."
+   "note": "PRODUCTION §8 staged balance, passes 3–4 (pacing/director → difficulty modes). Tune the Apocalypse Director's escalate/relief bands (T30) and the M4 difficulty dials (T56) against pacing telemetry (mean/peak pressure, oscillations, longest calm streak); director + comeback mechanics carry the tension. Verify no mode yields an impossible or trivial run. Completes the balance-fragility retirement (§10). || SEQUENCED 2026-09-12 (design review): now runs AFTER T78/T79/T83. Today the pacing telemetry it reads is degenerate — pressureRead locks at 21-23 so directorBeat returns 'escalate' every tick forever, highPressureTurns is 0 and oscillations is 0 over a 400-turn simulation, and globalThreat oscillates between 26 and 30 without ever approaching night's PHASE_THREAT_TARGET of 55. Tune the bands once the curve can move.",
+   "seq": 114
   },
   {
    "id": "T61",
    "title": "Multiple endings from run components",
    "milestone": "M5",
    "status": "todo",
-   "note": "FR-STY-06 (Must, v1): assemble multiple endings from real run components — who lived, what you built, the choices logged in the append-only Living History (T31) — with no single 'true ending'. Reproducible from seed+state; the history is the source, so an ending reflects the run that actually happened."
+   "note": "FR-STY-06 (Must, v1): assemble multiple endings from real run components — who lived, what you built, the choices logged in the append-only Living History (T31) — with no single 'true ending'. Reproducible from seed+state; the history is the source, so an ending reflects the run that actually happened. || SEQUENCED 2026-09-12 (design review): now runs AFTER T87 — endings assembled from run components need the run to have components other than death, and T87 supplies the hold / escape / sacrifice outcomes. Also the reader PL-M4-15 has been waiting for: humanity is moved by 17 authored encounter effects (-78 reachable from the baseline of 50, so the <=28 cruel band is genuinely in play) and is read today only by a prose band, the moraleTarget term and the BETRAY_HUMANITY gate. No content uses the minHumanity/maxHumanity requirement predicates that already exist in events.ts:498.",
+   "seq": 111
   },
   {
    "id": "T62",
    "title": "Failure endings with closure + epilogues",
    "milestone": "M5",
    "status": "todo",
-   "note": "FR-STY-07 (Must) + FR-CBT-10 (Last Stand) + FR-STY-08 (Should). Authored failure endings — Last Stand / overrun / infection — resolve as a heightened final-choice sequence with real closure, not a death card; plus epilogues following surviving NPCs. Death is a scene. Builds on the M3 first authored failure ending (T40/T42)."
+   "note": "FR-STY-07 (Must) + FR-CBT-10 (Last Stand) + FR-STY-08 (Should). Authored failure endings — Last Stand / overrun / infection — resolve as a heightened final-choice sequence with real closure, not a death card; plus epilogues following surviving NPCs. Death is a scene. Builds on the M3 first authored failure ending (T40/T42). || SEQUENCED 2026-09-12 (design review): now runs AFTER T82, which supplies the Last Stand TRIGGER (the grabbed state, companions who can die, and the surrounded-with-no-exit condition); T62 authors the scene it fires. Closes PL-M4-20. Note the current failure ending is one hardcoded sentence per cause and then coreActions.ts:154 returns an empty choice list — good prose, but structurally the 'You Died' card FR-STY-07 forbids.",
+   "seq": 112
   },
   {
    "id": "T63",
    "title": "Full accessibility — verified with assistive tech",
    "milestone": "M5",
    "status": "todo",
-   "note": "NFR-ACC-01..04 completed and VERIFIED with real assistive tech, not just authored: critical info never by colour/audio alone (01), full screen-reader support over a semantic, navigable text UI (02), scalable text + high-contrast / colorblind-safe themes (03), reduced-motion / reduced-flicker modes (04, Should). Accessibility has been a Must since the first UI (M1); here it is proven, never retrofitted."
+   "note": "NFR-ACC-01..04 completed and VERIFIED with real assistive tech, not just authored: critical info never by colour/audio alone (01), full screen-reader support over a semantic, navigable text UI (02), scalable text + high-contrast / colorblind-safe themes (03), reduced-motion / reduced-flicker modes (04, Should). Accessibility has been a Must since the first UI (M1); here it is proven, never retrofitted.",
+   "seq": 115
   },
   {
    "id": "T64",
    "title": "Localization externalization complete",
    "milestone": "M5",
    "status": "todo",
-   "note": "NFR-LOC-01 (Should): all player-facing strings externalized for localization, completed to 100% (the design kept the art-bible §3.7.7 +35% expansion headroom). No hard-coded copy in the shipped path; a pseudo-locale pass proves nothing is baked in. Actual translations may follow post-launch, but externalization ships at v1."
+   "note": "NFR-LOC-01 (Should): all player-facing strings externalized for localization, completed to 100% (the design kept the art-bible §3.7.7 +35% expansion headroom). No hard-coded copy in the shipped path; a pseudo-locale pass proves nothing is baked in. Actual translations may follow post-launch, but externalization ships at v1.",
+   "seq": 116
   },
   {
    "id": "T65",
    "title": "Save migration proven across a real schema change",
    "milestone": "M5",
    "status": "todo",
-   "note": "NFR-SAVE-02 (Must): prove the versioned-save migration ladder (ADR-0003 / T7) across a REAL breaking schema change — an old save from an earlier SAVE_SCHEMA_VERSION loads, migrates forward one pure N→N+1 rung at a time, and resumes losslessly with no silent corruption. The vertical slice already bumped the version to 7 with per-bump rungs; M5 proves the whole ladder end-to-end on a shipped-format save."
+   "note": "NFR-SAVE-02 (Must): prove the versioned-save migration ladder (ADR-0003 / T7) across a REAL breaking schema change — an old save from an earlier SAVE_SCHEMA_VERSION loads, migrates forward one pure N→N+1 rung at a time, and resumes losslessly with no silent corruption. The vertical slice already bumped the version to 7 with per-bump rungs; M5 proves the whole ladder end-to-end on a shipped-format save.",
+   "seq": 117
   },
   {
    "id": "T66",
    "title": "Reliability & performance hardening",
    "milestone": "M5",
    "status": "todo",
-   "note": "NFR-REL-01 + NFR-PERF-01/02 (Must). Crash-free session rate ≥99.5% at launch with zero save-corruption — the deterministic core gives repro-from-seed for every report; and hold the turn budget: resolve+render < 100 ms on a mid-range 2022 phone, initial load < 3 s, heavy region/horde updates amortized (addresses PL-M2-07). Soak-test long runs and bound the append-only history growth (PL-M2-06)."
+   "note": "NFR-REL-01 + NFR-PERF-01/02 (Must). Crash-free session rate ≥99.5% at launch with zero save-corruption — the deterministic core gives repro-from-seed for every report; and hold the turn budget: resolve+render < 100 ms on a mid-range 2022 phone, initial load < 3 s, heavy region/horde updates amortized (addresses PL-M2-07). Soak-test long runs and bound the append-only history growth (PL-M2-06).",
+   "seq": 118
   },
   {
    "id": "T67",
    "title": "Polish & UI-restraint pass",
    "milestone": "M5",
    "status": "todo",
-   "note": "FR-UI-06 (Should): the emotional-UI and restraint pass — the 'Quiet Screen' for loss moments (SCR-08 register), a UI that degrades legibly with player state, and a final cut of anything that clutters the story-first single-decision Scene. Gated on art/audio direction locked (M5 entry). The perceivable finish that makes v1 feel authored, not prototyped."
+   "note": "FR-UI-06 (Should): the emotional-UI and restraint pass — the 'Quiet Screen' for loss moments (SCR-08 register), a UI that degrades legibly with player state, and a final cut of anything that clutters the story-first single-decision Scene. Gated on art/audio direction locked (M5 entry). The perceivable finish that makes v1 feel authored, not prototyped.",
+   "seq": 119
   },
   {
    "id": "T68",
    "title": "Content freeze & every-Must-met release audit",
    "milestone": "M5",
    "status": "todo",
-   "note": "The M5 DoD backbone: freeze content, then audit that every Must requirement is met at its release target (PRD §7 MoSCoW) — no Must cut to hit the date; if one can't fit, the milestone is re-scoped, not shipped broken. Schema gate green over the full city (FR-CNT-02); the Won't-now register stays frozen; every shipped item traces back to the PRD by ID."
+   "note": "The M5 DoD backbone: freeze content, then audit that every Must requirement is met at its release target (PRD §7 MoSCoW) — no Must cut to hit the date; if one can't fit, the milestone is re-scoped, not shipped broken. Schema gate green over the full city (FR-CNT-02); the Won't-now register stays frozen; every shipped item traces back to the PRD by ID.",
+   "seq": 121
   },
   {
    "id": "T69",
    "title": "v1.0 launch gate — the external 'one more day' test",
    "milestone": "M5",
    "status": "todo",
-   "note": "The M5 exit and v1.0 go/no-go. Balance targets hit in telemetry; a save survives a real migration; accessibility verified with assistive tech; and the 'one more day' test (GDD XVI) passes with EXTERNAL players, not just the owner — at session end they want to continue. A pass ships v1.0; native/Steam/chat-bot clients and any second city move to Post-launch per the ADR-0004 order."
+   "note": "The M5 exit and v1.0 go/no-go. Balance targets hit in telemetry; a save survives a real migration; accessibility verified with assistive tech; and the 'one more day' test (GDD XVI) passes with EXTERNAL players, not just the owner — at session end they want to continue. A pass ships v1.0; native/Steam/chat-bot clients and any second city move to Post-launch per the ADR-0004 order.",
+   "seq": 122
+  },
+  {
+   "id": "T70",
+   "title": "Sleep until morning + scene-prose reflow",
+   "milestone": "M4",
+   "status": "done",
+   "note": "Owner playtest addition (2026-07-18). A dedicated 'Sleep until morning' base action — offered only at your own claimed shelter within the 20:00–04:00 window, runs the clock forward to 08:00 and recovers fatigue BY THE HOURS SLEPT (SLEEP_RECOVERY_PER_HOUR=10; hunger/thirst still climb) — retiring the night-watch beat's flat-2h sleep that stranded you in the dark. Additive behind a NEW `sleep` action type gated on new conditions ⇒ byte-identical by construction (all 580 prior engine tests pass). Plus a presentation-only narration reflow shared by the terminal render and the browser beta (the where/when locator lifted to lead the scene; the body broken into short paragraphs) via a new pure `layoutStory` — scene.narration and the renderRegions accessibility seam left byte-identical. Full CI green: engine 590 / harness 259 / content-loader 23 / schema 160-13 / a11y OK. Ships as a format-patch; the browser beta artifact was rebuilt from the new engine. The M4_EXIT_GATE manifest may want a sleep-system line at the owner's discretion."
+  },
+  {
+   "id": "T71",
+   "title": "Seven-phase day/night redesign + sleep retune",
+   "milestone": "M4",
+   "status": "done",
+   "note": "Owner playtest tuning (2026-07-18). The clock's day cycle goes from 5 to 7 phases: early morning (03-05), dawn (06-08), morning (09-11), midday (12-14), late afternoon (15-17), dusk (18-20), night (21-02). The three time-of-day danger vectors (concealment / search-noise / threat tide) retuned across them; the soundscape's darkening bed + fear key on dusk. 'Sleep until morning' retuned: window 21:00-03:00, wake 06:00 (still labelled 'morning' though 06:00 is the new 'dawn' phase). INTENTIONAL behaviour change (NOT byte-identical) — phase values + the 6-7am/afternoon/dusk gameplay shift, so phase-dependent tests were rebaselined (timeOfDay/loop/save/history/cueMatrix/sleep); a pre-launch save at the old 'evening' phase won't load (phase is derived from hour). Full CI green: engine 590 / harness 259 / content-loader 23 / schema 160-13 / a11y OK. Ships as a format-patch on top of T70; the browser beta was rebuilt from the new engine. The M4_EXIT_GATE / owner playtest may want to re-check the retuned time-of-day gameplay."
+  },
+  {
+   "id": "T72",
+   "title": "Time-economy rebalance (base-setup verbs)",
+   "milestone": "M4",
+   "status": "done",
+   "note": "Owner playtest tuning (2026-07-19). The base-setup verbs were the time-economy outliers (search-clean + claim = ~13h, running the first day out). Rebalanced in coreActions.ts + shelter.ts: SEARCH_COST 3->2 (a node still takes 3 searches -> 6h to strip clean, was 9h; SEARCH_GAIN stays 34 so loot per search is UNCHANGED), CLAIM_COST 4->2, FORTIFY_COST 3->2, REST_COST 6->4 (the field rest; in-base 'Sleep until morning' is the deeper recovery). Search-clean + claim now ~8h (06:00 -> early afternoon). Other verbs keep their tiers (free / 1h / 2h / big). INTENTIONAL behaviour change (not byte-identical: less time passes per turn) - two time-sensitive tests adjusted (noise decay over the shorter rest; thirst-pressing needs a couple more cheaper turns; one harness test set thirsty-state directly to avoid an emergent walk into combat). Full CI green: engine 590 / harness 259 / cl 23 / schema 160 / a11y OK. Ships as a format-patch on top of T71; browser beta rebuilt."
+  },
+  {
+   "id": "T73",
+   "title": "Companions screen surfaces the shelter-cache requirement (Ruth plea)",
+   "milestone": "M4",
+   "status": "done",
+   "note": "Owner playtest bug (2026-07-19). 'Take Ruth in didn't work' reported with 2 canned food CARRIED: the T40 arc 'The Last Customer' draws its 'Take X in' cost from the base CACHE (player.stash, banked at the shelter), never the carried pack, and the fork only appears once the cache covers stashDraw (2). The requirement is unchanged - kept cache-only by design - it was simply illegible. Fix is harness/UI-only (screens.ts renderCompanions): whenever a plea is live the Companions screen now carries a plain-language callout - who is at your barricade, that sheltering them costs supplies FROM THE CACHE not your pack, how many the cache holds, and the concrete remedy (at the shelter, Stash food/water until the cache holds 2, then 'Take X in' appears). Placed above the empty-party branch since at the plea beat the pleader is not yet a companion. Engine untouched -> byte-identical (no rebaselining); 3 new screens.test cases (short cache / sufficient cache / inert with no plea). Full CI green: engine 590 / harness 262 / content-loader 23 / schema 160 / a11y OK. Ships as a format-patch on top of T72; browser beta rebuilt."
+  },
+  {
+   "id": "T74",
+   "title": "Hour accumulators — the sub-cycle granularity fix",
+   "milestone": "M4",
+   "status": "done",
+   "note": "DONE (2026-09-12). Design review step 1 (docs/qa/DESIGN_REVIEW_2026_09.md); QA review docs/qa/QA_REVIEW_T74.md. CLOSES PL-M4-36 / PL-M2-04. The note scoped NINE sites; re-deriving the list rather than trusting it found FOURTEEN, all the same bug class - the nine, plus routes' stepToward half, weather's powerPressure and roadPressure drains, the off-screen wall decay, and (not in the note at all) the off-screen LOOT CONTEST, where trunc(hours*survivorActivity/50) meant four of the six shipped regions never lost a point of loot on a 2-hour turn and five of six never on a 1-hour turn, so 'a region you leave unsearched gets thinner' only happened across a fast-forward. New sim/clocks.ts: bankHours(carried,hours,per) -> {steps,rest}, a fixed shared stepToward (a zero step now moves NOTHING - the old Math.max(1,maxStep) in three duplicated copies made every *_HOURS_PER_STEP a dead knob, 1 point/turn in regionDrift and timeOfDay, a full 6-point rise/turn in routes), and relax() for the drift dials. Fourteen optional-tolerated-absent integer fields (the desertPressure idiom) on World/RegionState/Survivor/Horde - absent reads 0, so NO SAVE_SCHEMA_VERSION rung (stays v10, the T56 precedent). Idle rule, applied uniformly: a clock with nothing to do HOLDS (neither accrues nor resets) and only an assignment ENDING resets it, so an idle world does not churn state or the save every turn. MEASURED before->after on identical fixtures: base food over a day of 2h turns 0->4 (= the 24h fast-forward, always 4); neglected companion never deserted -> deserted at hour 70; off-screen survivor never moved -> reached home; horde over 24h of 2h turns 0->6 nodes; region density over 24x1h 27->18, now EQUAL to one 24h advance; region loot over a day of 2h turns 0/0/0/12 -> 4/7/9/21 (downtown/mercy/ironworks/hillcrest), each equal to the fast-forward; pinned 24h storm roads 100->100 becomes 100->92; advanceWorld 12x2h vs 1x24h job output 0 vs 4 becomes 4 vs 4. The verification bar is met and its RESIDUAL LIMITS are declared in sim/clocks.ts rather than glossed: the RNG-per-tick layers (weather shift, region jitter, horde wander) still draw per tick; relaxation toward a MOVING target cannot be chunking-invariant; and three lossy-by-design rules are named. Two adversarial subagent audits + a verification pass: 0 blockers outstanding, 12 findings all fixed or declared - a lost bank at equilibrium (relax reset instead of holding), the 14th site, four state-churn regressions (tickPeople/tickGroups/stalled jobs/settled routes rewriting state every turn and polluting the FR-CORE-04 changed telemetry), a hop cap in tickGroups that swallowed due steps (removed - it could never fire before T74, and MOVE_HOURS is the rate limit), NaN totality (a hand-edited save could persist one and break save losslessness), and FIVE overstated claims about the old behaviour corrected against measurement: the FEAR-driven desertion path (desertPressure accrues by elapsed hours) was ALWAYS live - it is the morale half this restores; a 6h+ turn always moved morale; job.kitchen (4h) turned on a 4h rest; the 8h quarantine moved the horde; and fixing the tide's dead knob makes it SLOWER, band 26..32 -> 28..32 (widening it is T78's job - a 3h period cannot cross a 25-point gap inside a 3-6h phase). The T56 loot scarcity dial now rides the PERIOD, not the point count, so it is exact at every difficulty (scaling points per tick re-truncated: on Story a low-activity region still lost nothing). INTENTIONAL behaviour change, NOT byte-identical - declared the way T71/T72 were; no golden fixture files exist. A pre-T74 save replayed on this build produces a different horde sequence from the same seed because hordes now ARRIVE, clearing dest more often. Two assertions rebaselined (jobs.test 'a sub-cycle tick banks nothing' -> banks its remainder; radio.test seeds threatHours one hour short of its step). No new RNG stream, no reordered draws, no T75/T76/T77 creep (HORDE_HOURS_PER_STEP still 4). Full CI green: engine 637 / harness 262 / content-loader 23 / schema 160 / a11y OK."
+  },
+  {
+   "id": "T75",
+   "title": "Zombie repopulation — density becomes bodies",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 2 — THE KEYSTONE. CLOSES PL-M2-05 / PL-M4-26, and gives PL-M4-02 / PL-M4-10 (inert type-only nodes) a body. node.walkers is written in exactly three places: seedWorld.ts:79 (init), combat.ts:269 (-1 on a kill) and events.ts:440 (the seedWalkers encounter effect, 4 uses in content). NOTHING in the director, the drift model, the hordes or the difficulty dials ever adds one back — the player monotonically strips a finite city and the map never refills. Consequently region.zombieDensity and region.threat, the two dials the whole escalation story runs on, are read only by the director, regionDrift and pacing telemetry: they never become a zombie, a wound, or a decision. Pin zombieDensity at 100 today and the only observable difference is one narration line. Fix: add a repopulate pass to the regions layer (pipeline stage 7). Per node per tick, spawn probability proportional to region.zombieDensity and biased toward the loudest and most-recently-searched nodes, bounded by a per-node ceiling AND a region-wide budget so it can never manufacture an impossible state (GDD XVI rule: the director biases, it never forces). Draw zombieTypes from a density-gated table so a high-density region seeds Riot/Bloated/Fresh rather than just more walkers. Also fix enemyForNode's type/population divorce — a node with zombieTypes ['zombie.riot'] and walkers 3 currently spawns THREE Riots (10h and ~92% bite risk each in melee), while the same node with walkers 0 is never offered a fight at all; store a per-node roster instead of walkers:number + zombieTypes:string[]. INTENTIONAL behaviour change, not byte-identical; heed the PL-M4-54 / byte-identity-loot-hazard lesson and watch that the new draws don't silently shift existing RNG streams — give repopulation its own named stream. The moment this lands, the director, the drift model, the noise chain and all four difficulty dials acquire teeth simultaneously; every other gameplay task in M4/M5 is cheaper and less important than this one."
+  },
+  {
+   "id": "T76",
+   "title": "Horde collision — noise acquires a bill",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 3. CLOSES PL-M2-05 remainder; the prerequisite for T83 (night attacks) and the reason PL-M3-06/08/PL-M4-39 have slipped three milestones. state.hordes has NO mechanical consumer: outside sim/hordes.ts it is read by coreActions.ts:437 (one narration line), telemetry/pacing.ts and the history log. A horde standing on the player's node spawns nothing, blocks nothing, wounds nothing. The cost: FIRE_NOISE 75 vs MELEE_NOISE 15 is the designed counterweight to the firearm and it is currently FLAVOUR TEXT — trace it and noise re-paths a horde that does nothing, raises a zombieState ladder that does nothing, and adds ~0.37 to one future stealth roll decaying at 5/hour. The fun-gate transcript shows the failure directly: 'You hear them before you see them — a horde on the move, and it is coming this way' prints on 20+ consecutive turns in both branches while nothing ever arrives. Fix: (a) after moveHordes (stage 9), when horde.pos === player.location force an OVERRUN state — no fight choice, slip/retreat only at a detectChance floored around 0.6, and on detection a multi-wound draw scaled by horde.size; a horde that sits on a node adds walkers to it per tick and blocks search. (b) seedStarterHordes currently creates exactly ONE horde for 60 nodes, placed at the last node by sorted id, and tickHordes never spawns, splits, merges or grows one — seed 4-6 sized 8-40 and let a horde on a high-density node grow. (c) HORDE_HOURS_PER_STEP 4->2 so a horde advances on a normal turn (with T74's accumulator this becomes exact rather than truncated). Satisfies FR-CBT-08 ('routed, funneled or fled, not out-traded') for the first time — today it passes only because the horde has no teeth. INTENTIONAL behaviour change, not byte-identical."
+  },
+  {
+   "id": "T77",
+   "title": "Close the noise → arousal → detection chain",
+   "milestone": "M4",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 4 — cheapest high-impact change in the review. CLOSES PL-M2-02 (couple the T25 state machine to combat/stealth). detectChance(noise, phase, weather) takes THREE inputs: p = clamp(0.25 + noise*0.005 - phaseConcealment/100 + weatherDelta/100, 0, 0.9). Everything else the fiction promises is excluded. NodeState.zombieState — the entire T25 arousal ladder (dormant/wandering/investigating/chasing/feeding, WANDER_AT 8 / INVESTIGATE_AT 20 / CHASE_AT 40, PLAYER_HERE_BONUS 40, SCENT_BONUS 15, STALKER_NIGHT_BONUS 30, SWIFT_BONUS 25, the screamer cascade) is consumed ONLY by three narration strings at coreActions.ts:445-450. CombatState.alerted is written at combat.ts:307 and :320 and read in no condition anywhere, so retreating from a fully alerted enemy is the same roll as slipping past one that never noticed you. woundBurden() is exported and imported by nobody. inventoryWeight never touches stealth, noise or movement cost — CARRY_CAPACITY 40 is a pure inventory cap, so a full pack of loot walks home exactly as quietly as an empty one. Fix, essentially one signature: pass zombieState and alerted into detectChance and add +0.10/+0.25/+0.40 for wandering/investigating/chasing, +0.20 when retreating from an alerted fight, woundBurden/10 (the SCENT_BONUS fiction already exists in zombies.ts — a bleeding player is trackable), and max(0, (inventoryWeight - PACK_HEAVY)/10). Two related holes worth taking in the same pass: escapeTargets (combat.ts:176) filters only on discovered and does NOT check isBlocked(routeWear(...)) or add extraCostOf(wear) the way move does (coreActions.ts:171-174), so standing at a walker node lets you slip across routes travel refuses — walkers are currently a fast-travel network; and SLIP_COST === MOVE_COST === 2 makes avoidance completely free at the margin. Also fix the PLAYER_HERE_BONUS 40 == CHASE_AT 40 collapse — any occupied node reads 'chasing' the instant you stand on it, at zero noise, in any weather. INTENTIONAL behaviour change, not byte-identical (stealth rolls move). Payoff: noise -> arousal -> detection becomes one closed causal chain instead of three disconnected systems, and it retroactively gives the Screamer, the Stalker, alerted, woundBurden and pack weight a purpose."
+  },
+  {
+   "id": "T78",
+   "title": "Director & drift correction — a threat curve with a positive slope",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 7. CLOSES PL-M2-03 remainder and the upward-driver half of PL-M4-26; feeds T60. Four mechanisms currently push the threat curve DOWNWARD. (1) playerDistressed (director.ts) returns true if ANY wound has treated < 100, and wounds.ts never lowers a wound with the passage of time — so after your first fight you are permanently 'distressed', the director sits in relief essentially forever and pushes zombieDensity down by 1 every turn. The comeback rope is the only beat it ever plays, and the game gets easier the worse you are doing. (2) The regionDrift equilibrium (20 + trunc(threat*3/5) - trunc(survivorActivity*2/5), threatTarget = trunc(density/2) + trunc(fire/2), and fire is never written by anything) is a stable LOW fixed point that ignores the authored baseline entirely: simulated over 400 turns both shipped regions converge to ~threat 18 / density 28, so Downtown's authored 70/80 'richest and most dangerous ground in the city' has a half-life of about four in-game days. (3) pressureRead locks at 21-23, permanently below DIRECTOR_LOW_BAND 25, so directorBeat returns 'escalate' every tick forever — a bang-bang controller pinned at one output, which also means the T30 Definition of Done ('disabling the director changes pacing metrics') passes trivially. (4) There is no day-based ramp anywhere: day 40 is identical to day 2 except the map has fewer zombies on it. Fix: narrow the wound clause to a real burden threshold (woundBurden >= 60) or a wound opened within the last 6 hours; add a dayFloor term such as min(40, meta.day) to pressureRead so the low band stops being reachable by week two; cap relief beats per 24h; and anchor equilibriumDensity/threatTarget on the region's authored RegionDef.baseline so regional identity survives contact with the simulation. Depends on T75 (the dials must be able to become bodies first). Not byte-identical; this is the task that makes T60's pacing telemetry worth reading.",
+   "seq": 101
+  },
+  {
+   "id": "T79",
+   "title": "Neglected territory festers",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 8. Small, ~10 lines, and it inverts the single most backwards fact in the world sim. DESIGN §5 and GDD IV both say leave a district to fester and it gets worse; the code does the opposite. Simulated over 400 turns with the player absent: Rivermouth falls from its authored threat 35 to 7, Downtown from 70 to 11 — ABANDONING A REGION MAKES IT SAFER. The T30 director was built to fix exactly this (PL-M2-03) and fixes it only for the region the player is standing in, which is precisely backwards. Fix: add a neglect term to driftRegions — regions where daysSinceLastVisit > 2 gain threat per day of neglect, capped at baseline.threat + 20 — so the director keeps local pacing and the drift layer finally gets the job the design doc already assigns it. Pairs with PL-M3-05 (off-screen barricade decay, still deferred: a base abandoned for days is currently not weaker for it). Depends on T78 (the baseline anchor). Turns the map from a set of rooms into territory you hold or lose, which is the precondition for the loot contest reading as a race rather than a tax.",
+   "seq": 102
+  },
+  {
+   "id": "T80",
+   "title": "Weapon profiles & the missing combat verbs",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 5. FR-CBT-02 (Must/VS) + FR-CBT-04 (Must/VS) + FR-PLR-04 (Must/VS). Combat has a total dominant strategy and the reason is arithmetic: resolveFire (combat.ts:312) spends one ammo, deals a flat FIRE_DMG 3, ignores armor and NEVER CALLS enemyRetaliate — firing is mathematically incapable of hurting you. Against a walker, melee costs E[2.25h] with a 56% chance of a wound and a 30% chance of the bite that starts the infection clock; a bullet costs 1h at 0% and 0%. Against a Riot (5hp, armor 1) melee is E[10h], E[4.5 wounds] and a 92.5% chance of a bite, versus two rounds and two hours. And the designed counterweight, FIRE_NOISE 75, only bites once T76 ships. Meanwhile melee damage is drawInt(1,2) REGARDLESS of what you hold — an equipped weapon's only effect is wearWeaponOnStrike (durability -1), a broken weapon carries no combat penalty, and item.molotov has no combat action at all (PL-M4-30). So FR-PLR-04 is currently inverted: equipment defines maintenance cost, not capability. Fix: (a) make firing fallible — a miss chance, a jam that costs a turn, or a retaliation roll on a non-killing shot; keep the flat damage, the point is only that it cannot be a free win. (b) Add a WeaponDef peer to EnemyDef {dmgMin, dmgMax, noise, armorPierce, durabilityCost, retaliateModifier}, resolve melee against the equipped artifact, and drop to a bare-hands profile at durability 0. (c) Add HEAVY ATTACK (double damage, double noise, guaranteed retaliation roll) and PUSH (0 damage, clears alerted, -0.3 on your next slip) — with strike/fire/slip/retreat that is six of the six verbs FR-CBT-02 specifies. The Riot's armor stops being a firearm gate and becomes a weapon-selection problem. Improvised and environmental actions (FR-CBT-03 — lure, trap, chokepoint, the gas leak) stay deferred. Not byte-identical.",
+   "seq": 103
+  },
+  {
+   "id": "T81",
+   "title": "Melee weapon content — the firefighter's axe",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 6. FR-CBT-04. Pure content once T80 exists, and it fills the emptiest hole in the build: THERE ARE NO MELEE WEAPONS IN THE GAME. The complete weapon roster referenced anywhere in the engine is item.pistol, item.rifle, item.shotgun and item.molotov (which has no combat action). No bat, no crowbar, no machete, no axe, no knife, no pipe, no brick. The GDD promises five categories with distinct trade-offs — improvised (pipe, brick, chair leg), bladed (knife, machete, axe), blunt (bat, crowbar, hammer), firearms, explosives — and ships two. This matters more than a content gap because you correctly forbade XP and character levels (FR-PLR-10, 'attempts to add one should be rejected'), which makes GEAR THE ONLY PROGRESSION AXIS IN THE GAME, and it is empty. The firefighter's axe is named three times in your own GDD (Principle 6, Part X legendary items, the Manifesto) as the model of what a meaningful level-up looks like, and it cannot currently exist. Ship the categories with real damage/noise/durability/armorPierce profiles against T80's WeaponDef, wire them into the police/industrial/residential loot tables with rarity weighting, and give the best of them the artifact provenance metadata that already exists (PL-M4-33's repair ledger — 'its third repair, it carries the marks now'). Depends on T80.",
+   "seq": 104
+  },
+  {
+   "id": "T82",
+   "title": "Combat stakes — grabbed, companions in the fight, Last Stand trigger",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 11. CLOSES PL-M4-07; supplies the trigger T62 authors the scene for. Two holes. (1) COMPANIONS DO NOT EXIST IN COMBAT — combat.ts contains zero references to them (the module header admits it: 'combat participation and full autonomy, FR-NPC-03 remainder'). A companion standing beside you contributes no damage, soaks nothing, distracts nothing, and cannot be bitten. killCompanion() is exported from index.ts:588 and is called by NOTHING, so the 'permanent, remembered death' the module sells can only be triggered by deliberately starving someone. With no risk term anywhere, recruiting is unambiguously always correct and PARTY_CAP 3 is a ceiling rather than a decision. Fix: each companion at the node on order:follow contributes an attack roll off its own named stream and is a valid target (a wound to c.condition.wounds, an infection roll on a bite); gate participation on trust >= ORDER_TRUST_MIN so low-trust companions hang back, which gives the trust ladder teeth beyond an order menu; wire killCompanion to the fatal branch. (2) A fight has no shape and no lose state — the player has no health at all (CharacterState is needs/wounds/infection/mind; the only hp in the codebase is the enemy's), so a fight is a wound-severity slot machine you always walk away from. Add a GRABBED outcome as a third result on the retaliation roll: while grabbed, retreat is not offered and strikes deal less, and breaking free costs a turn — that creates the opening/committed/escape arc the GDD's 'desperation' category describes. Then trigger the Last Stand on woundBurden >= threshold AND combat !== null AND no discovered escape target. NOTE: whether the player should have health at all is the one open design question from the review — 'injuries are stories, not -10 HP' taken to its limit is defensible, but it is nowhere written down as a decision, it contradicts the GDD's own core-stats list, and it is what makes the Last Stand structurally impossible rather than merely unbuilt. Settle it before building this. Depends on T80.",
+   "seq": 105
+  },
+  {
+   "id": "T83",
+   "title": "Night attacks, siege resolution & shelter loss",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 9. FR-SHL-06 and FR-SHL-10, BOTH Must/MVP. CLOSES PL-M3-06, PL-M3-08 and PL-M4-39 — three separate parking-lot entries about the same missing system, named in M3's Definition of Done, slipped to M4 with an explicit promise ('a survived siege is M4's contested world'), then absent from the M4 exit gate entirely, not even as a deferral. grep shelter.ts for raid/attack/breach/siege/horde and the only hit is a comment. What ships is claim, fortify (scrap -> barricades 0-100), hourly decay, noise muffle, a detection floor and deeper rest — so 100 barricades currently protects against a decay timer and a horde-pathing bias, nothing else. shelterId is set once and NEVER CLEARED anywhere in the codebase, so GDD XI's 'it can be lost — overrun, burned, or abandoned' and 'home must feel safe enough to fear losing' have no mechanism. Fix: (a) accumulated NodeState.noise at the shelter draws a horde during the sleep window; resolve as a defensive scene against barricades + residents on job.watch + the player's presence, with losses coming out of the stash and the barricades (depleteStash is already exactly the right hook, and T40's cold-raid beat is the prose template). (b) A breach at barricades 0 clears shelterId and scatters the cache. (c) Read NodeDef.claimable in canClaimShelter — it is declared in map/types.ts:51 and read by ZERO code, so the 14 hand-authored safehouses are currently decorative and any node in the city is claimable. Also revisit PL-M3-07's relocate/abandon verb here. Depends on T76 (hordes must be able to arrive) and T74 (off-screen upkeep must tick). This is the task that makes noise the Survival Triangle's bill for a run of loud, fast play — and it retires the one line the fun-gate transcript has been printing on twenty consecutive turns since M3.",
+   "seq": 106
+  },
+  {
+   "id": "T84",
+   "title": "Exploration & node identity — scout, per-node richness, loot as yield",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 12a. Three coupled fixes to why 60 nodes read as 6. (1) LOOT IS A REGION POOL, not a node one: searchYieldCap = trunc(regionLoot/8) - trunc(searchPct/34), so a node's own progress subtracts at most 2 from a cap that starts at 8-10 and two nodes of the same kind in the same district are mathematically identical. Add NodeDef.richness -> NodeState, seeded with variance and multiplied into the cap, so 'the pharmacy at the end of the block is still untouched' becomes a fact the player can learn, remember and act on — and so NPC loot hints (FR-ECO-09) have something concrete to point at. (2) THE SEARCH ROLL IS A TAX, NOT A YIELD: drawInt(1, rawCap) does not decide your reward — you always receive exactly ONE item — it decides how many points of the finite, shared region stock you burn to get it, so a high roll is pure loss and the RNG has no upside. Convert points to item count (bounded by remaining carry weight) and make drawPick weighted so rarity tiers exist (GDD X asks for 'rough tiers from common junk to rare finds'; today a pistol is exactly as likely as a bandage at 25%). PRESERVE the full-pack rule as-is — an overflowing search leaves the find in the world AND does not debit the region, which is genuinely elegant and self-limiting. (3) DISCOVERY IS A SIDE-EFFECT OF WALKING: fogOfWar reveals 1 hop on arrival, so the frontier is always exactly one hop wide and 'explore' and 'move' are the same action — there is never a routing decision. Add a scout verb (1-2h, 0 noise) that reveals 2 hops and reports the destination's walkers, types and route condition, and stop auto-revealing on move. That makes information a resource you spend time to buy, gives night's concealment a legitimate use, and finally builds the mental map the map-as-journal pillar assumes. While here: write NodeState.corpses and blood on a kill (both are seeded and never written, which makes the 'feeding' zombie state at zombies.ts:179 unreachable dead code and means any encounter authored with minBlood/minCorpses can never fire), and either ship the add-a-note action the map screen advertises at screens.ts:730 or cut the line (PL-M4-46). Depends on T75. Heed the byte-identity loot hazard — changing the pick set shifts draws.",
+   "seq": 107
+  },
+  {
+   "id": "T85",
+   "title": "Base tradeoffs — room slots, a water source, per-unit purification",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 12b. The base is finished on day three and has no decisions in it. The entire REACHABLE upgrade tree is claim + fortify + rooftop garden + watchtower = 5 scrap, 2 water and 12 hours, roughly five searches' worth of loot; nothing is mutually exclusive, nothing competes for a slot, and NodeState.rooms is an unbounded array. Worse, the tree has an unbuildable half: no recipe installs room.workshop, so the generator recipe's room gate never opens, so room.generator is unreachable, so job.generator and job.salvage are unreachable — only 2 of 6 jobs can ever be unlocked, and item.blueprint.antibiotics drops at 20% in medical nodes and unlocks nothing. Fix: (a) add NodeDef.roomSlots (3-5, varying by building — the marina has fewer than a warehouse) and gate installsRoom on free slots, with demolition recovering half the scrap; instantly garden-or-cistern and workshop-or-medical become real choices and WHICH BUILDING YOU CLAIMED acquires a 20-hour tail. (b) Close the workshop gap so the job tree is completable. (c) Add a water source. Water is the hard bottleneck and its ONLY source is a 14.3% loot draw in 2 of 6 node kinds: the player needs ~0.87/day, a based resident burns ~1.2/day (residents get a worse exchange rate than the player — 40 relief per unit against the player's 55), so ONE companion already exceeds a full day of searching and community growth is arithmetically impossible. Ship the purify recipes capped at their inputs per craft (economy.ts:434-444 currently converts the player's ENTIRE carried dirty-water stack for one set of inputs, so the correct play is always to hoard to the pack limit and purify once) plus a room.cistern + job.water. That single addition gives item.water-dirty and item.charcoal a purpose, gives item.fuel its recurring sink, makes companions affordable so PARTY_CAP 3 becomes a decision, and creates the game's first real X-or-Y: fuel burned on water is fuel not burned on power or molotovs. Also reconcile order:scavenge (1 can/2h, no prerequisite) with the jobs system it strictly dominates, and fix job.kitchen, which converts fresh food (60 relief) into canned (45) to prevent spoilage that cannot happen — refrigerated is always true because powerGrid never falls below POWER_SPOIL_AT 40 (the drain is trunc(powerPressure*h/6), which is 0 on a 2h turn in anything short of a storm). Depends on T74.",
+   "seq": 108
+  },
+  {
+   "id": "T86",
+   "title": "Faction reputation becomes consequential",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 12c. FR-NPC-10 + the prerequisite for FR-ECO-08 trading. CLOSES PL-M4-43 and unblocks PL-M4-34. player.reputation, groups[].hostility, groups[].strength and the entire state.groups map are WRITE-ONLY: seedFactions populates them and grep finds no reader anywhere in the engine. There is no verb that changes reputation, so helping one faction cannot anger another — the three well-written factions function as seeding data for inter-NPC relationship bonds (RIVAL_SEED -30 / ALLY_SEED 30 -> +-3/4 on moraleTarget -> possibly one of three prose strings) and nothing else. factionArchetype() is exported from index.ts:520 and called by nothing. Relatedly, 4 of the 6 TrustEventKind members are dead enum entries — only 'share' and 'threaten' are ever applied, so help (+15), trade (+5), rob (-30) and abandon (-25) describe verbs that do not exist as gameplay; SOCIAL_DELTAS has the same problem, with stood-by-me (+8 respect, the biggest positive in the table), robbed-me, abandoned and saw-cruelty all unreachable ('reserved; needs an events hook' — this is that hook). Fix: add {kind:'adjustReputation', faction, delta} to EncounterEffect and minReputation/maxReputation to EncounterRequirement, matching the adjustTrust pattern (~15 lines in events.ts); cross-link the authored rivalries in content so raising Harbor Holdout lowers Slagworks Crew; then cash it out in three places that already exist — reputation below a threshold forces disposition 'hostile' (canRecruitEligible already refuses those), a faction homeNode at high reputation offers trade, and at low reputation seeds an ambush. Wire saw-cruelty to fire on every companion present when a negative adjustHumanity effect resolves. Depends on T75/T78 for a world where faction territory means something.",
+   "seq": 109
+  },
+  {
+   "id": "T87",
+   "title": "The terminal project — a win condition and a run that escalates toward it",
+   "milestone": "M5",
+   "status": "todo",
+   "note": "Design review 2026-09-12 (docs/qa/DESIGN_REVIEW_2026_09.md) step 10. FR-STY-06 groundwork and the direct fix for 'hour 20 has a NARROWER decision space than hour 2'. runEndReason (survival.ts:261) returns exactly 'starved' | 'dehydrated' | 'infection' — three ways to lose and ZERO ways to win; story.endingFlags is an empty stub; grep the engine for win/victory/extraction/evacuat/escape and there are no hits. GDD XVI's fourth run phase, Legacy ('the run resolves toward its ending: hold, escape, sacrifice, or fall'), has no mechanism, and the original Kik-bot outline this project reimagines specified win conditions the reimagining currently lacks. Meanwhile the long arc is a monotonic decline with no counterplay: loot is finite and only falls (~180-210 items in the entire city, and the contest drains regions on a wall clock whether you visit or not — Rivermouth empties itself by about day 8 even if you never enter it), the base is done on day 3, and nothing renews water. Fix: a 3-4 stage departure-or-holdout project the base builds — a vehicle, a long-range transmitter, a fortified block — whose inputs are deliberately the resources the economy over-produces and never spends. item.batteries, item.lighter, item.blanket and item.charcoal currently have ZERO consumers anywhere in the codebase and item.tools has exactly one, once, ever; this is their sink, with no new items invented. CRITICALLY: each completed stage must RAISE something — noise, region threat, or survivorActivity (the loot-contest driver) — so building toward escape makes the city harder and the last week of a run is a race rather than a wind-down, which is the only shape consistent with 'a slow, uneven decline that the player fights to slow down'. Depends on T85 (the base needs slots and an economy worth spending) and T78 (the escalation must be able to land). Feeds T61 directly — you cannot assemble rescue/entrenchment/sacrifice endings from run components until the run has components other than death.",
+   "seq": 110
   }
  ],
  "adrs": [
@@ -662,12 +811,12 @@
   {
    "id": "PL-M2-02",
    "from": "QA_REVIEW_M2_PART1 M1",
-   "note": "Couple the T25 zombie state machine + types to combat/encounters (zombieState biases danger; Screamer/Stalker fight differently). Give type-only nodes a body — the marina Stalker currently has walkers:0 and is inert in play."
+   "note": "[PROMOTED 2026-09-12 design review — now T77] Couple the T25 zombie state machine + types to combat/encounters (zombieState biases danger; Screamer/Stalker fight differently). Give type-only nodes a body — the marina Stalker currently has walkers:0 and is inert in play."
   },
   {
    "id": "PL-M2-03",
    "from": "QA_REVIEW_M2_PART1 M2",
-   "note": "[ADDRESSED in M2 Part 2 — T30 director escalation bias, T24 the neutral substrate] Off-screen drift de-escalates the opening region (threat 35->7 over 7 idle days), against the 'land pressure by turn 3' exit note. Add an escalation bias (natural home: the T30 Director), keeping T24 as the neutral substrate."
+   "note": "[PROMOTED 2026-09-12 design review — now T78] [ADDRESSED in M2 Part 2 — T30 director escalation bias, T24 the neutral substrate] Off-screen drift de-escalates the opening region (threat 35->7 over 7 idle days), against the 'land pressure by turn 3' exit note. Add an escalation bias (natural home: the T30 Director), keeping T24 as the neutral substrate."
   },
   {
    "id": "PL-M2-04",
@@ -677,7 +826,7 @@
   {
    "id": "PL-M2-05",
    "from": "M2 Part 2 T29",
-   "note": "Combat slip/retreat still ignore route conditions (they use SLIP_COST, not the route wear) — deliberate so a fight can never strand the player behind a blocked road. Revisit if fleeing should also cost/deny by route."
+   "note": "[PROMOTED 2026-09-12 design review — now T75/T76] Combat slip/retreat still ignore route conditions (they use SLIP_COST, not the route wear) — deliberate so a fight can never strand the player behind a blocked road. Revisit if fleeing should also cost/deny by route."
   },
   {
    "id": "PL-M2-06",
@@ -712,12 +861,12 @@
   {
    "id": "PL-M3-05",
    "from": "QA_REVIEW_M3_PART3 M1",
-   "note": "Off-screen shelter upkeep deferred — barricades decay only on the player's turns (pipeline stage 6, updateNode), not inside advanceWorld, so a base abandoned for days is not weaker for it (kept that way to preserve byte-identity this block). Land off-screen barricade decay alongside the deferred off-screen people-sim (PL-M3-02)."
+   "note": "[PROMOTED 2026-09-12 design review — now T79] Off-screen shelter upkeep deferred — barricades decay only on the player's turns (pipeline stage 6, updateNode), not inside advanceWorld, so a base abandoned for days is not weaker for it (kept that way to preserve byte-identity this block). Land off-screen barricade decay alongside the deferred off-screen people-sim (PL-M3-02)."
   },
   {
    "id": "PL-M3-06",
    "from": "QA_REVIEW_M3_PART3 M2",
-   "note": "No attacker on the base yet — a fortified shelter resists detection + horde drift but nothing assaults it (no night-raid/siege event, no raided-stash beat; the stash itself is T39). The payoff is currently inferred from the ABSENCE of danger, not survival of an attack. Dramatise it with the T39/T40 contested-world hooks."
+   "note": "[PROMOTED 2026-09-12 design review — now T83] No attacker on the base yet — a fortified shelter resists detection + horde drift but nothing assaults it (no night-raid/siege event, no raided-stash beat; the stash itself is T39). The payoff is currently inferred from the ABSENCE of danger, not survival of an attack. Dramatise it with the T39/T40 contested-world hooks."
   },
   {
    "id": "PL-M3-07",
@@ -727,7 +876,7 @@
   {
    "id": "PL-M3-08",
    "from": "QA_REVIEW_M3_PART4 (subagent review, by design)",
-   "note": "The cold raid is a narrated stat beat (depleteStash + barricadeHit resolved off a rest in stage 12), not a played, moment-to-moment defense of the shelter — the drama is inferred from the aftermath (cache/barricade reads change), not survived live. Extends PL-M3-06: the live night-siege/defended-base fight is still deferred (M4 contested-world). The T40 raid is the first thing that ATTACKS the base, but off-turn."
+   "note": "[PROMOTED 2026-09-12 design review — now T83] The cold raid is a narrated stat beat (depleteStash + barricadeHit resolved off a rest in stage 12), not a played, moment-to-moment defense of the shelter — the drama is inferred from the aftermath (cache/barricade reads change), not survived live. Extends PL-M3-06: the live night-siege/defended-base fight is still deferred (M4 contested-world). The T40 raid is the first thing that ATTACKS the base, but off-turn."
   },
   {
    "id": "PL-M3-09",
@@ -772,7 +921,7 @@
   {
    "id": "PL-M4-07",
    "from": "M4 Part 2 T45",
-   "note": "Companions don't fight yet — a companion follows/holds/scavenges/guards but does not participate in combat (FR-NPC-03 autonomy remainder); the T46 type-aware combat is player-vs-dead only. Wire companion combat behaviour (competence/morale/fear) with the fear/panic model (FR-CBT-09) and deeper companion AI."
+   "note": "[PROMOTED 2026-09-12 design review — now T82] Companions don't fight yet — a companion follows/holds/scavenges/guards but does not participate in combat (FR-NPC-03 autonomy remainder); the T46 type-aware combat is player-vs-dead only. Wire companion combat behaviour (competence/morale/fear) with the fear/panic model (FR-CBT-09) and deeper companion AI."
   },
   {
    "id": "PL-M4-08",
@@ -812,7 +961,7 @@
   {
    "id": "PL-M4-15",
    "from": "M4 Part 3 T47",
-   "note": "Humanity has no consumers yet — the scalar is tracked and felt (prose bands ≥85 / ≤28 / ≤12) but nothing reads it for a gate. The intended readers are ending assembly (T61/T62), companion desertion / refusal-to-stay (T53), and how the world's story remembers the player. Wire them when those land."
+   "note": "[PROMOTED 2026-09-12 design review — now T61] Humanity has no consumers yet — the scalar is tracked and felt (prose bands ≥85 / ≤28 / ≤12) but nothing reads it for a gate. The intended readers are ending assembly (T61/T62), companion desertion / refusal-to-stay (T53), and how the world's story remembers the player. Wire them when those land."
   },
   {
    "id": "PL-M4-16",
@@ -867,7 +1016,7 @@
   {
    "id": "PL-M4-26",
    "from": "M4 Part 6 T50 (design audit)",
-   "note": "The live 'a district FALLS while you watch' dynamic is bounded by the world sim: region threat mostly DECAYS from baseline today (no upward driver — the horde-presence→node/region-threat coupling is the deferred PL-M2-05), so a signal CLIMBING live→failing→dead via rising threat isn't reachable in normal play. The shipped network still evolves reachably — emergency grid/lifespan death, number-station phase, the director escalating a CAMPED region to 'failing', already-fallen high-baseline districts as dead-air rows, and the two latches — and the status model correctly reflects live world state. Land the live threat-climb fall (and richer 'the war is being lost on the radio' beats) when the horde→threat coupling ships."
+   "note": "[PROMOTED 2026-09-12 design review — now T75/T78] The live 'a district FALLS while you watch' dynamic is bounded by the world sim: region threat mostly DECAYS from baseline today (no upward driver — the horde-presence→node/region-threat coupling is the deferred PL-M2-05), so a signal CLIMBING live→failing→dead via rising threat isn't reachable in normal play. The shipped network still evolves reachably — emergency grid/lifespan death, number-station phase, the director escalating a CAMPED region to 'failing', already-fallen high-baseline districts as dead-air rows, and the two latches — and the status model correctly reflects live world state. Land the live threat-climb fall (and richer 'the war is being lost on the radio' beats) when the horde→threat coupling ships."
   },
   {
    "id": "PL-M4-27",
@@ -917,7 +1066,7 @@
   {
    "id": "PL-M4-36",
    "from": "M4 Part 8 T52",
-   "note": "Sub-cycle granularity (PL-M2-04) - a job produces trunc(hours/hoursPerCycle) per tick (the scavenge idiom), so a short turn under one cycle banks nothing and a single long advanceWorld differs from many short ones by the truncated remainder (and a long single advance can starve a resident the one-shot feed pass can't top up). Hour-by-hour off-screen stepping is deferred PL-M2-04; T52 matches the scavenge/guard model rather than adding a second one."
+   "note": "[PROMOTED 2026-09-12 design review — now T74] Sub-cycle granularity (PL-M2-04) - a job produces trunc(hours/hoursPerCycle) per tick (the scavenge idiom), so a short turn under one cycle banks nothing and a single long advanceWorld differs from many short ones by the truncated remainder (and a long single advance can starve a resident the one-shot feed pass can't top up). Hour-by-hour off-screen stepping is deferred PL-M2-04; T52 matches the scavenge/guard model rather than adding a second one."
   },
   {
    "id": "PL-M4-37",
@@ -932,7 +1081,7 @@
   {
    "id": "PL-M4-39",
    "from": "M4 Part 8 T52",
-   "note": "A base worth raiding, but not yet raided live (PL-M3-06/08) - jobs + a stocked cache make the base a real target, but the live night-siege that attacks it is still the deferred contested-world beat."
+   "note": "[PROMOTED 2026-09-12 design review — now T83] A base worth raiding, but not yet raided live (PL-M3-06/08) - jobs + a stocked cache make the base a real target, but the live night-siege that attacks it is still the deferred contested-world beat."
   },
   {
    "id": "PL-M4-40",
@@ -952,7 +1101,7 @@
   {
    "id": "PL-M4-43",
    "from": "M4 Part 9 T53",
-   "note": "A recruited companion's Survivor.groupId stays null - inter-companion bonds read faction membership from the graph (factionIdOfNpc), not the state field, so groupId is unneeded for T53. Wiring groupId + making player.reputation with a faction CONSEQUENTIAL (scarcity/reputation-priced trade FR-ECO-08, a faction's raid/aid stance toward your base keyed off reputation + community identity) is a later block (overlaps PL-M4-34)."
+   "note": "[PROMOTED 2026-09-12 design review — now T86] A recruited companion's Survivor.groupId stays null - inter-companion bonds read faction membership from the graph (factionIdOfNpc), not the state field, so groupId is unneeded for T53. Wiring groupId + making player.reputation with a faction CONSEQUENTIAL (scarcity/reputation-priced trade FR-ECO-08, a faction's raid/aid stance toward your base keyed off reputation + community identity) is a later block (overlaps PL-M4-34)."
   },
   {
    "id": "PL-M4-44",
@@ -967,7 +1116,7 @@
   {
    "id": "PL-M4-46",
    "from": "M4 Part 10 T54",
-   "note": "In-screen actions / sub-navigation deferred. T54's depth screens INFORM the one decision and point at the actions; the actions themselves (equip/use/drop, give an order, assign a job, travel, add a note) stay on the primary Scene per FR-UI-01 (one decision at a time). A shipping GUI client may fold quick actions into the screens; the text harness keeps the decision loop single."
+   "note": "[PROMOTED 2026-09-12 design review — now T84] In-screen actions / sub-navigation deferred. T54's depth screens INFORM the one decision and point at the actions; the actions themselves (equip/use/drop, give an order, assign a job, travel, add a note) stay on the primary Scene per FR-UI-01 (one decision at a time). A shipping GUI client may fold quick actions into the screens; the text harness keeps the decision loop single."
   },
   {
    "id": "PL-M4-47",
@@ -1053,6 +1202,56 @@
    "id": "PL-M4-63",
    "from": "M4 Part 13 T56 pt2",
    "note": "Authored-but-unreachable soundscape TONE lines (a T55 gap the FR-AUD-06 matrix surfaced): buildTone never selects the Hope theme (needs a rescue/cure/radio event to drive it), and the danger theme renders only L3/L4 (its L1/L2 'air pulls/gone taut' lines are unreachable - the level floor is max(2,..)), as is exploration L2. No player INFORMATION is lost (reachable lines carry the danger; the matrix cites only reachable lines) - a §4.3 'builds 1->2->3' fidelity miss + wasted authored text. M5 audio-tone polish: lower the danger floor / wire a Hope trigger / trim the dead lines. Also: the DEFERRED_CUES bible cues (hearing-damage visual equiv PL-M4-52, radio speech captions PL-M4-50, combat SFX texture, Dynamic Audio Memory PL-M4-49) earn text equivalents when their systems land."
+  },
+  {
+   "id": "PL-M4-64",
+   "from": "M4 Part 14 T57",
+   "note": "Refresh the README 'Repository layout' + six-principles sections to describe the prototype - they still list the empty items/weapons/locations scaffold dirs and omit the prototype/ engine+harness tree. The load-bearing 'no engine committed yet' line was fixed in T57; this is the remaining cosmetic front-page debt for the v1 launch."
+  },
+  {
+   "id": "PL-M5-01",
+   "from": "Design review 2026-09-12",
+   "note": "OPEN DESIGN QUESTION, settle before T82: the player has no health stat. CharacterState is {needs, wounds, infection, mind}; the only hp in the codebase belongs to the enemy (CombatState); runEndReason returns starved | dehydrated | infection. A zombie cannot kill you — combat costs resources, time and mobility but never the run. This may be a deliberate and defensible reading of Principle 2 ('damage is never a generic -10 HP'), but it is nowhere recorded as a decision, it contradicts the GDD's own core-stats list ('Health — 0 = death'), and it is what makes the Last Stand structurally impossible rather than merely unbuilt. Log the answer as an ADR either way."
+  },
+  {
+   "id": "PL-M5-02",
+   "from": "Design review 2026-09-12",
+   "note": "Wound TYPE is mechanically inert. WOUND_EFFECTS declares 'bleed' | 'slow' | 'weaken' | 'infect-risk' and the only read anywhere is === 'infect-risk', so a sprain, a fracture and a laceration are identical to each other and to a paper cut: WOUND_FATIGUE_PER_WOUND 1 per hour. Three if-branches would make wound type matter for the first time — 'slow' adds hours to MOVE_COST, 'weaken' caps MELEE_DMG_MAX at 1, 'bleed' adds to detectChance and drives the scent trail (FR-INJ-03, Principle 2's flagship example, which is quoted in the README and the GDD three times and does not exist in the engine). Also: burn, concussion and illness are 3 of the GDD's 6 named wounds and are unshipped — concussion in particular would pair with the perception-distortion tech infection already built."
+  },
+  {
+   "id": "PL-M5-03",
+   "from": "Design review 2026-09-12",
+   "note": "Encounter weighting is uniform in practice. All 26 authored encounters omit the optional `weight` field, so weightOf falls through to BASE_WEIGHT 10 for every one of them and weightedPick is a uniform draw over the eligible set — the T48 relative-frequency tier exists and runs (12 encounters correctly declare repeatable + tags + cooldownHours) but has no authored signal to act on. Also unused by content: the metNpc and npcHere requirement predicates, so not one encounter in the game is ABOUT a person you know, and minDay/maxDay, minRegionThreat, minBlood and minCorpses. Author weights and people-gated encounters in the M5 content pour (PL-M4-16)."
+  },
+  {
+   "id": "PL-M5-04",
+   "from": "Design review 2026-09-12",
+   "note": "The infection cure race is arithmetically unwinnable by its own advertised verbs, and the real escape is unsignposted. At terminal, cure E[removed] is 0.4*18 + 0.6*4 = 9.6 per 4h dose while the driver adds 8 in those same 4 hours — net E[-1.6]. The actual escape is closing the bite wound with plain `treat`, because advanceInfection returns early when the wound is shut and nothing ever decays progression afterwards. That is a genuinely elegant lesson ('stop the driver, don't fight the fever') and the infection menu never points at it. SIGNPOST it — do not retune the dials. Related: infectionSign ('the sheen of fever on you') is defined and no NPC system reads it, so nobody reacts to a visibly infected player."
+  },
+  {
+   "id": "PL-M5-05",
+   "from": "Design review 2026-09-12",
+   "note": "Radio signals pay in prose, not world state. SignalDef carries label + messages{live,failing,dead} and nothing else — there is no revealsNode, no marksDiscovery, no grantsLead, no flag — so the derived-status model (which is genuinely good craft: append-only latches, status computed from powerGrid and regional threat, never stored) is an atmosphere channel that can never tell a player something they can act on. NpcLead already proves the pattern with `reveals` and `marks`; give SignalDef the same two fields plus setsFlag and resolve them in listen() when effectiveStatus is live. Also BROADCAST_OUTCOMES is 3 hardcoded strings drawn uniformly and outcome 3 ('you hear the dead turn, and start to come') spawns nothing — the noise deposit is identical across all three, so the outcome text is decorative."
+  },
+  {
+   "id": "PL-M5-06",
+   "from": "Design review 2026-09-12",
+   "note": "Dead exports and unreachable state, for a cleanup pass: advanceWorld is exported from index.ts and called by NOTHING (the pipeline duplicates the layer work per turn, so off-screen fast-forward has no caller); weatherNoiseFactor is exported and never called, so weather does not modulate noise at all despite the module header claiming rain and storms quiet footsteps; woundBurden and factionArchetype are exported and imported by nobody; killCompanion is exported and never called (T82 wires it). NodeState.damage, corpses, blood, traps, occupants and playerNotes are seeded and never written (T84 takes corpses/blood). player.economy.freshness is one clock for the whole carried stack and nulls out at zero units, so dropping your last fresh item resets the 48h timer for free."
+  },
+  {
+   "id": "PL-M5-07",
+   "from": "T74 audit 2026-09-12",
+   "note": "The watchtower's barricade-decay halving is unreachable in play, twice over. offscreenShelterUpkeep (the only path with WATCHTOWER_DECAY_DIVISOR) is called ONLY from advanceWorld, and advanceWorld has no caller anywhere in engine/harness/content-loader production code - it is exercised only by tests (see PL-M5-06 dead exports). The LIVE on-turn path, shelter.ts decayShelterFortification (pipeline stage 6), has no watchtower divisor at all. So room.watchtower's advertised 'the lookout keeps the wall up' does nothing on-screen, before or after T74. Decide which path owns the halving and give it to the live one - a design question, not a truncation bug, which is why T74 only fixed the arithmetic where it found it."
+  },
+  {
+   "id": "PL-M5-08",
+   "from": "T74 audit 2026-09-12",
+   "note": "A job that is already stalled when a tick BEGINS (full grid, full wall, missing input) banks no hours for that tick, even if the stall clears inside it. With the shipped garden->kitchen pairing on an empty stash, 24 hours played as 1h/2h/4h turns all yield 1 fresh + 3 canned, while a single 24-hour advanceWorld yields 4 fresh + 0 canned, because the kitchen had nothing to cook at the instant the advance began. The PLAYED path is the accurate one, so this costs the player nothing today (advanceWorld has no production caller) - but it is the third of T74's lossy-by-design rules and the only one that is a scheduling artifact rather than a deliberate choice. Fixing it means interleaving job cycles within a tick in time order, which is a scheduler, not an accumulator."
+  },
+  {
+   "id": "PL-M5-09",
+   "from": "T74 audit 2026-09-12",
+   "note": "T74 invalidates the design review's section IV dominance arithmetic and should be re-derived before T59/T60 balance. The base economy is roughly 5x up (it produced nothing at all on ordinary turns), so order:scavenge at 1 item/2h no longer strictly dominates job.garden; stash spoilage and the weather grid/road drains are live for the first time, which makes room.kitchen's refrigeration, POWER_SPOIL_AT and storm-driven grid failure real rather than decorative; and desertion now has TWO live paths (the fear path always worked; the morale path is added on top at ~5x the old rate). Also: T76 must be tuned against post-T74 horde travel times, not the pre-T74 ones, and T78 inherits a correction - the globalThreat tide is now SLOWER than before (band 26..32 -> 28..32), so fixing its slope means re-tuning GLOBAL_THREAT_HOURS_PER_STEP against the T71 seven-phase day."
   }
  ],
  "loopFeelCheck": {

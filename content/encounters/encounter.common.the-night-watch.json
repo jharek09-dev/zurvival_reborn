@@ -10,7 +10,7 @@
   "stages": [
     {
       "id": "s",
-      "narration": "Your place holds. Tonight, anyway. But holding it is a job that never quite ends: a gap in the boards you keep meaning to close, stores that want counting, and the simple animal question of whether you dare actually sleep tonight.",
+      "narration": "Your place holds. Tonight, anyway. But holding it is a job that never quite ends: a gap in the boards you keep meaning to close, stores that want counting, and the plain question of whether to close that gap now or just keep watch and let the night pass.",
       "choices": [
         {
           "id": "shore",
@@ -37,22 +37,6 @@
           ]
         },
         {
-          "id": "sleep",
-          "label": "Trust the walls and get real sleep",
-          "timeCost": 2,
-          "effects": [
-            {
-              "kind": "adjustNeed",
-              "need": "fatigue",
-              "delta": -12
-            },
-            {
-              "kind": "adjustMind",
-              "stress": 6
-            }
-          ]
-        },
-        {
           "id": "watch",
           "label": "Take the watch yourself and let the night pass",
           "timeCost": 2,
@@ -71,5 +55,5 @@
       ]
     }
   ],
-  "notes": "Shelter-category beat; the scrap option is gated on carrying it (a choice-level requirement)."
+  "notes": "Shelter-category beat; the scrap option is gated on carrying it (a choice-level requirement). Actually sleeping the night through is the dedicated 'Sleep until morning' base action (T58), which runs the clock to 08:00 and recovers by the hours slept — not a beat choice; this one is only the tension of holding the line before you turn in."
 }

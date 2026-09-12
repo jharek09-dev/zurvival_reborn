@@ -28,6 +28,7 @@ import type { RegionGraph } from "../map/types.js";
 import { companionIds, companionName, isCompanion } from "./companions.js";
 import { FRESH_FOOD_ITEM, SPOILED_FOOD_ITEM, POWER_SPOIL_AT } from "./economy.js";
 import { FORTIFY_DECAY_PER_HOUR } from "./shelter.js";
+import { bankHours, wholeHours } from "./clocks.js";
 
 // --- content shape (mirrored by content/schemas/job.schema.json) ------------------------------
 
@@ -348,15 +349,45 @@ export function tickShelterOps(state: GameState, graph: RegionGraph | undefined,
   let barricades = shelterNode?.barricades ?? 0;
   let actors: Record<ActorId, Survivor> = state.actors as Record<ActorId, Survivor>;
   const report: ShelterReport = { produced: {}, consumed: {}, fed: 0, spoiled: 0, powered: false, walled: false };
+  // Hour accumulators moved this tick without anything being produced — still has to be persisted (T74).
+  let clocksMoved = false;
 
   // 1. Jobs: each resident companion assigned to a job whose room is present works it for the tick's cycles.
+  //    Each worker banks their remainder hours (T74): `trunc(h / hoursPerCycle)` against a 1-2 hour turn
+  //    was 0 for EVERY job in the pool, so the base produced nothing on an ordinary 1-2 hour turn. (What
+  //    did turn: `job.kitchen` at 4 hours a cycle on a 4-hour `rest`, and the 6-hour jobs only on a turn of
+  //    six hours or more — the nightly sleep and the 8-hour quarantine. One gardener therefore made ~1
+  //    fresh food per in-game DAY, against the ~7 items a search run pulls.)
+  //    A cycle now comes due exactly when its hours have actually elapsed, however the client chunks them.
   for (const c of residentCompanions(state)) {
     const jobId = jobIdOf(c);
-    if (jobId === null) continue;
-    const job = jobOf(graph, jobId);
-    if (job === undefined || !rooms.includes(job.room)) continue;
-    const perCycle = Math.max(1, Math.trunc(job.hoursPerCycle ?? DEFAULT_HOURS_PER_CYCLE));
-    let cycles = Math.trunc(h / perCycle);
+    const assigned = jobId === null ? undefined : jobOf(graph, jobId);
+    // Only a job whose room still stands is workable; a resident who cannot work holds no clock, so banked
+    // hours RESET rather than carrying into whatever job they are assigned next (a different period).
+    const job = assigned !== undefined && rooms.includes(assigned.room) ? assigned : undefined;
+    // A job with nowhere to put its output and nothing to consume is not working, it is waiting: its clock
+    // HOLDS rather than accruing. Without this a generator sitting at a full grid would cycle its
+    // accumulator — and rewrite `actors` — every turn forever while achieving nothing.
+    const stalled =
+      job !== undefined &&
+      ((job.holdsPower === true && powerGrid >= 100) ||
+        (job.upkeepsBarricades === true && barricades >= 100) ||
+        (job.consumes !== undefined && stashCount(stash, job.consumes.item) < Math.max(1, Math.trunc(job.consumes.qty))));
+    const banked =
+      job === undefined
+        ? { steps: 0, rest: 0 }
+        : stalled
+          ? { steps: 0, rest: wholeHours(c.jobHours) }
+          : bankHours(c.jobHours, h, Math.max(1, Math.trunc(job.hoursPerCycle ?? DEFAULT_HOURS_PER_CYCLE)));
+    if (banked.rest !== (c.jobHours ?? 0)) {
+      actors = { ...actors, [c.id]: { ...actors[c.id]!, jobHours: banked.rest } };
+      clocksMoved = true;
+    }
+    if (job === undefined) continue;
+    // Hours that came due but stall MID-TICK (the last input was spent, the wall filled up) are SPENT, not
+    // re-banked: the hour passed and the work did not happen. Only a job already stalled when the tick
+    // began banks nothing at all, above.
+    let cycles = banked.steps;
     while (cycles > 0) {
       // A hold-power / upkeep job with no headroom stalls BEFORE burning its input — don't waste the
       // thinnest resource (fuel) topping up a grid, or work a wall, that is already full.
@@ -415,26 +446,43 @@ export function tickShelterOps(state: GameState, graph: RegionGraph | undefined,
   //    cold — a kitchen (the fridge) or a generator that just ran holds it (powerGrid is already raised
   //    above, so a fueled generator lifts it out of the spoil band by construction).
   const refrigerated = rooms.includes(KITCHEN_ROOM) || powerGrid >= POWER_SPOIL_AT;
-  if (!refrigerated) {
+  let spoilHours = state.world.spoilHours ?? 0;
+  if (refrigerated) {
+    // Cold storage stops the rot clock outright rather than pausing it mid-count.
+    spoilHours = 0;
+  } else {
     const fresh = stashCount(stash, FRESH_FOOD_ITEM);
-    const lost = Math.min(fresh, Math.trunc(h / STASH_SPOIL_HOURS));
-    if (lost > 0) {
-      stash = stashTake(stash, FRESH_FOOD_ITEM, lost).stash;
-      stash = stashAdd(stash, SPOILED_FOOD_ITEM, lost);
-      report.spoiled = lost;
+    if (fresh === 0) {
+      spoilHours = 0;
+    } else {
+      // T74: `trunc(h / 12)` was 0 on every ordinary turn, so warm fresh food only ever rotted across a
+      // sleep. The cache now carries its remainder hours toward the next unit.
+      const banked = bankHours(spoilHours, h, STASH_SPOIL_HOURS);
+      const lost = Math.min(fresh, banked.steps);
+      // More units came due than the cache holds ⇒ everything warm is gone; the clock restarts clean.
+      spoilHours = lost < banked.steps ? 0 : banked.rest;
+      if (lost > 0) {
+        stash = stashTake(stash, FRESH_FOOD_ITEM, lost).stash;
+        stash = stashAdd(stash, SPOILED_FOOD_ITEM, lost);
+        report.spoiled = lost;
+      }
     }
   }
 
-  const changed =
+  const reported =
     Object.keys(report.produced).length > 0 ||
     Object.keys(report.consumed).length > 0 ||
     report.fed > 0 ||
     report.spoiled > 0 ||
     report.powered ||
     report.walled;
-  if (!changed) return state;
+  const spoilMoved = spoilHours !== (state.world.spoilHours ?? 0);
+  if (!reported && !clocksMoved && !spoilMoved) return state;
 
-  const world = powerGrid !== state.world.powerGrid ? { ...state.world, powerGrid } : state.world;
+  const world =
+    powerGrid !== state.world.powerGrid || spoilMoved
+      ? { ...state.world, powerGrid, ...(spoilMoved ? { spoilHours } : {}) }
+      : state.world;
   const nodes = shelterNode !== undefined && barricades !== shelterNode.barricades
     ? { ...state.nodes, [sid]: { ...shelterNode, barricades } }
     : state.nodes;
@@ -445,6 +493,9 @@ export function tickShelterOps(state: GameState, graph: RegionGraph | undefined,
     actors,
     player: { ...state.player, stash },
   };
+  // A tick where only the accumulators advanced produced no news — persist the clocks, but do NOT write a
+  // daily-report beat, or the history would fill with empty shelter entries every single turn.
+  if (!reported) return next;
   return appendBeat(next, "shelter.tick", [sid], {
     produced: report.produced,
     consumed: report.consumed,
@@ -470,11 +521,21 @@ export function offscreenShelterUpkeep(state: GameState, graph: RegionGraph | un
   const node = state.nodes[sid];
   if (node === undefined || node.barricades <= 0) return state;
   const divisor = shelterRooms(state).includes(WATCHTOWER_ROOM) ? WATCHTOWER_DECAY_DIVISOR : 1;
-  const loss = Math.trunc((FORTIFY_DECAY_PER_HOUR * h) / divisor);
-  if (loss <= 0) return state;
+  // T74: the watchtower halving used to be `trunc(1 * h / 2)`, so every odd hour under a watchtower decayed
+  // nothing and the tower was worth more than half. The wall now carries its remainder hours. NB the carry
+  // is reinterpreted if the tower is built or lost mid-count (the divisor flips), and it is left untouched
+  // while the wall is down — both harmless at 1 point/hour, both worth revisiting if the rate ever moves.
+  // NB also that this whole path is currently unreachable in play: it is called only from `advanceWorld`,
+  // which nothing outside the tests calls, and the live stage-6 decay (`decayShelterFortification`) has no
+  // watchtower divisor at all. Parked as PL-M5-07 — a design question, not a truncation bug.
+  const banked = bankHours(state.world.wallDecayHours, FORTIFY_DECAY_PER_HOUR * h, divisor);
+  const loss = banked.steps;
+  const clockMoved = banked.rest !== (state.world.wallDecayHours ?? 0);
+  if (loss <= 0 && !clockMoved) return state;
+  const world = clockMoved ? { ...state.world, wallDecayHours: banked.rest } : state.world;
   const barricades = Math.max(0, node.barricades - loss);
-  if (barricades === node.barricades) return state;
-  const next: GameState = { ...state, nodes: { ...state.nodes, [sid]: { ...node, barricades } } };
+  if (barricades === node.barricades) return world === state.world ? state : { ...state, world };
+  const next: GameState = { ...state, world, nodes: { ...state.nodes, [sid]: { ...node, barricades } } };
   // A material off-screen loss leaves a mark in the daily report — GDD XI's "what happened at the walls"
   // (so decaying defenses are never silent while you fast-forward). A held/attended wall drops nothing here.
   if (node.barricades - barricades >= WALL_WEAKENED_NOTE_AT) {

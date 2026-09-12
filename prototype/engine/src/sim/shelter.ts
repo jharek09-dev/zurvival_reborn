@@ -25,9 +25,11 @@ import { cacheRead } from "./stash.js";
 /** The material spent to fortify — already produced by the T17 loot tables (generic/residential/industrial). */
 export const SCRAP_ITEM = "item.scrap";
 
-/** Time cost (hours) of the two shelter verbs. Both > 0 so every one is a resolved turn (FR-CORE-03/04). */
-export const CLAIM_COST = 4;
-export const FORTIFY_COST = 3;
+/** Time cost (hours) of the two shelter verbs. Both > 0 so every one is a resolved turn (FR-CORE-03/04).
+ * Rebalanced T72 (playtest time-economy pass): claim 4→2, fortify 3→2 — settling a searched-clean base
+ * shouldn't eat the day on top of the search itself. */
+export const CLAIM_COST = 2;
+export const FORTIFY_COST = 2;
 
 /** Scrap spent per fortify, barricades added per fortify, and the cap (matches the NodeState 0–100 field). */
 export const FORTIFY_SCRAP = 1;

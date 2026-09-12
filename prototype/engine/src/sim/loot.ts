@@ -22,8 +22,13 @@ import type { GameState, NodeId, RegionState } from "../state/types.js";
 import { drawInt, drawPick } from "../rng/streams.js";
 import { addItemBounded } from "./inventory.js";
 import { profileOf, scaleInt } from "./difficulty.js";
+import { bankHours } from "./clocks.js";
 
-/** Rivals draw a region down by `trunc(hours * survivorActivity / DIVISOR)` each turn. */
+/**
+ * Rivals draw a region down one point per this many banked *pressure-hours* (`survivorActivity` x hours).
+ * T74: the remainder is carried on `RegionState.lootContestHours`, so ordinary turns accumulate instead
+ * of truncating to nothing; the T56 scarcity dial shortens this period rather than scaling the points.
+ */
 export const LOOT_CONTEST_DIVISOR = 50;
 
 /** Node kind → the item ids a search there can plausibly turn up (FR-ECO-02). */
@@ -137,10 +142,28 @@ export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string
  * before (byte-identical). Harder modes let the world eat the stock faster.
  */
 export function contestRegion(region: RegionState, hours: number, contest = 1): RegionState {
-  const base = Math.trunc((Math.max(0, Math.trunc(hours)) * region.survivorActivity) / LOOT_CONTEST_DIVISOR);
-  const drop = scaleInt(base, contest);
-  if (drop <= 0 || region.loot <= 0) return region;
-  return { ...region, loot: clampPct(region.loot - drop) };
+  // A picked-clean region has nothing left to lose, so its clock HOLDS rather than accruing (T74).
+  if (region.loot <= 0) return region;
+  // T74: this is the same remainder-discard the sites T74 enumerated had. `trunc(hours * activity / 50)`
+  // was 0 on an ordinary 2-hour turn for FOUR of the six shipped regions (downtown 10, mercy-hospital 15,
+  // ironworks 20, hillcrest 45) and for five of six on a 1-hour turn — so "a region you leave unsearched
+  // gets thinner" simply did not happen during play, only across a fast-forward. Bank the pressure-hours
+  // (activity x hours) exactly as the weather drains do, and one point falls due every DIVISOR of them.
+  // The T56 scarcity dial rides the PERIOD, not the point count: scaling `banked.steps` per tick would
+  // re-truncate every tick and break the very chunking-invariance this is here to buy (measured: Story
+  // 0.6 at activity 10 still lost NOTHING on ordinary turns). A harsher contest shortens the period,
+  // which is exact for any chunking. `contest === 1` short-circuits to the unchanged divisor, so a
+  // Survivor / unset run and every existing direct caller debit exactly as before.
+  const per = contest === 1 ? LOOT_CONTEST_DIVISOR : Math.max(1, Math.round(LOOT_CONTEST_DIVISOR / contest));
+  const banked = bankHours(
+    region.lootContestHours,
+    Math.max(0, Math.trunc(hours)) * Math.max(0, Math.trunc(region.survivorActivity)),
+    per,
+  );
+  const clockMoved = banked.rest !== (region.lootContestHours ?? 0);
+  const drop = banked.steps;
+  if (drop <= 0) return clockMoved ? { ...region, lootContestHours: banked.rest } : region;
+  return { ...region, loot: clampPct(region.loot - drop), lootContestHours: banked.rest };
 }
 
 /**

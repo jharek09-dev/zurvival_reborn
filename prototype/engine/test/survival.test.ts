@@ -88,7 +88,8 @@ describe("needs drift by the hours spent (T22)", () => {
 
   it("a real run raises thirst enough to matter within a handful of turns", () => {
     let { state, graph } = run();
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 9; i++) {
+      // T72 rebalance: turns are cheaper (search 2h), so "a handful" is a couple turns longer to bite.
       const c = availableActions(state, graph).find((x) => x.id === "search") ?? availableActions(state, graph)[0]!;
       state = applyAction(state, c.action, graph).state;
     }

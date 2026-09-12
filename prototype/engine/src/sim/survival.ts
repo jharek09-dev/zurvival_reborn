@@ -43,6 +43,12 @@ export const THIRST_RATE = 2; // thirst is the sharpest clock
 export const FATIGUE_RATE = 2;
 /** Fatigue a single rest recovers (rest is the only thing that lowers fatigue). */
 export const REST_RECOVERY = 45;
+/**
+ * Fatigue recovered per hour of a full night's `sleep` at your base (T58). Unlike a flat `rest`, sleeping
+ * scales with the hours slept, so a whole night restores far more than a pre-dawn hour — while hunger and
+ * thirst still climb over those hours (you wake rested, but hungry). Only the new `sleep` action reads it.
+ */
+export const SLEEP_RECOVERY_PER_HOUR = 10;
 /** A need at this value is fatal — starvation / dehydration ends the run. */
 export const NEED_FATAL = 100;
 
@@ -156,10 +162,19 @@ export function updateCondition(state: GameState, action: Action): GameState {
 
   const cond = state.player.condition;
   const isRest = action.type === "rest" || action.type === "quarantine";
+  const isSleep = action.type === "sleep";
 
   // Survivability dial (T56): scale how fast needs climb by the run's difficulty. Survivor / unset ⇒ 1 ⇒
   // driftNeeds computes exactly as before (byte-identical); harder modes bite faster, Story slower.
   let needs = driftNeeds(cond.needs, isRest, hours, profileOf(state).needDrift);
+
+  // A full night's `sleep` at the base (T58): fatigue recovers by the hours slept — not the flat rest amount —
+  // while hunger/thirst keep the climb driftNeeds just applied, so you wake rested but hungry. Reached only by
+  // the new `sleep` action (driftNeeds saw isRest=false, i.e. a fatigue climb, which this overrides), so every
+  // prior run — no `sleep` type — is byte-identical.
+  if (isSleep) {
+    needs = { ...needs, fatigue: clampPct(cond.needs.fatigue - SLEEP_RECOVERY_PER_HOUR * hours) };
+  }
 
   // Wound decline: each open wound tires you; an untreated bite is the infection driver.
   const openWounds = cond.wounds.filter((w) => woundRemainder(w) > 0);

@@ -52,6 +52,11 @@ import {
   attitudeRead,
   companionUnease,
   shelterMoodRead,
+  // story plea — the shelter-cache requirement hint (T40 · T73)
+  activeArcs,
+  arcBeat,
+  arcOf,
+  ARC_PLEA,
   // shelter (SCR-05)
   MAX_FORTIFICATION,
   shelterLine,
@@ -446,6 +451,28 @@ export function renderCompanions(state: GameState, graph?: RegionGraph): readonl
   const body: string[] = [
     `${withYou.length} with you · ${atHome.length} at home · ${party.length}/${PARTY_CAP} in your party.`,
   ];
+
+  // A survivor pleading for shelter (T40 plea beat): taking them in draws supplies from your base CACHE —
+  // the store banked at your shelter — not the pack you carry, and the "Take X in" choice only surfaces once
+  // the cache can cover it. That cache/pack split is easy to miss (a player carrying food still can't take
+  // her in until it's stashed), so name the requirement plainly here (T73 clarity fix). Placed above the
+  // empty-party branch: at the plea beat the pleader is not yet a companion, so the party can be empty.
+  for (const arcId of activeArcs(state)) {
+    if (arcBeat(state, arcId) !== ARC_PLEA) continue;
+    const arc = arcOf(arcId);
+    if (!arc) continue;
+    const name = state.npcs[arc.subject]?.name ?? "A survivor";
+    const need = arc.stashDraw;
+    const have = stashUnits(state.player.stash);
+    body.push(
+      "",
+      `${name} is at your barricade, asking to be let in.`,
+      `Taking a survivor in costs ${need} supplies from your base cache — the food and water banked at your shelter, not what you carry in your pack.`,
+      have >= need
+        ? `Your cache holds ${have} — enough. "Take ${name} in" is in your choices when you stand at the shelter.`
+        : `Your cache holds only ${have}. At the shelter, "Stash" food or water from your pack until the cache holds ${need}, then "Take ${name} in" appears.`,
+    );
+  }
 
   if (party.length === 0) {
     body.push(

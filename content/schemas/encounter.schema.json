@@ -35,7 +35,7 @@
         "nodeIds": { "type": "array", "items": { "type": "string", "pattern": "^node\\." } },
         "regionIds": { "type": "array", "items": { "type": "string", "pattern": "^region\\." } },
         "nodeKinds": { "type": "array", "items": { "type": "string" } },
-        "phases": { "type": "array", "items": { "enum": ["dawn", "morning", "midday", "evening", "night"] } },
+        "phases": { "type": "array", "items": { "enum": ["early morning", "dawn", "morning", "midday", "late afternoon", "dusk", "night"] } },
         "minSearchPct": { "type": "integer", "minimum": 0, "maximum": 100 },
         "maxSearchPct": { "type": "integer", "minimum": 0, "maximum": 100 },
         "minWalkers": { "type": "integer", "minimum": 0, "maximum": 100 },

@@ -11,10 +11,12 @@ Simulation Engine evaluates noise, infection, weather, and zombie density to gen
 the player realistically experiences next, so every run writes a different survival novel
 authored by the player's choices.
 
-This repository is the **design and content home** for the project. It currently holds the
-design documentation and a language-agnostic content scaffold. No engine code is committed
-yet — the technology stack is intentionally left open until the design is locked (see
-[docs/specs/PRD.md](docs/specs/PRD.md), Open Questions).
+This repository is the **design and content home** for the project — and now also hosts the
+**playable prototype** that implements it: a pure, deterministic TypeScript engine, a
+schema-validated Content Bible, and a terminal client. As of milestone **M4** the first
+**content-complete city** is playable as a public beta — see **[docs/BETA.md](docs/BETA.md)**
+to run it. The stack was settled in ADR-0001 (TypeScript, dependency-free engine, Node ≥ 22);
+remaining open questions are tracked in [docs/specs/PRD.md](docs/specs/PRD.md).
 
 ## Start here
 

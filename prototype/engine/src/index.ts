@@ -314,6 +314,7 @@ export {
   RESIDENT_FEED_AT,
   RESIDENT_FEED_RELIEF,
   STASH_SPOIL_HOURS,
+  WATCHTOWER_DECAY_DIVISOR,
   KITCHEN_ROOM,
   WATCHTOWER_ROOM,
   RADIO_ROOM,
@@ -359,6 +360,16 @@ export {
   THREAT_HOURS_PER_STEP,
   DRIFT_JITTER,
 } from "./sim/regionDrift.js";
+
+// Hour accumulators — the sub-cycle granularity fix; every periodic clock banks its remainder (T74)
+export {
+  bankHours,
+  stepToward,
+  relax,
+  wholeHours,
+  type Banked,
+  type Relaxed,
+} from "./sim/clocks.js";
 
 // Zombie state machine + first distinct types (T25, DESIGN §6 · FR-CBT-06/07)
 export {
@@ -412,6 +423,7 @@ export {
   WEATHER_WIND,
   WEATHER_CLOUDY,
   type WeatherEffect,
+  WEATHER_DRAIN_PRESSURE_HOURS,
 } from "./sim/weather.js";
 
 // Time-of-day danger — phase raises/lowers danger: concealment, search noise, the threat tide (T28 · FR-SIM-04)
@@ -440,6 +452,9 @@ export {
   ROUTE_BLOCKED_AT,
   ROUTE_FLOODED_AT,
   ROUTE_COSTLY_AT,
+  ROUTE_HOURS_PER_STEP,
+  ROUTE_WEAR_RISE_PER_STEP,
+  ROUTE_WEAR_RECOVER_PER_STEP,
   type RouteCondition,
 } from "./sim/routes.js";
 
@@ -723,4 +738,10 @@ export {
   DROP_COST,
   SEARCH_GAIN,
   REST_RECOVERY,
+  SLEEP_RECOVERY_PER_HOUR,
+  SLEEP_WAKE_HOUR,
+  SLEEP_WINDOW_FROM,
+  SLEEP_WINDOW_TO,
+  inSleepWindow,
+  hoursUntilWake,
 } from "./actions/coreActions.js";

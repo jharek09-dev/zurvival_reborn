@@ -15,6 +15,7 @@ import {
   NOISE_MOVE,
   NOISE_REST,
   NOISE_SEARCH,
+  REST_COST,
   type GameState,
   type NodeDef,
   type RegionGraph,
@@ -112,8 +113,8 @@ describe("noise through the pipeline (T14)", () => {
   it("resting is silent and lets a prior sound decay", () => {
     const { state, graph } = run();
     const noisy = take(state, graph, "search"); // a: 25
-    const rested = take(noisy, graph, "rest"); // 6h pass, no new sound
-    expect(rested.nodes["node.x.a"]!.noise).toBe(Math.max(0, NOISE_SEARCH - 6 * NOISE_DECAY_PER_HOUR));
+    const rested = take(noisy, graph, "rest"); // REST_COST h pass, no new sound
+    expect(rested.nodes["node.x.a"]!.noise).toBe(Math.max(0, NOISE_SEARCH - REST_COST * NOISE_DECAY_PER_HOUR));
   });
 
   it("keeps the M0 empty-turn contract: a silent zero-cost wait changes nothing", () => {

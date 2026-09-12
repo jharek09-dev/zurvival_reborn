@@ -24,6 +24,7 @@
 
 import type { ContentId, GameState, RegionState } from "../state/types.js";
 import { drawFloat, drawPick } from "../rng/streams.js";
+import { bankHours } from "./clocks.js";
 
 // --- the weather set ------------------------------------------------------------------------
 
@@ -73,6 +74,12 @@ export const WEATHER_TRANSITIONS: { readonly [id: ContentId]: readonly ContentId
 
 /** Chance to shift per in-game hour, and the per-tick cap — weather changes over hours, not turns. */
 export const WEATHER_SHIFT_PER_HOUR = 0.02;
+/**
+ * The denominator both infrastructure drains run on: a weather's `powerPressure` / `roadPressure` is
+ * points lost per this many hours, so the drain is banked in *pressure-hours* (pressure x hours) and one
+ * point falls due every {@link WEATHER_DRAIN_PRESSURE_HOURS} of them (T74).
+ */
+export const WEATHER_DRAIN_PRESSURE_HOURS = 6;
 export const WEATHER_SHIFT_MAX = 0.5;
 
 /** The effect vector for a weather id (falls back to clear for an unknown id). */
@@ -113,14 +120,35 @@ export function tickWeather(state: GameState, hours: number): GameState {
 
   // 2. Multi-system effects from the resulting weather.
   const eff = weatherEffect(weather);
-  const powerGrid = Math.max(0, state.world.powerGrid - Math.trunc((eff.powerPressure * h) / 6));
+  // Both drains bank their remainder pressure-hours (T74). Before, `trunc(pressure * h / 6)` was 0 for
+  // every pressure below 3 on a 2-hour turn: only a STORM (powerPressure 3) drained the grid on ordinary
+  // play, at 12 points a day, and rain/snow (pressure 1) drained nothing at all. Roads were worse — even
+  // the storm's roadPressure 2 truncated to zero on every ordinary turn. Pinned-weather arithmetic over a
+  // 24-hour day of 2-hour turns: storm roads lose 0 points before and 8 after (2 x 24 / 6); snow moved
+  // neither dial before and now loses 4 from each; rain's grid lost 0 before and 4 after. A drain that
+  // never fires is a weather system that cannot threaten the fridge — which is the whole reason
+  // `room.kitchen` and POWER_SPOIL_AT exist.
+  const powerBank = bankHours(state.world.powerDrainHours, eff.powerPressure * h, WEATHER_DRAIN_PRESSURE_HOURS);
+  const powerGrid = Math.max(0, state.world.powerGrid - powerBank.steps);
+  const powerClockMoved = powerBank.rest !== (state.world.powerDrainHours ?? 0);
+  const roadBank = bankHours(state.world.roadDrainHours, eff.roadPressure * h, WEATHER_DRAIN_PRESSURE_HOURS);
+  const roadClockMoved = roadBank.rest !== (state.world.roadDrainHours ?? 0);
   const world =
-    weather === state.world.weather && powerGrid === state.world.powerGrid
+    weather === state.world.weather &&
+    powerGrid === state.world.powerGrid &&
+    !powerClockMoved &&
+    !roadClockMoved
       ? state.world
-      : { ...state.world, weather, powerGrid };
+      : {
+          ...state.world,
+          weather,
+          powerGrid,
+          ...(powerClockMoved ? { powerDrainHours: powerBank.rest } : {}),
+          ...(roadClockMoved ? { roadDrainHours: roadBank.rest } : {}),
+        };
 
   let regions = state.regions;
-  const roadDrop = Math.trunc((eff.roadPressure * h) / 6);
+  const roadDrop = roadBank.steps;
   if (roadDrop > 0) {
     let changed = false;
     const next: Record<string, RegionState> = {};

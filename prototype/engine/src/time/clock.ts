@@ -14,16 +14,19 @@ import type { Meta, Phase } from "../state/types.js";
 
 /**
  * The day phase for a given hour (GDD IV). Boundaries:
- *   dawn 05–07 · morning 08–11 · midday 12–16 · evening 17–20 · night 21–04.
+ *   early morning 03–05 · dawn 06–08 · morning 09–11 · midday 12–14 ·
+ *   late afternoon 15–17 · dusk 18–20 · night 21–02.
  * Accepts any integer hour and normalizes it modulo 24, so callers never have to.
  */
 export function phaseOf(hour: number): Phase {
   const h = ((Math.trunc(hour) % 24) + 24) % 24;
-  if (h >= 5 && h <= 7) return "dawn";
-  if (h >= 8 && h <= 11) return "morning";
-  if (h >= 12 && h <= 16) return "midday";
-  if (h >= 17 && h <= 20) return "evening";
-  return "night"; // 21–23 and 00–04
+  if (h >= 3 && h <= 5) return "early morning";
+  if (h >= 6 && h <= 8) return "dawn";
+  if (h >= 9 && h <= 11) return "morning";
+  if (h >= 12 && h <= 14) return "midday";
+  if (h >= 15 && h <= 17) return "late afternoon";
+  if (h >= 18 && h <= 20) return "dusk";
+  return "night"; // 21–23 and 00–02
 }
 
 /**

@@ -69,12 +69,19 @@ describe("survival loop over Rivermouth (T22)", () => {
   });
 
   it("the status line shows needs in words and offers water once thirsty", () => {
-    let { state, graph } = startRun(opts, regions, nodes);
-    // play until thirst is pressing.
-    for (let i = 0; i < 10 && state.player.condition.needs.thirst < 34; i++) {
-      const c = availableActions(state, graph).find((x) => x.id === "search") ?? availableActions(state, graph)[0]!;
-      state = applyAction(state, c.action, graph).state;
-    }
+    const run = startRun(opts, regions, nodes);
+    // Thirsty and carrying water — set directly rather than via an emergent walk, which (after the T72
+    // time-economy rebalance) can wander the player into a fight right as thirst bites, and combat would
+    // pre-empt the choice list. This checks the actual intent: needs in words + water as the counterplay.
+    const state: GameState = {
+      ...run.state,
+      player: {
+        ...run.state.player,
+        condition: { ...run.state.player.condition, needs: { ...run.state.player.condition.needs, thirst: 60 } },
+        inventory: [...run.state.player.inventory, { type: "item.water", quantity: 2 }],
+      },
+    };
+    const graph = run.graph;
     const session = playSession(state, graph, []);
     const status = renderScene(session.opening, state).join("\n");
     expect(status.toLowerCase()).toMatch(/thirsty|parched|dehydrated/); // in words, not a bar

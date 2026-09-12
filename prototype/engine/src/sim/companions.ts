@@ -27,6 +27,7 @@
 import type { ActorId, GameState, InventoryEntry, NodeId, NPCDisposition, NPCState, Survivor } from "../state/types.js";
 import type { SceneChoice, Action } from "../pipeline/contract.js";
 import { driftNeeds, NEED_FATAL } from "./survival.js";
+import { bankHours } from "./clocks.js";
 
 /** Flag marking a `Survivor` as a party companion that follows the player (vs a reserved faction member). */
 export const COMPANION_FLAG = "companion" as const;
@@ -278,19 +279,32 @@ export function tickCompanions(state: GameState, hours: number): GameState {
       continue;
     }
 
+    // Scavenge banks supplies at the base (needs a claimed shelter to bank into), carrying the remainder
+    // hours on the companion (T74): a 1-hour turn used to truncate `trunc(1 / 2)` to zero units and lose
+    // the hour outright, so a scavenger only ever paid out on even-length turns. A companion who is not
+    // scavenging (or has no base to bank into) holds no clock — theirs resets rather than storing up a
+    // burst to dump the moment the order is given back.
+    const scavenging = order === "scavenge" && state.player.shelterId !== null;
+    const banked = scavenging ? bankHours(c.scavengeHours, h, SCAVENGE_HOURS_PER_UNIT) : { steps: 0, rest: 0 };
+    const clockMoved = banked.rest !== (c.scavengeHours ?? 0);
+
     const location = order === "follow" ? here : c.location;
-    if (needs !== c.condition.needs || location !== c.location) {
-      actors = { ...actors, [id]: { ...c, location, condition: { ...c.condition, needs } } };
+    if (needs !== c.condition.needs || location !== c.location || clockMoved) {
+      actors = {
+        ...actors,
+        [id]: {
+          ...c,
+          location,
+          condition: { ...c.condition, needs },
+          ...(clockMoved ? { scavengeHours: banked.rest } : {}),
+        },
+      };
       changed = true;
     }
 
-    // Scavenge banks supplies at the base (needs a claimed shelter to bank into).
-    if (order === "scavenge" && state.player.shelterId !== null) {
-      const units = Math.trunc(h / SCAVENGE_HOURS_PER_UNIT);
-      if (units > 0) {
-        stash = bankToStash(stash, SCAVENGE_ITEM, units);
-        changed = true;
-      }
+    if (banked.steps > 0) {
+      stash = bankToStash(stash, SCAVENGE_ITEM, banked.steps);
+      changed = true;
     }
     // Guard maintains the barricades of the node it holds (only where there are barricades to keep).
     if (order === "guard") {

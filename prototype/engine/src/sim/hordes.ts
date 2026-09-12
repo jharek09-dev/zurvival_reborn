@@ -28,6 +28,7 @@ import type { RegionGraph } from "../map/types.js";
 import { neighborsOf } from "../map/regionGraph.js";
 import { drawInt } from "../rng/streams.js";
 import { ZOMBIE_WALKER } from "./zombies.js";
+import { bankHours } from "./clocks.js";
 
 // --- tuning (bridge constants until a horde content set lands, as with the T17 loot tables) ------
 
@@ -161,15 +162,22 @@ export function tickHordes(state: GameState, hours: number, graph?: RegionGraph)
       dest = draw.value;
     }
 
-    // 3. Step toward the destination by the tick's hours.
-    const steps = Math.trunc((h * horde.speed) / HORDE_HOURS_PER_STEP);
-    const pos = advanceAlong(graph, horde.pos, dest, steps);
+    // 3. Step toward the destination by the tick's hours, banking the remainder (T74). A horde covers a
+    //    node every HORDE_HOURS_PER_STEP hours at speed 1; before, `trunc(2 / 4)` meant an ordinary
+    //    1–2 hour turn moved it zero nodes and it advanced only on a turn of four hours or more — a rest,
+    //    a quarantine or the nightly sleep, i.e. only while the player stood still —
+    //    which is why "a horde on the move, and it is coming this way" could print for twenty turns
+    //    running while nothing arrived. Speed scales the hours banked, not the period — exact for the
+    //    integer speeds the game produces (HORDE_SPEED is 1); a fractional speed from a future content
+    //    set would truncate per tick rather than per span, so bank in tenths if one ever lands.
+    const banked = bankHours(horde.stepHours, h * horde.speed, HORDE_HOURS_PER_STEP);
+    const pos = advanceAlong(graph, horde.pos, dest, banked.steps);
 
     // 4. Arrival: clear the destination so it wanders next tick.
     const nextDest: NodeId | null = pos === dest ? null : dest;
 
-    if (pos !== horde.pos || nextDest !== horde.dest) moved = true;
-    return { ...horde, pos, dest: nextDest };
+    if (pos !== horde.pos || nextDest !== horde.dest || banked.rest !== (horde.stepHours ?? 0)) moved = true;
+    return { ...horde, pos, dest: nextDest, stepHours: banked.rest };
   });
 
   if (!moved && rng === state.rng) return state;

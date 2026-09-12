@@ -48,7 +48,7 @@ export interface CueMatrixEntry {
 export const CUE_MATRIX: readonly CueMatrixEntry[] = [
   // --- Layer 1: ambient bed (AUDIO §5) — region identity, phase, threat, weather masks, shelter, grid ---
   { id: "bed.day", sound: "the low room-tone of a district by day", audioRef: "§5", channel: "bed", text: "a low, worn quiet" },
-  { id: "bed.evening", sound: "the light going, the ambient tone thickening", audioRef: "§5", channel: "bed", text: "the light going, the quiet thickening" },
+  { id: "bed.dusk", sound: "the light going, the ambient tone thickening", audioRef: "§5", channel: "bed", text: "the light going, the quiet thickening" },
   { id: "bed.night", sound: "the wrong hush of late night", audioRef: "§5", channel: "bed", text: "the late-night hush, and it feels wrong" },
   { id: "bed.onEdge", sound: "the bed darkening as the district's danger rises", audioRef: "§5", channel: "bed", text: "something in it on edge" },
   { id: "bed.shelterDay", sound: "the close room-tone inside your own walls", audioRef: "§5.4/§8", channel: "bed", text: "the room tone is close and familiar" },

@@ -59,7 +59,7 @@
     "hoursPerCycle": {
       "type": "integer",
       "minimum": 1,
-      "description": "Hours of work one cycle takes — the real price and the first-pass balance dial. Defaults to 6 (DEFAULT_HOURS_PER_CYCLE). A tick completes trunc(hours / hoursPerCycle) cycles."
+      "description": "Hours of work one cycle takes — the real price and the first-pass balance dial. Defaults to 6 (DEFAULT_HOURS_PER_CYCLE). A worker banks the tick's hours and completes every cycle that comes due against them (T74), so sub-cycle turns accumulate instead of truncating away."
     },
     "description": { "type": "string", "description": "What the job is and why it exists (author/design reference)." },
     "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }

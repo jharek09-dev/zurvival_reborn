@@ -8,6 +8,7 @@ export {
 // Story-first single-decision play client (T19 · FR-UI-01/02/03/05)
 export {
   renderScene,
+  layoutStory,
   describeStatus,
   describeChoice,
   playSession,
@@ -28,6 +29,7 @@ export {
   type Command,
   type StopReason,
   type InputPlayResult,
+  type StoryLayout,
 } from "./play.js";
 
 // The soundscape — the client-side Audio Director rendered as sound-captions (T55 · FR-AUD-01/02/06 · AUDIO §13.2)
