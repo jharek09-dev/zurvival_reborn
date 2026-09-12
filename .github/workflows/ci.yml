@@ -61,6 +61,23 @@ jobs:
         working-directory: prototype/harness
         run: npm start
 
+      # --- Test Lab: autoplay + invariant checks over the shipped city (side tool, prototype/testlab) ---
+      - name: Test Lab — install
+        working-directory: prototype/testlab
+        run: npm install --no-audit --no-fund
+      - name: Test Lab — typecheck
+        working-directory: prototype/testlab
+        run: npm run typecheck
+      - name: Test Lab — test (incl. negative proofs that each check fires)
+        working-directory: prototype/testlab
+        run: npm test
+      - name: Test Lab — headless soak (3 seeds × 4 policies × stocked+unstocked × 200 actions)
+        working-directory: prototype/testlab
+        run: npm run check -- --seeds 3 --turns 200
+      - name: Test Lab — the single-file page assembles
+        working-directory: prototype/testlab
+        run: npm run build
+
       # --- Schema gate (T8): the merge-blocking content check ---
       - name: Schema gate — real content/ must pass
         working-directory: prototype/content-loader

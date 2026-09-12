@@ -9,6 +9,7 @@ Engine code lives here, per ADR-0001 (TypeScript, accepted 2026-07-05).
 | `engine/` | `@zurvival/engine` — the pure, deterministic, headless core. **Dependency-free at runtime** (dev deps only: TypeScript, Vitest, fast-check). Holds the GameState shape, the 14-stage turn pipeline, seeded named-stream RNG, and versioned save/load. Clients consume it; it never imports platform APIs. |
 | `content-loader/` | `@zurvival/content-loader` — Ajv-backed loader + schema gate (T6, T8). Validates `content/` against JSON Schema (2020-12) and hands the engine already-validated plain objects. A loader/tooling dependency **only** — never imported by the engine core. |
 | `harness/` | `@zurvival/harness` — the first headless client (T9). Runs an empty turn end to end and proves the M0 skeleton is deterministic and save-lossless. Run with `npm start`. |
+| `testlab/` | `@zurvival/testlab` — the **Test Lab**: a single-file HTML page that autoplays the shipped city under scripted policies, runs invariant checks every turn (determinism, save/resume, no soft-lock, no hidden-number leak, perf budget, crash-free), and reports — with a watch-and-take-over scene pane. Side tool, not a roadmap task. `npm run build` → `dist/zurvival-testlab.html`; `npm run check` is the headless CI form. |
 
 Future packages (separate, consuming the engine): web client, bot client.
 
@@ -20,6 +21,7 @@ Each package is standalone (`npm install` in its folder):
 - `content-loader/` — `npm test`, `npm run typecheck`, and `npm run validate` (the content
   schema gate; pass a path to validate a specific tree, else it checks the repo `content/`).
 - `harness/` — `npm start` (resolve and render one empty turn), `npm test`, `npm run typecheck`.
+- `testlab/` — `npm run build` (assemble the Test Lab page, then double-click `dist/zurvival-testlab.html`), `npm run check` (headless batch), `npm test`, `npm run typecheck`.
 
 CI (`.github/workflows/ci.yml`) runs all of the above on every push and blocks merge on a red
 result or on any content that fails the schema gate.
