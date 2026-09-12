@@ -123,6 +123,8 @@ export {
   isCombatAction,
   combatNarration,
   detectChance,
+  escapeTargets,
+  escapeExtraCost,
   STRIKE_COST,
   FIRE_COST,
   SLIP_COST,
@@ -135,12 +137,30 @@ export {
   enemyForNode,
   ENEMIES,
   ENEMY_FOR_ZOMBIE,
+  COMBAT_PRIORITY,
   ENEMY_FRESH,
   ENEMY_CRAWLER,
   ENEMY_BLOATED,
   ENEMY_RIOT,
 } from "./combat/combat.js";
 export type { EnemyDef } from "./combat/combat.js";
+
+// The stealth read — noise -> arousal -> detection closed into one chain (T77 · FR-CBT-05 · PL-M2-02)
+export {
+  stealthRead,
+  stealthDetectChance,
+  composeStealth,
+  stealthTell,
+  arousalDetect,
+  scentDetect,
+  packDetect,
+  AROUSAL_DETECT,
+  ALERTED_DETECT,
+  SCENT_DETECT_MAX,
+  PACK_DETECT_MAX,
+  DETECT_MAX,
+} from "./sim/detection.js";
+export type { StealthRead, StealthOpts } from "./sim/detection.js";
 
 // Survival pressure — needs bite, wounds decline, neglect ends the run (T22, DESIGN §6 · FR-CORE-02/FR-INJ)
 export {
@@ -361,6 +381,40 @@ export {
   DRIFT_JITTER,
 } from "./sim/regionDrift.js";
 
+// Per-node zombie roster — one entry per BODY; reconciles `walkers` with `zombieTypes` (T75)
+export {
+  rosterOf,
+  withRoster,
+  addBodies,
+  removeBodyAt,
+  seedRoster,
+  distinctTypes,
+  ROSTER_COMBAT_PRIORITY,
+} from "./sim/roster.js";
+
+// Zombie repopulation — regional density finally becomes bodies in nodes (T75, GDD IV/IX/XVI · FR-SIM-03)
+export {
+  repopulateRegions,
+  repopulateEnabled,
+  repopStream,
+  typeTableFor,
+  nodeCeiling,
+  regionCapacity,
+  spawnWeight,
+  REPOP_STREAM,
+  REPOP_DISABLED_FLAG,
+  REPOP_HOURS_PER_STEP,
+  REPOP_NODE_CEILING_PER,
+  REPOP_NODE_CEILING_MAX,
+  REPOP_CAPACITY_PER,
+  REPOP_NOISE_PER_WEIGHT,
+  REPOP_SEARCH_PER_WEIGHT,
+  REPOP_RECENT_DAYS,
+  REPOP_RECENT_BIAS,
+  REPOP_TYPE_TABLE,
+  type RepopTypeRow,
+} from "./sim/repopulate.js";
+
 // Hour accumulators — the sub-cycle granularity fix; every periodic clock banks its remainder (T74)
 export {
   bankHours,
@@ -388,6 +442,11 @@ export {
   WANDER_AT,
   INVESTIGATE_AT,
   CHASE_AT,
+  PLAYER_HERE_BONUS,
+  PLAYER_ADJACENT_BONUS,
+  SCENT_BONUS,
+  SCENT_FULL_AT,
+  scentDraw,
   SCREAM_NOISE,
   STALKER_NIGHT_BONUS,
   SWIFT_BONUS,
@@ -395,17 +454,50 @@ export {
   type ZombieBehaviour,
 } from "./sim/zombies.js";
 
-// Migrating hordes that re-path to noise (T26, DESIGN §5 · FR-SIM-07/FR-CBT-08)
+// Migrating hordes that re-path to noise and carry bodies (T26/T76, DESIGN §5 · FR-SIM-07/FR-CBT-08)
 export {
   tickHordes,
   seedStarterHordes,
   loudestAudible,
+  hordeAt,
+  hordeMassAt,
+  hordesEnabled,
+  overrunsPlayer,
+  hordeSizeFor,
+  massAction,
   STARTER_HORDE_SIZE,
   HORDE_SPEED,
   HORDE_AWARENESS,
   HORDE_HOURS_PER_STEP,
   REPATH_NOISE,
+  HORDE_MIN_SIZE,
+  HORDE_MAX_SIZE,
+  HORDE_SEED_MIN_DENSITY,
+  HORDE_DISABLED_FLAG,
+  type MassAction,
 } from "./sim/hordes.js";
+
+// The horde collision — no fight, only flight (T76 · FR-CBT-01/05/08)
+export {
+  isOverrun,
+  isOverrunAction,
+  overrunChoices,
+  overrunNarration,
+  overrunMass,
+  overrunWounds,
+  overrunEscapeChance,
+  resolveOverrunAction,
+  OVERRUN_FLEE,
+  OVERRUN_HOLD,
+  OVERRUN_FLEE_COST,
+  OVERRUN_HOLD_COST,
+  OVERRUN_FLEE_NOISE,
+  OVERRUN_HOLD_NOISE,
+  OVERRUN_ESCAPE_FLOOR,
+  OVERRUN_WOUND_PER,
+  OVERRUN_MAX_WOUNDS,
+  OVERRUN_WOUNDS,
+} from "./sim/overrun.js";
 
 // Weather with multi-system effects (T27, DESIGN §6 · FR-SIM-05)
 export {

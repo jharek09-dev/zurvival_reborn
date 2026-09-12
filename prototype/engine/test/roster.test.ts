@@ -6,6 +6,7 @@ import {
   saveGame,
   loadGame,
   enemyForNode,
+  withRoster,
   ENEMIES,
   ENEMY_RIOT,
   ENEMY_BLOATED,
@@ -50,11 +51,17 @@ const armed = (player: Player): Player => ({ ...player, inventory: [{ type: "ite
 
 describe("enemyForNode picks the most dangerous combat-distinct type present (T46)", () => {
   it("selects a riot over a bloated over a fresh over a crawler; walker when none is distinct", () => {
+    // T75: the node's ROSTER (one entry per body) is the source of truth, not the distinct-type list —
+    // so these overrides go through `withRoster`, which keeps roster/walkers/zombieTypes coherent.
     const { state } = run(["zombie.riot", "zombie.crawler", "zombie.fresh"]);
+    const withBodies = (bodies: readonly string[]): GameState => ({
+      ...state,
+      nodes: { ...state.nodes, "node.x.a": withRoster(state.nodes["node.x.a"]!, bodies) },
+    });
     expect(enemyForNode(state).id).toBe(ENEMY_RIOT);
-    expect(enemyForNode({ ...state, nodes: { ...state.nodes, "node.x.a": { ...state.nodes["node.x.a"]!, zombieTypes: ["zombie.bloated", "zombie.crawler"] } } }).id).toBe(ENEMY_BLOATED);
-    expect(enemyForNode({ ...state, nodes: { ...state.nodes, "node.x.a": { ...state.nodes["node.x.a"]!, zombieTypes: ["zombie.fresh", "zombie.crawler"] } } }).id).toBe(ENEMY_FRESH);
-    expect(enemyForNode({ ...state, nodes: { ...state.nodes, "node.x.a": { ...state.nodes["node.x.a"]!, zombieTypes: ["zombie.crawler"] } } }).id).toBe(ENEMY_CRAWLER);
+    expect(enemyForNode(withBodies(["zombie.bloated", "zombie.crawler"])).id).toBe(ENEMY_BLOATED);
+    expect(enemyForNode(withBodies(["zombie.fresh", "zombie.crawler"])).id).toBe(ENEMY_FRESH);
+    expect(enemyForNode(withBodies(["zombie.crawler"])).id).toBe(ENEMY_CRAWLER);
   });
 
   it("a screamer/stalker-only node fights as a plain walker (no combat-distinct type ⇒ pre-T46 behaviour)", () => {

@@ -601,6 +601,11 @@ export function historyLine(ev: HistoryEvent): string {
     case "horde.move":
       what = "a horde shifted through the streets";
       break;
+    case "horde.overrun":
+      // T76: the mass reached you. Logged on the edge (once per arrival, not once per turn under it),
+      // so this line marks the moment rather than repeating while you are pinned.
+      what = "a horde came down on you in the open";
+      break;
     case "route.change":
       what = `a route between ${e.subjects.map(humanId).join(" and ")} changed`;
       break;

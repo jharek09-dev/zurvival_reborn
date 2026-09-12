@@ -61,7 +61,7 @@
     "walkers": {
       "type": "integer",
       "minimum": 0,
-      "description": "Walkers loitering here at run start \u2014 seeds an avoidable encounter at this node (FR-CBT-01, T15). Live count lives in GameState.nodes; omit for a quiet node (defaults to 0)."
+      "description": "Bodies loitering here at run start \u2014 seeds an avoidable encounter at this node (FR-CBT-01, T15). Live count lives in GameState.nodes; omit for a quiet node (defaults to 0). Since T75 each entry of zombieTypes takes one of these bodies and the rest are plain walkers, so a node with two bodies and two listed types seeds one of each (not two of the most dangerous). If zombieTypes is LONGER than this count, every listed type still gets a body and the seeded total exceeds it \u2014 an authored type is never dropped."
     },
     "kind": {
       "type": "string",
@@ -77,7 +77,7 @@
     },
     "zombieTypes": {
       "type": "array",
-      "description": "Distinct zombie type ids present at this node (FR-CBT-07, T25). Seeds NodeState.zombieTypes.",
+      "description": "Distinct zombie type ids present at this node (FR-CBT-07, T25). Since T75 each seeds one BODY in the node's roster (see walkers); NodeState.zombieTypes is then derived from that roster, so a type clears from the node when its last body is put down.",
       "items": {
         "type": "string",
         "pattern": "^zombie\\.[a-z0-9]+(?:[-_][a-z0-9]+)*$"

@@ -162,7 +162,18 @@ describe("the evolution triple plays through the real engine (FR-ENC-08)", () =>
 describe("a moral encounter swings Humanity (FR-ENC-06)", () => {
   it("abandoning the trapped stranger erodes it; the felt band surfaces at the low end", () => {
     const { state, graph } = run();
-    const engaged = tick(at(state, "node.rivermouth.marina"), graph);
+    const MARINA = "node.rivermouth.marina";
+    // T75 sequencing: the marina's authored stalker now stands there as a BODY (before T75 a type with
+    // `walkers: 0` was un-fightable narration), and a contested node runs the T15 fight prompt before any
+    // scripted beat — so the cabin is shadowed until the dead in front of you are dealt with.
+    const standing = at(state, MARINA);
+    expect(standing.nodes[MARINA]!.walkers).toBe(1);
+    expect(activeEncounter(tick(standing, graph))).toBeNull();
+    const clear: GameState = {
+      ...standing,
+      nodes: { ...standing.nodes, [MARINA]: { ...standing.nodes[MARINA]!, walkers: 0, zombieTypes: [], roster: [] } },
+    };
+    const engaged = tick(clear, graph);
     expect(activeEncounter(engaged)!.encounter).toBe("encounter.rivermouth.marina-cabin");
     const left = take(engaged, graph, "event:encounter.rivermouth.marina-cabin:leave");
     expect(left.player.humanity).toBe(50 - 20);

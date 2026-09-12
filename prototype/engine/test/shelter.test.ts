@@ -33,6 +33,8 @@ import {
   REST_RECOVERY,
   NOISE_SEARCH,
   CHASE_AT,
+  PLAYER_HERE_BONUS,
+  SCENT_BONUS,
   ZOMBIE_STALKER,
   type Action,
   type GameState,
@@ -303,8 +305,36 @@ describe("detection floor at a fortified base (T38 · raise the floor vs night h
     const bare = withShelter(withNode(atNode, HERE, { walkers: 3, zombieState: "dormant" }), "node.x.b");
     const rousedFort = tickZombies(withNode(fort, HERE, { barricades: 100 }), 6, graph).nodes[HERE]!.zombieState;
     const rousedBare = tickZombies(withNode(bare, HERE, { barricades: 0 }), 6, graph).nodes[HERE]!.zombieState;
-    expect(rousedBare).toBe("chasing"); // an unprotected node wakes onto the player
+    // T77: an unprotected node wakes onto the player, but a QUIET arrival only reaches `investigating`
+    // now — `PLAYER_HERE_BONUS` dropped from 40 (== CHASE_AT, which made every occupied node read
+    // `chasing` on contact) to 25. This assertion said `chasing` before and was pinning the collapse.
+    expect(rousedBare).toBe("investigating");
     expect(["dormant", "hibernating"]).toContain(rousedFort); // the fortified base stays quiet
+  });
+
+  it("full fortification cancels presence AND the blood you walked in with (T77 coupling)", () => {
+    // `SHELTER_DETECT_FLOOR_MAX` used to equal `PLAYER_HERE_BONUS` exactly. T77 lowered the bonus to 25
+    // without moving the floor, so the floor is now `PLAYER_HERE_BONUS + SCENT_BONUS` — strictly better
+    // (a barricaded base hides the trail you dragged in too) and the SAME number. Neither side can be
+    // retuned without the other noticing: this is the only place the coupling is stated, because it
+    // cannot be a shared constant without an import cycle between shelter.ts and zombies.ts.
+    expect(SHELTER_DETECT_FLOOR_MAX).toBe(PLAYER_HERE_BONUS + SCENT_BONUS);
+    const { state, graph } = run();
+    const bleeding = {
+      ...state,
+      player: {
+        ...state.player,
+        location: HERE,
+        condition: { ...state.player.condition, wounds: [{ type: "wound.laceration", severity: 40, treated: 0, site: "arm", inflictedDay: 1 }] },
+      },
+      meta: { ...state.meta, phase: "midday" as const },
+    } as GameState;
+    const fort = withNode(withShelter(bleeding, HERE), HERE, { walkers: 3, zombieState: "dormant", barricades: 100 });
+    const bare = withShelter(withNode(bleeding, HERE, { walkers: 3, zombieState: "dormant", barricades: 0 }), "node.x.b");
+    // bleeding + present off the base = 25 + 15 = CHASE_AT exactly — the scent term is what tips it
+    expect(tickZombies(bare, 6, graph).nodes[HERE]!.zombieState).toBe("chasing");
+    // and the fully fortified base absorbs both
+    expect(["dormant", "hibernating"]).toContain(tickZombies(fort, 6, graph).nodes[HERE]!.zombieState);
   });
 
   it("a stalker at night is reduced, never nullified — fortification helps, not god-mode", () => {

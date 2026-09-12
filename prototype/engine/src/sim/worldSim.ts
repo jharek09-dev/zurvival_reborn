@@ -14,7 +14,7 @@
  *   | layer     | pipeline stage           | becomes real in |
  *   |-----------|--------------------------|-----------------|
  *   | zombies   | 6 updateNode (after noise) | T25            |
- *   | regions   | 7 updateRegion           | T24 (drift) / T17 (contest, live) |
+ *   | regions   | 7 updateRegion           | T24 (drift) / T75 (repopulate) / T17 (contest, live) |
  *   | weather   | 8 updateWorld            | T27             |
  *   | timeOfDay | 8 updateWorld            | T28             |
  *   | hordes    | 9 moveHordes             | T26             |
@@ -27,7 +27,7 @@
  * to a real system by swapping its `tick` — the wiring stays put.
  *
  * Purity (ADR-0001): every layer is a pure transform of `GameState`; no clock, no global RNG. A layer
- * that needs randomness draws from its own **named** stream (`region`, `zombie`, `horde`, `weather`)
+ * that needs randomness draws from its own **named** stream (`region`, `repop:<regionId>`, `horde`, `weather`)
  * so adding a draw to one layer can never shift another's sequence, and a seed reproduces the whole
  * world byte-for-byte. RNG is threaded through `GameState.rng`, never through the context.
  */
@@ -37,6 +37,7 @@ import type { RegionGraph } from "../map/types.js";
 import { decayAllNoise } from "./noise.js";
 import { updateRegionContest } from "./loot.js";
 import { driftRegions } from "./regionDrift.js";
+import { repopulateRegions } from "./repopulate.js";
 import { tickZombies } from "./zombies.js";
 import { tickHordes } from "./hordes.js";
 import { tickWeather } from "./weather.js";
@@ -73,12 +74,18 @@ export interface SimLayer {
 
 
 /**
- * Regions layer: off-screen threat/density drift (T24), then the T17 loot contest — every region
- * evolves on its own clock as the tick's hours pass, whether or not the player is present.
+ * Regions layer: off-screen threat/density drift (T24), then **repopulation** (T75), then the T17
+ * loot contest — every region evolves on its own clock as the tick's hours pass, whether or not the
+ * player is present.
+ *
+ * Repopulation runs *after* drift so it reads this tick's density, and *before* the contest (which
+ * touches only `loot`, so the two do not interact). It is what finally turns `zombieDensity` from a
+ * number the director nudges into bodies standing in nodes; it draws only from the new `repop` stream,
+ * so no other layer's sequence moves.
  */
 const regionsLayer: SimLayer = {
   id: "regions",
-  tick: (state, ctx) => updateRegionContest(driftRegions(state, ctx.hours), ctx.hours),
+  tick: (state, ctx) => updateRegionContest(repopulateRegions(driftRegions(state, ctx.hours), ctx.hours), ctx.hours),
 };
 
 /**
@@ -104,6 +111,11 @@ const timeOfDayLayer: SimLayer = {
   tick: (state, ctx) => tickTimeOfDay(state, ctx.hours),
 };
 
+/**
+ * T76: this layer now writes `nodes` as well as `hordes` — a mass trades a body with every node it
+ * walks onto (`sim/hordes.ts#massAction`), conserving `sum(walkers) + sum(size)` exactly. It still
+ * never touches the player, the world dials, the regions or the clock.
+ */
 const hordesLayer: SimLayer = {
   id: "hordes",
   tick: (state, ctx) => tickHordes(state, ctx.hours, ctx.graph),
