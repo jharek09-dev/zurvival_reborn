@@ -649,6 +649,13 @@ export interface CombatState {
   readonly maxHp: number;
   /** The enemy is alerted and striking back (after your first blow, or a detected stealth start). */
   readonly alerted: boolean;
+  /**
+   * The enemy has been shoved back and has not recovered (T80's PUSH verb). Consumed by the very next
+   * combat action: an escape taken while it is true is far likelier to be clean, and any blow spends
+   * it. Optional and absent-reads-as-false, exactly like `Horde.stepHours` (T74) — a pre-T80 save
+   * simply has no shoved enemy in it, so there is no `SAVE_SCHEMA_VERSION` rung to climb.
+   */
+  readonly offBalance?: boolean;
 }
 
 // ---------------------------------------------------------------------------

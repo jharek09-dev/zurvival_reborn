@@ -135,7 +135,15 @@ export {
   WALKER_ENEMY,
   WALKER_MAX_HP,
   enemyForNode,
+  firearmFor,
   ENEMIES,
+  HEAVY_COST,
+  PUSH_COST,
+  PUSH_NOISE,
+  HEAVY_DMG_MULT,
+  HEAVY_NOISE_MULT,
+  HEAVY_WEAR_MULT,
+  PUSH_ESCAPE_BONUS,
   ENEMY_FOR_ZOMBIE,
   COMBAT_PRIORITY,
   ENEMY_FRESH,
@@ -144,6 +152,19 @@ export {
   ENEMY_RIOT,
 } from "./combat/combat.js";
 export type { EnemyDef } from "./combat/combat.js";
+export {
+  WEAPONS,
+  WEAPON_BARE,
+  BARE_HANDS,
+  BARE_NOISE,
+  PISTOL_NOISE,
+  weaponFor,
+  weaponProfile,
+  surestOf,
+  effectiveDamage,
+  retaliateChance,
+} from "./combat/weapons.js";
+export type { WeaponDef } from "./combat/weapons.js";
 
 // The stealth read — noise -> arousal -> detection closed into one chain (T77 · FR-CBT-05 · PL-M2-02)
 export {
