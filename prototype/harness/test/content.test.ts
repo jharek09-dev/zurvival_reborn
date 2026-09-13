@@ -12,6 +12,10 @@ import {
   ZOMBIE_BEHAVIOUR,
   ENEMIES,
   ENEMY_FOR_ZOMBIE,
+  WEAPONS,
+  ITEM_WEIGHTS,
+  LOOT_TABLES,
+  weaponLootFor,
   type FactionDef,
   type NodeDef,
   type NpcLead,
@@ -276,5 +280,82 @@ describe("shipped content — factions & inter-NPC relationships (T53 · FR-NPC-
     expect(socialActive(graph)).toBe(false);
     expect(state.groups).toEqual({});
     expect(state.player.reputation).toEqual({});
+  });
+});
+
+/**
+ * Integration (T81): the weapon content set is complete, mirrors the engine's authoritative dials with no
+ * drift in either direction, and is actually reachable — the check the pre-T81 build would have failed
+ * outright, because `content/weapons/` was an empty directory and the roster it should have held was the
+ * emptiest hole in the game (design review 2026-09, finding V).
+ */
+describe("shipped content — the weapon roster (T81 · FR-CBT-04 · GDD IX)", () => {
+  interface WeaponJson {
+    id: string; name: string; description: string; kind: string; category: string;
+    dmgMin: number; dmgMax: number; noise: number; armorPierce?: number; durabilityCost?: number;
+    retaliateModifier?: number; accuracy?: number; startDurability?: number | null;
+    lootWeight?: number; lootKinds?: string[];
+  }
+  const weapons = loadDefs<WeaponJson>("weapons");
+
+  it("ships every profile the engine knows, and knows every profile it ships (no orphan either way)", () => {
+    expect(new Set(weapons.map((w) => w.id))).toEqual(new Set(Object.keys(WEAPONS)));
+  });
+
+  it("every dial mirrors the engine's authoritative table (no drift)", () => {
+    for (const w of weapons) {
+      const d = WEAPONS[w.id]!;
+      expect(d, w.id).toBeDefined();
+      expect(w.kind, w.id).toBe(d.kind);
+      expect(w.category, w.id).toBe(d.category);
+      expect(w.dmgMin, w.id).toBe(d.dmgMin);
+      expect(w.dmgMax, w.id).toBe(d.dmgMax);
+      expect(w.noise, w.id).toBe(d.noise);
+      expect(w.armorPierce ?? 0, w.id).toBe(d.armorPierce);
+      expect(w.durabilityCost ?? 0, w.id).toBe(d.durabilityCost);
+      expect(w.retaliateModifier ?? 0, w.id).toBe(d.retaliateModifier);
+      expect(w.accuracy ?? 1, w.id).toBe(d.accuracy);
+      expect(w.startDurability ?? null, w.id).toBe(d.startDurability);
+      expect(w.lootWeight ?? 0, w.id).toBe(d.lootWeight);
+      expect(w.lootKinds ?? [], w.id).toEqual(d.lootKinds);
+      expect(typeof w.description === "string" && w.description.length > 0, w.id).toBe(true);
+    }
+  });
+
+  it("the GDD's three melee families are all shipped, the axe among them", () => {
+    const melee = weapons.filter((w) => w.kind === "melee");
+    expect(new Set(melee.map((w) => w.category))).toEqual(new Set(["improvised", "bladed", "blunt"]));
+    expect(melee.length).toBeGreaterThanOrEqual(8);
+    const axe = weapons.find((w) => w.id === "item.axe-fire");
+    expect(axe, "the firefighter's axe the GDD names three times").toBeDefined();
+    expect(axe!.lootKinds).toEqual(["police"]);
+  });
+
+  it("every weapon is reachable: placed in a real node kind, or minted at the bench", () => {
+    const kinds = new Set(Object.keys(LOOT_TABLES));
+    for (const w of weapons) {
+      if (w.id === "weapon.bare" || w.id === "item.tool-reinforced") continue; // hands, and the crafted one
+      expect((w.lootWeight ?? 0) > 0, `${w.id} has a loot weight`).toBe(true);
+      expect((w.lootKinds ?? []).length > 0, `${w.id} has somewhere to be found`).toBe(true);
+      for (const k of w.lootKinds ?? []) expect(kinds.has(k), `${w.id} -> unknown node kind "${k}"`).toBe(true);
+      // and the placement round-trips through the table builder the engine actually draws from
+      expect(weaponLootFor(w.lootKinds![0]!).map((e) => e.id)).toContain(w.id);
+    }
+  });
+
+  it("every placeable weapon has a carry weight — the fifth axis it trades on", () => {
+    for (const w of weapons) {
+      if (w.id === "weapon.bare") continue;
+      expect(ITEM_WEIGHTS[w.id], `${w.id} carry weight`).toBeGreaterThan(0);
+    }
+  });
+
+  it("every node kind a weapon is authored for exists somewhere in the shipped city", () => {
+    const nodes = loadDefs<NodeDef>("nodes");
+    const live = new Set(nodes.map((n) => n.kind ?? "generic"));
+    for (const w of weapons) for (const k of w.lootKinds ?? []) expect(live.has(k), `${w.id} -> "${k}" is in no shipped node`).toBe(true);
+    // the axe's home: the fire station's own description names the tool wall it comes off
+    const station = nodes.find((n) => n.id === "node.the-terraces.fire-station")!;
+    expect(station.kind).toBe("police");
   });
 });

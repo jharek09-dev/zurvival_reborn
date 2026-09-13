@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/weapon.schema.json",
+  "id": "item.tool-reinforced",
+  "name": "reinforced tool",
+  "description": "Whatever you had, wrapped, weighted and bound at the bench until it became a weapon. It is yours in a way a found thing never is — and it is the one you can bring back.",
+  "kind": "melee",
+  "category": "blunt",
+  "dmgMin": 2,
+  "dmgMax": 3,
+  "noise": 20,
+  "armorPierce": 1,
+  "durabilityCost": 2,
+  "retaliateModifier": -10,
+  "startDurability": 100,
+  "notes": "T80 · the one artifact the crafting economy mints (recipe.weapon.reinforce-tool). T81 leaves it OUT of every loot table (lootWeight 0): the bench is how you get one, and that is its distinction now that the world hands out weapons — it starts and repairs to a full 100, where a found weapon starts below it."
+}

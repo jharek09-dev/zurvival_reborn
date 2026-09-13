@@ -16,6 +16,7 @@ import type { EncounterDef } from "../sim/events.js";
 import type { SignalDef } from "../sim/radio.js";
 import type { RecipeDef } from "../sim/economy.js";
 import type { JobDef } from "../sim/jobs.js";
+import type { WeaponDef } from "../combat/weapons.js";
 import type { FactionDef } from "../sim/social.js";
 import type { NPCDef } from "../sim/npcs.js";
 
@@ -98,6 +99,15 @@ export interface RegionGraph {
    * stays byte-identical. Never serialized.
    */
   readonly jobs?: readonly JobDef[];
+  /**
+   * The run's registered weapon content set (M5 task T81) — transient content the client loaded from
+   * `content/weapons/`, carried here exactly as the recipe and job pools are. Optional and defaulting to
+   * empty: a graph built without it places **no weapons in loot**, so every prior run draws the identical
+   * uniform table and stays byte-identical (the `floor(f·len)` pick hazard the radio and economy pools
+   * are gated for). The combat dials themselves are engine-authoritative — this pool gates placement and
+   * is drift-guarded against `combat/weapons.ts`, it does not supply the numbers. Never serialized.
+   */
+  readonly weapons?: readonly WeaponDef[];
   /**
    * The run's registered faction pool (M4 task T53) — transient content the client loaded from
    * `content/factions/`, carried here so the social interpreter reaches it the same way the job pool does.

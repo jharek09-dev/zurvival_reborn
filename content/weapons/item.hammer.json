@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/weapon.schema.json",
+  "id": "item.hammer",
+  "name": "claw hammer",
+  "description": "A framing hammer off a tool wall. Short, dense, and it caves in what it lands on — provided you are close enough to land it.",
+  "kind": "melee",
+  "category": "blunt",
+  "dmgMin": 2,
+  "dmgMax": 3,
+  "noise": 20,
+  "armorPierce": 1,
+  "durabilityCost": 2,
+  "retaliateModifier": 5,
+  "startDurability": 60,
+  "lootWeight": 3,
+  "lootKinds": [
+    "industrial",
+    "residential"
+  ],
+  "notes": "T81 · blunt, the short one: real damage and pierce 1 for retaliate +5 and weight 3. The cheap industrial answer to armor."
+}

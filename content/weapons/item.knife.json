@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/weapon.schema.json",
+  "id": "item.knife",
+  "name": "kitchen knife",
+  "description": "Eight inches of kitchen steel, still sharp. The quietest thing you can kill with, and it puts you close enough to smell them.",
+  "kind": "melee",
+  "category": "bladed",
+  "dmgMin": 1,
+  "dmgMax": 3,
+  "noise": 8,
+  "durabilityCost": 3,
+  "retaliateModifier": 10,
+  "startDurability": 45,
+  "lootWeight": 4,
+  "lootKinds": [
+    "residential",
+    "store",
+    "police"
+  ],
+  "notes": "T81 · bladed, the quiet extreme: noise 8 is the lowest in the game, and the price is retaliate +10 — you have to be inside its reach to use it. Weight 1, so it costs the pack nothing."
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/weapon.schema.json",
+  "id": "item.chair-leg",
+  "name": "chair leg",
+  "description": "Snapped off at the joint, splintered where it broke. Quiet, light, and it will not last the week — which is exactly why it is the first thing most people pick up.",
+  "kind": "melee",
+  "category": "improvised",
+  "dmgMin": 1,
+  "dmgMax": 2,
+  "noise": 12,
+  "durabilityCost": 4,
+  "startDurability": 25,
+  "lootWeight": 6,
+  "lootKinds": [
+    "residential",
+    "store",
+    "generic"
+  ],
+  "notes": "T81 · the commonest row in the table and the worst. Barely better than a fist (the same 1-2), a touch quieter, and 25 durability at 4 a swing = six blows. The floor of the progression axis: something, not nothing."
+}

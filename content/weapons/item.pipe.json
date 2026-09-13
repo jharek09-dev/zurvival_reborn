@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/weapon.schema.json",
+  "id": "item.pipe",
+  "name": "length of pipe",
+  "description": "A metre of galvanised steel off a burst standpipe. Heavier than it looks, long enough to keep something at arm's length, cold enough to numb your palms.",
+  "kind": "melee",
+  "category": "improvised",
+  "dmgMin": 1,
+  "dmgMax": 3,
+  "noise": 15,
+  "durabilityCost": 3,
+  "retaliateModifier": -5,
+  "startDurability": 40,
+  "lootWeight": 5,
+  "lootKinds": [
+    "industrial",
+    "residential",
+    "generic"
+  ],
+  "notes": "T81 · improvised, one step up: the reach buys -5 on the answer, the extra damage die is the difference between two blows and three on a walker."
+}

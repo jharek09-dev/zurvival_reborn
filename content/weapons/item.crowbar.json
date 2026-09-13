@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/weapon.schema.json",
+  "id": "item.crowbar",
+  "name": "crowbar",
+  "description": "Three feet of drop-forged steel with a chisel end. It will outlast you. It is also the single most obvious thing to be carrying when you want to be taken for harmless.",
+  "kind": "melee",
+  "category": "blunt",
+  "dmgMin": 2,
+  "dmgMax": 3,
+  "noise": 22,
+  "armorPierce": 1,
+  "durabilityCost": 1,
+  "retaliateModifier": -5,
+  "startDurability": 90,
+  "lootWeight": 2,
+  "lootKinds": [
+    "industrial",
+    "store"
+  ],
+  "notes": "T81 · blunt, the durable one: 90 durability at 1 a swing is ninety blows, the longest service life in the table, plus pierce 1. Paid for in noise 22 and carry weight 5."
+}

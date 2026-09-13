@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/weapon.schema.json",
+  "id": "item.shotgun",
+  "name": "shotgun",
+  "description": "A pump gun, barrel cut back. Hard to miss with, impossible to use quietly, and it keeps whatever it hits off you.",
+  "kind": "firearm",
+  "category": "firearm",
+  "dmgMin": 3,
+  "dmgMax": 3,
+  "noise": 85,
+  "armorPierce": 3,
+  "retaliateModifier": -10,
+  "accuracy": 0.85,
+  "lootWeight": 1,
+  "lootKinds": [
+    "police",
+    "residential"
+  ],
+  "notes": "T80 dials, T81 placement. This row was unreachable content until T81 (PL-M5-36: item.pistol was the only firearm in any loot table). Now found rarely in a station or a home."
+}

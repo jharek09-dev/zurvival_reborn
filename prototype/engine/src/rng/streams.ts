@@ -75,3 +75,42 @@ export function drawPick<T>(
   const { rng: rng2, value: idx } = drawInt(rng, runSeed, name, 0, items.length - 1);
   return { rng: rng2, value: items[idx]! };
 }
+
+/** One weighted candidate for {@link drawWeighted}. A non-positive weight can never be chosen. */
+export interface Weighted<T> {
+  readonly value: T;
+  /** Integer weight (ADR-0001); relative to the other entries' weights, not a probability. */
+  readonly weight: number;
+}
+
+/**
+ * Pick one element in proportion to integer weights, via the named stream (M5 task T81).
+ *
+ * The rarity primitive `drawPick` could not express. A loot table of equals makes a pistol exactly as
+ * likely as a bandage and a firefighter's axe exactly as likely as a chair leg, which is the "rough
+ * tiers from common junk to rare finds" GDD Part X asks for and the build did not have.
+ *
+ * **It costs exactly one `drawInt` step, the same as {@link drawPick}** — one draw over the total
+ * weight, then a walk down the (caller-ordered) entries. So swapping a uniform pick for a weighted one
+ * advances the stream identically; only the chosen value differs. Entries with weight ≤ 0 are skipped
+ * rather than treated as 1, so "never placed" is expressible. Throws on an empty set or a set whose
+ * weights sum to nothing, which is a caller bug, not a draw outcome.
+ */
+export function drawWeighted<T>(
+  rng: RngState,
+  runSeed: string,
+  name: string,
+  entries: readonly Weighted<T>[],
+): Draw<T> {
+  let total = 0;
+  for (const e of entries) total += Math.max(0, Math.trunc(e.weight));
+  if (total <= 0) throw new RangeError("drawWeighted: no entry carries a positive weight");
+  const { rng: rng2, value: roll } = drawInt(rng, runSeed, name, 0, total - 1);
+  let seen = 0;
+  for (const e of entries) {
+    seen += Math.max(0, Math.trunc(e.weight));
+    if (roll < seen) return { rng: rng2, value: e.value };
+  }
+  // Unreachable: `roll < total` and the weights sum to `total`. Kept total rather than asserted.
+  return { rng: rng2, value: entries[entries.length - 1]!.value };
+}
