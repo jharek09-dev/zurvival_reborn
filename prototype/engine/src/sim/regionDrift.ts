@@ -44,10 +44,42 @@
  * while a ramp on the anchor becomes density, which T75 turns into bodies — the review's whole point
  * was that consequences must not terminate in a number nobody acts on. The director's read sees the
  * ramp through `region.threat` for free. The director's `directorBias` (see `sim/director.ts`) leans
- * the same anchor by a bounded ±10 — how a beat outlives the drift step that follows it. T79's
- * neglect term is meant to stack on the same anchor, clamped — and its brief's cap of
- * `baseline.threat + 20` predates a ramp that alone adds 30, so T79 must re-derive its cap against
- * this anchor rather than the authored point (PL-M5-31).
+ * the same anchor by a bounded ±10 — how a beat outlives the drift step that follows it.
+ *
+ * **Neglect (T79).** The third term on the same anchor, and the one that makes the map territory:
+ * {@link neglectLift} adds a point of threat AND density per in-game day a region has gone without
+ * the player standing in it, after a {@link NEGLECT_GRACE_DAYS}-day grace and up to
+ * {@link NEGLECT_CAP}. The day ramp says *the city* gets worse; neglect says *the districts you walk
+ * away from* get worse faster than the one you hold — which is what DESIGN §5 and GDD IV have said
+ * since M1 and what the code did backwards (the design review measured Rivermouth 35 → 7 and
+ * Downtown 70 → 11 over 400 absent turns; T78 removed the *negative* slope, and this makes the slope
+ * depend on where the player actually is).
+ *
+ * Two details the brief did not have, both forced by T78 (PL-M5-31):
+ *
+ *   1. **The cap is a deviation, not a ceiling.** The brief asked for threat "capped at
+ *      `baseline.threat + 20`". Against the T78 anchor that is a ceiling BELOW the floor: the day ramp
+ *      alone puts every district at `baseline + 30` by day 31, so an absolute cap of `baseline + 20`
+ *      would have *clamped the ramp back down* from day 22 — undoing the task before it — and would
+ *      have pinned Downtown (authored 70) at 90 while the ramp had already earned 100. So the cap
+ *      bounds THIS TERM's own contribution to the anchor, and the anchor's total lift is
+ *      `ramp + neglect + bias` under the usual 0–100 clamp.
+ *   2. **Neglect must lift the density point too, or it is inert.** Under the anchored model
+ *      `equilibriumDensity` reads the *deviation* `threat − anchor.threat`, so a neglect term on the
+ *      threat anchor alone raises the threat dial and leaves the density equilibrium exactly where it
+ *      was — no extra bodies, T75 never sees it, and the consequence terminates in a number nobody
+ *      acts on. Measured by rebuilding with the threat-only variant and re-running `measure/t79.ts`:
+ *      the threat column is identical to the shipped one (day-40 city mean 84.67) while the day-40 body
+ *      count is 284 against the pre-T79 tree's 283 — one body in forty days. It rides both points,
+ *      exactly as the ramp does.
+ *
+ * Neglect is DERIVED, never stored: {@link regionNeglectDays} reads the `lastVisit` day the nodes
+ * already remember (GDD VII — "nodes remember"), so there is no new save field, no migration rung and
+ * nothing that can desync from where the player has actually been. The region the player is standing
+ * in reads 0 days by definition — `lastVisit` is stamped on arrival and not refreshed while you stay,
+ * so a player who camps for a week would otherwise be "neglecting" the ground under their feet.
+ * A region no node of which was ever entered is neglected from the run's first day, not from the day
+ * it is discovered: what is never held is never tended.
  *
  * A region the transient graph does not know (no baseline; a fixture, or an off-screen advance without
  * the graph) keeps the pre-T78 absolute targets — the neutral substrate, explicitly, not a silent zero.
@@ -107,6 +139,76 @@ export function dayRamp(day: number): number {
   return Math.min(DAY_RAMP_CAP, d * DAY_RAMP_PER_DAY);
 }
 
+/**
+ * Neglect (T79): how long a region may go untended before it starts to fester, how fast it festers,
+ * and how far that can carry it. The grace is the brief's (`daysSinceLastVisit > 2`); the rate matches
+ * the day ramp so an abandoned district climbs at exactly twice the pace of a held one — a slope the
+ * player can read off two visits rather than a table.
+ *
+ * `NEGLECT_CAP` is the re-derivation PL-M5-31 asked for, and it bounds THIS TERM's lift on the anchor
+ * rather than capping the dial (see the module header). Swept on the shipped city over 40 idle days
+ * (`measure/t79.ts --cap`, seed t79-a — each row is a rebuild with that cap), reading the day-40 city:
+ *
+ *   | cap | mean threat | at the 100 clamp        | bodies |
+ *   |-----|-------------|-------------------------|--------|
+ *   |   0 |       79.67 | 1 (Mercy)               |    283 |
+ *   |   5 |       82.17 | 1                       |    291 |
+ *   |  10 |       84.67 | 1                       |    298 |
+ *   |  15 |       87.17 | 2 (+ the Ironworks)     |    304 |
+ *   |  20 |       88.83 | 2                       |    304 |
+ *   |  30 |       92.17 | 2                       |    315 |
+ *
+ * 15 is where the Ironworks (authored 55, + the ramp's 30) is pinned at 100 by day 40 and stops being
+ * a district with a character; 10 leaves the day-40 saturation exactly where the day ramp alone put it,
+ * buys 15 bodies over the un-neglected city, and equals `DIRECTOR_BIAS_MAX` — so the two *local* terms
+ * that lean an anchor carry the same authority and neither can drown the other. The term is worth a
+ * point a day for ten days: a district is fully festered on day 13 of absence (grace 2 + cap 10), which
+ * is inside the window a run actually spans. The city's overall climb stays the day ramp's to own, and
+ * its LEVEL is still T59/T60's (PL-M5-32).
+ */
+export const NEGLECT_GRACE_DAYS = 2;
+export const NEGLECT_PER_DAY = 1;
+export const NEGLECT_CAP = 10;
+
+/**
+ * The points a region has festered for going untended for `daysSinceVisit` days: 0 through the grace,
+ * then `NEGLECT_PER_DAY` per day, capped at `NEGLECT_CAP`. Total, in the {@link dayRamp} mould: a
+ * negative gap (a hand-edited `lastVisit` in the future) and a NaN clock read as 0, `+Infinity` reads
+ * as the cap — never NaN, which would poison the anchor and then every dial downstream.
+ */
+export function neglectLift(daysSinceVisit: number): number {
+  if (daysSinceVisit === Number.POSITIVE_INFINITY) return NEGLECT_CAP;
+  if (!Number.isFinite(daysSinceVisit)) return 0;
+  const days = Math.trunc(daysSinceVisit) - NEGLECT_GRACE_DAYS;
+  if (days <= 0) return 0;
+  return Math.min(NEGLECT_CAP, days * NEGLECT_PER_DAY);
+}
+
+/** The day a run begins, and so the day a never-entered region is treated as last tended. */
+const RUN_START_DAY = 1;
+
+/**
+ * Days since the player last stood in each region of `state.regions`, derived from the nodes' own
+ * `lastVisit` memory. The region the player is in reads 0 (see the module header); a region with no
+ * visited node reads from the run's first day. Pure; no scrubbing of the clock here — every result
+ * flows through {@link neglectLift}, which is total.
+ */
+export function regionNeglectDays(state: GameState): Record<string, number> {
+  const here = state.nodes[state.player.location]?.regionId;
+  const lastVisit: Record<string, number> = {};
+  for (const node of Object.values(state.nodes)) {
+    if (node.lastVisit === null || !Number.isFinite(node.lastVisit)) continue;
+    const day = Math.trunc(node.lastVisit);
+    const seen = lastVisit[node.regionId];
+    if (seen === undefined || day > seen) lastVisit[node.regionId] = day;
+  }
+  const out: Record<string, number> = {};
+  for (const id of Object.keys(state.regions)) {
+    out[id] = id === here ? 0 : state.meta.day - (lastVisit[id] ?? RUN_START_DAY);
+  }
+  return out;
+}
+
 /** A baseline dial as a whole 0–100 number; anything that is not a finite number reads as 0 (where the seed put it). */
 const dial = (n: number | undefined): number => (Number.isFinite(n) ? clampPct(n as number) : 0);
 
@@ -119,13 +221,18 @@ export interface DriftAnchor {
 
 /**
  * Build a region's drift anchor from its content baseline at a given day, leaned by the director's
- * `bias` for that region (T78; a clamped whole number in ±`DIRECTOR_BIAS_MAX`, default 0). Mirrors
+ * `bias` for that region (T78; a clamped whole number in ±`DIRECTOR_BIAS_MAX`, default 0) and raised
+ * by `neglect` points of festering (T79; 0–`NEGLECT_CAP`, default 0 — an anchor asked for without one
+ * is the anchor of a region tended today). Mirrors
  * `seedRegionState`'s fallbacks (an unspecified dial anchors at 0, exactly where the seed put it).
  * Pure and total: every term is scrubbed, so the anchor is always three whole 0–100 numbers.
  */
-export function driftAnchor(baseline: RegionDef["baseline"], day: number, bias = 0): DriftAnchor {
+export function driftAnchor(baseline: RegionDef["baseline"], day: number, bias = 0, neglect = 0): DriftAnchor {
   const b = baseline ?? {};
-  const lift = dayRamp(day) + (Number.isFinite(bias) ? Math.trunc(bias) : 0);
+  // The neglect term is bounded HERE as well as at its source, so no caller can smuggle an unbounded
+  // lift onto the anchor through this argument (the ramp and the bias are bounded the same way).
+  const fester = Number.isFinite(neglect) ? Math.max(0, Math.min(NEGLECT_CAP, Math.trunc(neglect))) : 0;
+  const lift = dayRamp(day) + fester + (Number.isFinite(bias) ? Math.trunc(bias) : 0);
   return {
     threat: clampPct(dial(b.threat) + lift),
     zombieDensity: clampPct(dial(b.zombieDensity) + lift),
@@ -188,7 +295,9 @@ export function driftRegion(region: RegionState, hours: number, jitter: number, 
 /**
  * The drift half of the `regions` layer: every region's threat and density relax toward their
  * coupled targets as the tick's hours pass, each nudged by its own `region`-stream jitter and (T78)
- * measured from its authored anchor when the graph is present. Draws one jitter per region in stable
+ * measured from its authored anchor when the graph is present — an anchor now also raised by how long
+ * the player has left that region alone (T79). Neglect is derived once per tick for the whole map, so
+ * the per-region cost is a lookup and the draw order is untouched. Draws one jitter per region in stable
  * key order so a seed reproduces the whole map. Returns the same state reference on a zero-hour tick,
  * keeping the empty-turn contract. Pure.
  */
@@ -198,12 +307,20 @@ export function driftRegions(state: GameState, hours: number, graph?: RegionGrap
 
   let rng = state.rng;
   let changed = false;
+  const neglect = regionNeglectDays(state);
   const regions: Record<string, RegionState> = {};
   for (const [id, region] of Object.entries(state.regions)) {
     const draw = drawInt(rng, state.meta.seed, "region", -DRIFT_JITTER, DRIFT_JITTER);
     rng = draw.rng;
     const def = graph?.regions[id];
-    const next = driftRegion(region, h, draw.value, def === undefined ? undefined : driftAnchor(def.baseline, state.meta.day, directorBias(region)));
+    const next = driftRegion(
+      region,
+      h,
+      draw.value,
+      def === undefined
+        ? undefined
+        : driftAnchor(def.baseline, state.meta.day, directorBias(region), neglectLift(neglect[id] ?? 0)),
+    );
     if (next !== region) changed = true;
     regions[id] = next;
   }

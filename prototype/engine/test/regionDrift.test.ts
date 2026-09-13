@@ -7,11 +7,16 @@ import {
   driftRegion,
   driftRegions,
   dayRamp,
+  neglectLift,
+  regionNeglectDays,
   equilibriumDensity,
   threatTarget,
   startRun,
   DAY_RAMP_PER_DAY,
   DAY_RAMP_CAP,
+  NEGLECT_CAP,
+  NEGLECT_GRACE_DAYS,
+  NEGLECT_PER_DAY,
   DRIFT_JITTER,
   type GameState,
   type NodeDef,
@@ -242,5 +247,166 @@ describe("the day ramp — the city festers over weeks (T78)", () => {
     let s = state;
     for (let i = 0; i < 30; i++) s = advanceWorld(s, 24, graph); // meta untouched (advanceWorld's contract)
     expect(s.regions["region.x"]!.threat).toBeLessThanOrEqual(REGIONS[0]!.baseline!.threat! + DRIFT_JITTER);
+  });
+});
+
+/**
+ * T79 — neglected territory festers. The district the player walks away from gets worse than the one
+ * they hold, which is what DESIGN §5 and GDD IV have always said and what the code did backwards. The
+ * term rides the T78 anchor (bounded, derived from the nodes' own `lastVisit` memory, no new save
+ * field), so every test here is also a test that it cannot escape its bound or poison the dials.
+ */
+const TWO_REGIONS: RegionDef[] = [
+  { id: "region.x", name: "X", description: "x", baseline: { threat: 30, zombieDensity: 40, survivorActivity: 60, loot: 90 }, adjacent: ["region.y"] },
+  { id: "region.y", name: "Y", description: "y", baseline: { threat: 30, zombieDensity: 40, survivorActivity: 60, loot: 90 }, adjacent: ["region.x"] },
+];
+const TWO_NODES: NodeDef[] = [
+  { id: "node.x.a", regionId: "region.x", name: "A", description: "a", adjacent: ["node.x.b"], start: true },
+  { id: "node.x.b", regionId: "region.x", name: "B", description: "b", adjacent: ["node.x.a", "node.y.a"] },
+  { id: "node.y.a", regionId: "region.y", name: "C", description: "c", adjacent: ["node.x.b", "node.y.b"] },
+  { id: "node.y.b", regionId: "region.y", name: "D", description: "d", adjacent: ["node.y.a"] },
+];
+const two = (): { state: GameState; graph: RegionGraph } => startRun(opts, TWO_REGIONS, TWO_NODES);
+/** Advance whole idle days, keeping `meta` in step (advanceWorld leaves the clock to its caller). */
+const idleDays = (s: GameState, graph: RegionGraph, days: number): GameState => {
+  let out = s;
+  for (let d = 1; d <= days; d += 1) out = { ...advanceWorld(out, 24, graph), meta: advanceClock(out.meta, 24) };
+  return out;
+};
+/** Stamp a node as entered on `day` — exactly what walking in does (`actions/coreActions.ts`). */
+const visit = (s: GameState, nodeId: string, day: number): GameState => ({
+  ...s,
+  nodes: { ...s.nodes, [nodeId]: { ...s.nodes[nodeId]!, lastVisit: day } },
+});
+/**
+ * The same seed and the same idle days run twice — once patrolling `node.y.a` every `every` days, once
+ * not. Only `lastVisit` differs, and stamping it draws nothing, so the two runs see an identical jitter
+ * sequence: any difference between them IS the neglect term. (Two regions of identical baseline are
+ * still not comparable to each other — each draws its own jitter — which is why every assertion below
+ * compares region.y against region.y.)
+ */
+const paired = (days: number, every = 2): { patrolled: GameState; abandoned: GameState } => {
+  const { state, graph } = two();
+  let patrolled = state;
+  let abandoned = state;
+  for (let d = 1; d <= days; d += 1) {
+    patrolled = { ...advanceWorld(patrolled, 24, graph), meta: advanceClock(patrolled.meta, 24) };
+    abandoned = { ...advanceWorld(abandoned, 24, graph), meta: advanceClock(abandoned.meta, 24) };
+    if (d % every === 0) patrolled = visit(patrolled, "node.y.a", patrolled.meta.day);
+  }
+  return { patrolled, abandoned };
+};
+
+describe("the neglect term — how long a district has gone untended (T79)", () => {
+  it("is 0 through the grace, one point per day after, and capped — literals on purpose", () => {
+    expect(NEGLECT_GRACE_DAYS).toBe(2);
+    expect(NEGLECT_PER_DAY).toBe(1);
+    expect(NEGLECT_CAP).toBe(10);
+    expect(neglectLift(0)).toBe(0);
+    expect(neglectLift(NEGLECT_GRACE_DAYS)).toBe(0);
+    expect(neglectLift(NEGLECT_GRACE_DAYS + 1)).toBe(NEGLECT_PER_DAY);
+    expect(neglectLift(NEGLECT_GRACE_DAYS + NEGLECT_CAP)).toBe(NEGLECT_CAP);
+    expect(neglectLift(400)).toBe(NEGLECT_CAP);
+  });
+
+  it("is total: a negative gap, a fractional gap and a non-finite clock never produce NaN", () => {
+    expect(neglectLift(-5)).toBe(0);
+    expect(neglectLift(4.9)).toBe(NEGLECT_PER_DAY * (4 - NEGLECT_GRACE_DAYS));
+    expect(neglectLift(Number.NaN)).toBe(0);
+    expect(neglectLift(Number.POSITIVE_INFINITY)).toBe(NEGLECT_CAP);
+    expect(neglectLift(Number.NEGATIVE_INFINITY)).toBe(0);
+  });
+
+  it("lifts BOTH anchors, exactly as the ramp does — a threat-only lift is inert on the population", () => {
+    // The measured reason (measure/t79.ts, threat-only variant): `equilibriumDensity` reads the
+    // DEVIATION `threat - anchor.threat`, so lifting the threat anchor alone leaves the density
+    // equilibrium where it was — 40 idle days produced 284 bodies against the pre-T79 tree's 283.
+    const b = TWO_REGIONS[0]!.baseline!;
+    expect(driftAnchor(b, 1, 0, 7)).toStrictEqual({ threat: b.threat! + 7, zombieDensity: b.zombieDensity! + 7, survivorActivity: b.survivorActivity! });
+  });
+
+  it("bounds the argument at the source AND at the anchor — no caller can smuggle an unbounded lift", () => {
+    const b = { threat: 30, zombieDensity: 40 };
+    expect(driftAnchor(b, 1, 0, 1e6).threat).toBe(30 + NEGLECT_CAP);
+    expect(driftAnchor(b, 1, 0, -50).threat).toBe(30);
+    expect(driftAnchor(b, 1, 0, Number.POSITIVE_INFINITY).threat).toBe(30);
+  });
+
+  it("stacks with the ramp and the director's lean, under the 0–100 clamp", () => {
+    const b = { threat: 30, zombieDensity: 40 };
+    expect(driftAnchor(b, 14, 5, 10).threat).toBe(30 + dayRamp(14) + 5 + 10);
+    expect(driftAnchor({ threat: 95, zombieDensity: 95 }, 40, 10, 10)).toStrictEqual({ threat: 100, zombieDensity: 100, survivorActivity: 0 });
+  });
+});
+
+describe("neglect is derived from where the player has actually been (T79)", () => {
+  it("reads 0 for the region the player is standing in, however stale its lastVisit stamp is", () => {
+    // The camper's hole: `lastVisit` is stamped on ARRIVAL and never refreshed while you stay, so a
+    // player who holds one node for a week would otherwise be neglecting the ground under their feet.
+    const { state } = two();
+    const later: GameState = { ...state, meta: { ...state.meta, day: 30 } };
+    expect(regionNeglectDays(later)["region.x"]).toBe(0);
+  });
+
+  it("counts from the most recent visit to ANY node of the region, and from day 1 for a region never entered", () => {
+    const { state } = two();
+    const day = 20;
+    let s: GameState = { ...state, meta: { ...state.meta, day } };
+    expect(regionNeglectDays(s)["region.y"]).toBe(day - 1);
+    s = visit(s, "node.y.a", 5);
+    expect(regionNeglectDays(s)["region.y"]).toBe(day - 5);
+    s = visit(s, "node.y.b", 12);
+    expect(regionNeglectDays(s)["region.y"]).toBe(day - 12);
+    // An older stamp on a sibling node must not win.
+    s = visit(s, "node.y.a", 3);
+    expect(regionNeglectDays(s)["region.y"]).toBe(day - 12);
+  });
+
+  it("ignores a non-finite lastVisit rather than propagating it", () => {
+    const { state } = two();
+    const s = visit({ ...state, meta: { ...state.meta, day: 20 } }, "node.y.a", Number.NaN);
+    expect(regionNeglectDays(s)["region.y"]).toBe(19);
+    expect(Number.isFinite(neglectLift(regionNeglectDays(s)["region.y"]!))).toBe(true);
+  });
+});
+
+describe("a neglected district festers and a visited one does not — the DoD (T79 · DESIGN §5, GDD IV)", () => {
+  it("the abandoned district outruns the patrolled one in BOTH threat and density", () => {
+    // Against the unfixed code the two runs are identical in every dial and both assertions fail.
+    const { patrolled, abandoned } = paired(20);
+    expect(abandoned.regions["region.y"]!.threat).toBeGreaterThan(patrolled.regions["region.y"]!.threat);
+    expect(abandoned.regions["region.y"]!.zombieDensity).toBeGreaterThan(patrolled.regions["region.y"]!.zombieDensity);
+  });
+
+  it("the gap stops at the cap — the term is bounded in the pipeline, not just in the arithmetic", () => {
+    const { patrolled, abandoned } = paired(30);
+    const gap = abandoned.regions["region.y"]!.threat - patrolled.regions["region.y"]!.threat;
+    expect(gap).toBeGreaterThan(0);
+    expect(gap).toBeLessThanOrEqual(NEGLECT_CAP);
+  });
+
+  it("the grace holds: two days of absence change nothing at all", () => {
+    // `neglectLift` is 0 through NEGLECT_GRACE_DAYS, so a run that patrols every day and one that has
+    // been away exactly that long must still be dial-for-dial identical.
+    const { patrolled, abandoned } = paired(NEGLECT_GRACE_DAYS, 1);
+    expect(abandoned.regions["region.y"]).toStrictEqual(patrolled.regions["region.y"]);
+  });
+
+  it("adds no RNG draws: the drift layer spends the same sequence whether or not a region is neglected", () => {
+    // The T78 discipline — a new term in the `regions` layer must not move any other layer's stream.
+    // Measured at the layer, not over a run: downstream layers (repopulate, hordes) legitimately draw
+    // MORE once neglect has produced more density, which is the point of the task.
+    const { state, graph } = two();
+    const day30: GameState = { ...state, meta: { ...state.meta, day: 30 } };
+    const tended = visit(day30, "node.y.a", 30);
+    expect(driftRegions(day30, 24, graph).rng).toStrictEqual(driftRegions(tended, 24, graph).rng);
+    expect(driftRegions(day30, 240, graph).regions["region.y"]!.threat).toBeGreaterThan(
+      driftRegions(tended, 240, graph).regions["region.y"]!.threat,
+    );
+  });
+
+  it("writes no new state: a neglected region carries the same fields a patrolled one does (no save rung)", () => {
+    const { patrolled, abandoned } = paired(20);
+    expect(Object.keys(abandoned.regions["region.y"]!).sort()).toStrictEqual(Object.keys(patrolled.regions["region.y"]!).sort());
   });
 });
