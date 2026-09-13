@@ -10,6 +10,8 @@ import {
   phaseSearchNoise,
   phaseThreatTarget,
   PHASE_THREAT_TARGET,
+  GLOBAL_THREAT_HOURS_PER_STEP,
+  GLOBAL_THREAT_POINTS_PER_STEP,
   type GameState,
   type Phase,
   type RegionGraph,
@@ -80,6 +82,39 @@ describe("the timeOfDay tide (T28)", () => {
     expect(after.regions).toBe(state.regions);
     expect(after.nodes).toBe(state.nodes);
     expect(after.player).toBe(state.player);
+  });
+
+  it("T78: a night phase's own length carries the tide most of the way to its target (was stuck in a 27..31 band)", () => {
+    // Literals on purpose (the T77 lesson): a retune that quietly slowed the tide must fail here.
+    expect(GLOBAL_THREAT_HOURS_PER_STEP).toBe(1);
+    expect(GLOBAL_THREAT_POINTS_PER_STEP).toBe(3);
+    const { state } = run();
+    // From the settled pre-T78 level (29) a 6-hour night at the old 1 point / 3 h reached 31; now it
+    // reaches 47 — inside 10 of the 55 target, which is what "night is more dangerous" needs to read.
+    const night = at({ ...state, world: { ...state.world, globalThreat: 29 } }, "night");
+    const after = tickTimeOfDay(night, 6);
+    expect(after.world.globalThreat).toBe(29 + 6 * GLOBAL_THREAT_POINTS_PER_STEP);
+    expect(after.world.globalThreat).toBeGreaterThanOrEqual(phaseThreatTarget("night") - 10);
+    // and a 3-hour midday from there falls by 9, never through the target
+    const midday = at({ ...after, meta: { ...after.meta, phase: "midday" } }, "midday");
+    expect(tickTimeOfDay(midday, 3).world.globalThreat).toBe(47 - 9);
+    expect(tickTimeOfDay(at({ ...state, world: { ...state.world, globalThreat: 16 } }, "midday"), 3).world.globalThreat).toBe(phaseThreatTarget("midday"));
+  });
+
+  it("a carry banked under the pre-T78 3-hour period is dropped, not cashed: a legacy save gets no one-off tide jump", () => {
+    // Against the first T78 cut (not the pre-T78 tree, where the carry is legal) a `threatTideHours`
+    // of 2 came due as two extra 3-point steps on the first 1-hour tick (7 → 16 where a clean save
+    // reads 10). On the pre-T78 tree the same fixture reads 8 vs 7 — the carry was simply banked.
+    const { state } = run();
+    const legacy = at({ ...state, world: { ...state.world, globalThreat: 7, threatTideHours: 2 } }, "night");
+    const clean = at({ ...state, world: { ...state.world, globalThreat: 7 } }, "night");
+    expect(tickTimeOfDay(legacy, 1).world.globalThreat).toBe(tickTimeOfDay(clean, 1).world.globalThreat);
+    expect(tickTimeOfDay(legacy, 1).world.globalThreat).toBe(7 + GLOBAL_THREAT_POINTS_PER_STEP);
+    expect(tickTimeOfDay(legacy, 1).world.threatTideHours ?? 0).toBe(0);
+    // and a poisoned carry is scrubbed by the same line
+    const poisoned = at({ ...state, world: { ...state.world, globalThreat: 7, threatTideHours: Number.NaN } }, "night");
+    expect(tickTimeOfDay(poisoned, 1).world.globalThreat).toBe(7 + GLOBAL_THREAT_POINTS_PER_STEP);
+    expect(Number.isFinite(tickTimeOfDay(poisoned, 1).world.threatTideHours ?? 0)).toBe(true);
   });
 
   it("never leaves 0–100 for any phase and any hours (property)", () => {

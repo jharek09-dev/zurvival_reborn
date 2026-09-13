@@ -128,6 +128,12 @@ export interface Wound {
   readonly treated: number;
   /** Day the wound was inflicted (for Living History and infection timing). */
   readonly inflictedDay: number;
+  /**
+   * Hour (0–23) of that day the wound was inflicted (T78), so the director can tell a wound opened this
+   * turn from one carried for a week. Optional: a pre-T78 save's wounds read as opened at 00:00 of
+   * their day, which can only over-estimate their age — no `SAVE_SCHEMA_VERSION` rung.
+   */
+  readonly inflictedHour?: number;
 }
 
 /**
@@ -402,6 +408,13 @@ export interface World {
   /** Weather pressure-hours (pressure x hours), not plain hours — the two infrastructure drains. */
   readonly powerDrainHours?: number;
   readonly roadDrainHours?: number;
+  /**
+   * The director's daily relief ration (T78): the in-game day the count is for, and the relief beats
+   * spent on it. Both optional and absent until the first relief lands; a stamp from another day reads
+   * as 0 spent. See `sim/director.ts#reliefSpent`.
+   */
+  readonly directorReliefDay?: number;
+  readonly directorReliefBeats?: number;
 }
 
 /** Regions live on their own clock (pipeline stage 7) — 0–100 ints throughout. */
@@ -433,6 +446,14 @@ export interface RegionState {
    * `sim/repopulate.ts`.
    */
   readonly repopHours?: number;
+  /**
+   * The director's lean on this region's drift anchor (T78): a whole number in ±`DIRECTOR_BIAS_MAX`
+   * added to the anchored threat and density targets, and its banked decay hours. Both optional and
+   * ABSENT at zero (never a stored 0), so schema v10 holds and a clean region is byte-identical to a
+   * pre-T78 one. See `sim/director.ts#directorBias`.
+   */
+  readonly directorBias?: number;
+  readonly directorBiasHours?: number;
 }
 
 /** Nodes remember: never reset within a run (GDD VII, DESIGN §4). */

@@ -144,7 +144,26 @@ export function relax(
   hours: number,
   per: number,
 ): Relaxed {
+  return relaxBy(current, target, carried, hours, per, 1);
+}
+
+/**
+ * {@link relax} with a step SIZE: every cycle that comes due moves the dial `points` toward the target
+ * (T78, for the diurnal tide, whose targets sit 25 points apart across 3-hour phases — one point per
+ * cycle could never get there). Identical to `relax` at `points` 1; a non-positive or non-finite
+ * `points` is treated as 1, so no caller can make a clock stand still by mis-tuning it. The HOLD rule
+ * and the overshoot rule are unchanged.
+ */
+export function relaxBy(
+  current: number,
+  target: number,
+  carried: number | undefined,
+  hours: number,
+  per: number,
+  points: number,
+): Relaxed {
   if (current === target) return { value: current, rest: whole(carried) };
   const { steps, rest } = bankHours(carried, hours, per);
-  return { value: stepToward(current, target, steps), rest };
+  const size = Math.max(1, Number.isFinite(points) ? Math.trunc(points) : 1);
+  return { value: stepToward(current, target, steps * size), rest };
 }

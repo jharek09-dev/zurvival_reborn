@@ -82,10 +82,14 @@ export interface SimLayer {
  * touches only `loot`, so the two do not interact). It is what finally turns `zombieDensity` from a
  * number the director nudges into bodies standing in nodes; it draws only from the new `repop` stream,
  * so no other layer's sequence moves.
+ *
+ * T78: drift reads the transient graph so each region can anchor on its authored `baseline` (lifted by
+ * the day ramp). Without the graph it keeps the pre-T78 absolute targets — the declared fallback, not
+ * an inert layer, so a graph-less advance still moves the world.
  */
 const regionsLayer: SimLayer = {
   id: "regions",
-  tick: (state, ctx) => updateRegionContest(repopulateRegions(driftRegions(state, ctx.hours), ctx.hours), ctx.hours),
+  tick: (state, ctx) => updateRegionContest(repopulateRegions(driftRegions(state, ctx.hours, ctx.graph), ctx.hours), ctx.hours),
 };
 
 /**

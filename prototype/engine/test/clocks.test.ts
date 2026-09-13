@@ -11,6 +11,7 @@ import {
   loadGame,
   offscreenShelterUpkeep,
   relax,
+  relaxBy,
   saveGame,
   startRun,
   stepToward,
@@ -24,6 +25,7 @@ import {
   DENSITY_HOURS_PER_STEP,
   FORTIFY_DECAY_PER_HOUR,
   GLOBAL_THREAT_HOURS_PER_STEP,
+  GLOBAL_THREAT_POINTS_PER_STEP,
   HORDE_AWARENESS,
   LOOT_CONTEST_DIVISOR,
   HORDE_HOURS_PER_STEP,
@@ -436,15 +438,34 @@ describe("regional drift runs on its period, not once per turn (regionDrift.ts �
 });
 
 describe("the diurnal tide and route wear run on their periods (timeOfDay.ts / routes.ts — T74)", () => {
-  it("the threat tide banks sub-period hours instead of creeping a point every turn", () => {
+  it("the threat tide moves exactly its points-per-step once its period comes due, and banks the rest", () => {
     const { state } = lineRun();
     const s: GameState = { ...state, world: { ...state.world, globalThreat: 0 } };
-    const one = tickTimeOfDay(s, 1);
-    expect(one.world.globalThreat).toBe(0);
-    expect(one.world.threatTideHours).toBe(1);
+    // T78 retuned the tide to a 1-hour period (so there is no sub-period hour to bank on the live
+    // constant); the banking itself is proved on `relaxBy` directly below with a longer period.
     let cur = s;
     for (let i = 0; i < GLOBAL_THREAT_HOURS_PER_STEP; i++) cur = tickTimeOfDay(cur, 1);
-    expect(cur.world.globalThreat).toBe(1);
+    expect(cur.world.globalThreat).toBe(GLOBAL_THREAT_POINTS_PER_STEP);
+    expect(cur.world.threatTideHours ?? 0).toBe(0);
+  });
+
+  it("relaxBy banks sub-period hours and moves `points` per due cycle — never a point per turn (T78)", () => {
+    // per 3, points 3: one hour banks and moves nothing; the third hour comes due and moves three.
+    const one = relaxBy(0, 55, undefined, 1, 3, 3);
+    expect(one).toStrictEqual({ value: 0, rest: 1 });
+    const two = relaxBy(one.value, 55, one.rest, 1, 3, 3);
+    expect(two).toStrictEqual({ value: 0, rest: 2 });
+    const three = relaxBy(two.value, 55, two.rest, 1, 3, 3);
+    expect(three).toStrictEqual({ value: 3, rest: 0 });
+    // identical to `relax` at points 1, for any inputs
+    expect(relaxBy(10, 55, 2, 7, 3, 1)).toStrictEqual(relax(10, 55, 2, 7, 3));
+    // never overshoots: 3 due cycles x 3 points against a 4-point gap lands ON the target
+    expect(relaxBy(51, 55, 0, 9, 3, 3).value).toBe(55);
+    // a mis-tuned step size (0, negative, NaN) is treated as 1, so the clock can never stand still
+    expect(relaxBy(0, 55, 0, 3, 3, 0).value).toBe(1);
+    expect(relaxBy(0, 55, 0, 3, 3, Number.NaN).value).toBe(1);
+    // the HOLD rule: at target, the carry is kept and no hours accrue
+    expect(relaxBy(55, 55, 2, 10, 3, 3)).toStrictEqual({ value: 55, rest: 2 });
   });
 
   it("the tide reaches the same place whether played in 1-hour or one 12-hour step", () => {
