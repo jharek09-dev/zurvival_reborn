@@ -402,7 +402,7 @@ function killEnemy(state: GameState, def: EnemyDef): GameState {
   }
   let player = state.player;
   if (def.burstInfection > 0) {
-    const condition = inflictNamedWound(player.condition, "wound.bite", def.burstInfection, "face", state.meta.day);
+    const condition = inflictNamedWound(player.condition, "wound.bite", def.burstInfection, "face", state.meta.day, state.meta.hour);
     player = { ...player, condition };
   }
   return { ...state, nodes, player, combat: null };
@@ -416,7 +416,7 @@ function enemyRetaliate(state: GameState, def: EnemyDef): GameState {
     return { ...state, rng: hit.rng }; // a miss — but the draw was still consumed (deterministic)
   }
   const pick = drawPick(hit.rng, state.meta.seed, "combat", WALKER_WOUNDS);
-  const condition = inflictNamedWound(state.player.condition, pick.value.type, pick.value.severity, "arm", state.meta.day);
+  const condition = inflictNamedWound(state.player.condition, pick.value.type, pick.value.severity, "arm", state.meta.day, state.meta.hour);
   return { ...state, rng: pick.rng, player: { ...state.player, condition } };
 }
 
@@ -517,11 +517,11 @@ function resolveEscape(state: GameState, graph: RegionGraph, to: NodeId, clearCo
   if (detected) {
     if (grasp !== null) {
       // The ankle-grab: a fixed wound, no combat draw (the crawler always goes low). New type ⇒ no golden.
-      const condition = inflictNamedWound(next.player.condition, grasp, GRASP_SEVERITY, "leg", next.meta.day);
+      const condition = inflictNamedWound(next.player.condition, grasp, GRASP_SEVERITY, "leg", next.meta.day, next.meta.hour);
       next = { ...next, player: { ...next.player, condition } };
     } else {
       const pick = drawPick(next.rng, next.meta.seed, "combat", WALKER_WOUNDS);
-      const condition = inflictNamedWound(next.player.condition, pick.value.type, pick.value.severity, "back", next.meta.day);
+      const condition = inflictNamedWound(next.player.condition, pick.value.type, pick.value.severity, "back", next.meta.day, next.meta.hour);
       next = { ...next, rng: pick.rng, player: { ...next.player, condition } };
     }
   }

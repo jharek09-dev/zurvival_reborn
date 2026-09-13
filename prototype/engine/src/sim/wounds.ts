@@ -64,24 +64,25 @@ export function worstWound(condition: CharacterState): Wound | null {
 }
 
 /**
- * Inflict a fresh wound of `def` at `site`, dated `day`. Appends a new `Wound` (treated: 0) to the
+ * Inflict a fresh wound of `def` at `site`, dated `day` (and, T78, `hour`). Appends a new `Wound` (treated: 0) to the
  * condition — wounds accumulate; a second bite is a second wound, not a bigger number. Pure:
  * returns a new `CharacterState`, input untouched.
  */
-export function inflictWound(condition: CharacterState, def: WoundDef, site: string, day: number): CharacterState {
+export function inflictWound(condition: CharacterState, def: WoundDef, site: string, day: number, hour?: number): CharacterState {
   const wound: Wound = {
     type: def.id,
     site,
     severity: clampPct(def.severity),
     treated: 0,
     inflictedDay: day,
+    ...(hour === undefined ? {} : { inflictedHour: hour }),
   };
   return { ...condition, wounds: [...condition.wounds, wound] };
 }
 
-/** Inflict a wound on the player, returning the new GameState (dates it the current in-game day). */
+/** Inflict a wound on the player, returning the new GameState (stamped with the current in-game day and, T78, hour). */
 export function woundPlayer(state: GameState, def: WoundDef, site: string): GameState {
-  const condition = inflictWound(state.player.condition, def, site, state.meta.day);
+  const condition = inflictWound(state.player.condition, def, site, state.meta.day, state.meta.hour);
   return { ...state, player: { ...state.player, condition } };
 }
 
@@ -132,7 +133,9 @@ export function inflictNamedWound(
   severity: number,
   site: string,
   day: number,
+  hour?: number,
 ): CharacterState {
-  const wound: Wound = { type: typeId, site, severity: clampPct(severity), treated: 0, inflictedDay: day };
+  // T78: the hour stamp lets the director's distress read tell a fresh wound from a carried one.
+  const wound: Wound = { type: typeId, site, severity: clampPct(severity), treated: 0, inflictedDay: day, ...(hour === undefined ? {} : { inflictedHour: hour }) };
   return { ...condition, wounds: [...condition.wounds, wound] };
 }

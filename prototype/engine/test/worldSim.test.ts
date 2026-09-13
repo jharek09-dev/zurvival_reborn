@@ -31,6 +31,24 @@ const NODES: NodeDef[] = [
 const opts = { seed: "world-seed", createdAt: "2026-07-05T00:00:00Z" };
 const run = (): { state: GameState; graph: RegionGraph } => startRun(opts, REGIONS, NODES);
 
+describe("the regions layer hands drift the graph (T78 plumbing)", () => {
+  it("with the graph, a region at its authored point stays put; without it, the absolute targets pull it away", () => {
+    // Against the unfixed layer body (`driftRegions(state, ctx.hours)`) the graph never reached drift
+    // and the region sank toward the absolute fixed point with the graph present too.
+    const { state, graph } = run();
+    // Disable repopulation so the only thing that can move the regions slice is drift.
+    const s: GameState = { ...state, world: { ...state.world, flags: { ...state.world.flags, "repopulate.disabled": true } } };
+    let anchored = s;
+    let loose = s;
+    for (let i = 0; i < 10; i++) {
+      anchored = runLayer(anchored, "regions", { hours: 24, graph });
+      loose = runLayer(loose, "regions", { hours: 24 });
+    }
+    expect(Math.abs(anchored.regions["region.x"]!.threat - 30)).toBeLessThanOrEqual(2);
+    expect(loose.regions["region.x"]!.threat).toBeLessThan(25);
+  });
+});
+
 describe("the six layers, in canonical execution order (T23 · FR-SIM-01)", () => {
   it("registers exactly the six layers, in pipeline-stage order", () => {
     expect(WORLD_SIM_LAYERS.map((l) => l.id)).toStrictEqual([

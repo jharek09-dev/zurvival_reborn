@@ -433,7 +433,7 @@ export function applyEncounterEffect(state: GameState, effect: EncounterEffect, 
     case "depleteStash":
       return depleteStash(state, Math.max(0, Math.trunc(effect.units)));
     case "inflictWound": {
-      const condition = inflictNamedWound(state.player.condition, effect.wound, effect.severity, effect.site, state.meta.day);
+      const condition = inflictNamedWound(state.player.condition, effect.wound, effect.severity, effect.site, state.meta.day, state.meta.hour);
       return { ...state, player: { ...state.player, condition } };
     }
     case "seedWalkers": {

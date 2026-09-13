@@ -284,7 +284,7 @@ export function resolveOverrunAction(state: GameState, graph: RegionGraph, actio
     for (let i = 0; i < count; i += 1) {
       const pick = drawPick(rng, next.meta.seed, "combat", OVERRUN_WOUNDS);
       rng = pick.rng;
-      condition = inflictNamedWound(condition, pick.value.type, pick.value.severity, OVERRUN_SITES[i % OVERRUN_SITES.length]!, next.meta.day);
+      condition = inflictNamedWound(condition, pick.value.type, pick.value.severity, OVERRUN_SITES[i % OVERRUN_SITES.length]!, next.meta.day, next.meta.hour);
     }
     next = { ...next, rng, player: { ...next.player, condition } };
   }
