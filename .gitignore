@@ -54,3 +54,6 @@ saves/
 # record, so the patch is redundant once landed. Force-add if one is ever
 # genuinely needed: git add -f <file>.patch
 *.patch
+
+# Local Claude working copies (the committed versions live in docs/qa/)
+/Claude outputs/
