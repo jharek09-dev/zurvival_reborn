@@ -42,8 +42,14 @@ export const ZERO_COST_KINDS: ReadonlySet<string> = new Set(["drop", "stash-depo
 
 /** Verbs that are an escape from a threat (overrun, combat, contested node). */
 export const ESCAPE_KINDS: ReadonlySet<string> = new Set(["flee", "retreat", "slip"]);
-/** Verbs that engage a threat. */
-export const FIGHT_KINDS: ReadonlySet<string> = new Set(["fight", "strike", "fire"]);
+/**
+ * Verbs that engage a threat. `heavy` joined at T80: the committed swing is a fight verb, and leaving it
+ * out would have meant the `fighter` policy — the one that exists to exercise combat and wounds — never
+ * took the game's newest one. `push` deliberately stays OUT: it deals no damage and buys a cleaner exit,
+ * so it belongs to whoever is leaving, not to whoever is committing. The `random` policy picks it (and
+ * everything else) off the offered list regardless, which is what covers it in the soak.
+ */
+export const FIGHT_KINDS: ReadonlySet<string> = new Set(["fight", "strike", "heavy", "fire"]);
 
 /** A tiny string-seeded PRNG (mulberry32 over an FNV-ish hash) for the POLICY only. */
 export function policyRng(seed: string): () => number {

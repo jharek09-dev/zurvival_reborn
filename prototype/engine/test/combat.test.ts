@@ -129,8 +129,12 @@ describe("firearms are loud (T15 · FR-CBT-04)", () => {
 
     const ammoLeft = fired.player.inventory.find((e) => e.type === "item.ammo")?.quantity ?? 0;
     expect(ammoLeft).toBe(2); // one round spent
-    expect(fired.combat).toBeNull(); // a pistol one-shots a walker (dmg 3 = maxHp)
-    expect(fired.nodes["node.x.a"]!.walkers).toBe(1);
+    // T80: the round, the hour and the bang are spent whether or not the shot lands, so what this test
+    // can still pin is the COST of firing, not its outcome. The outcome — a pistol one-shots a walker
+    // *when it connects*, and the fight is still standing when it does not — moved to `weapons.test.ts`,
+    // which drives both branches deliberately instead of relying on one seed's accuracy roll.
+    expect([1, 2]).toContain(fired.nodes["node.x.a"]!.walkers); // 2 stood here; a hit takes one down
+    expect(fired.combat === null).toBe(fired.nodes["node.x.a"]!.walkers === 1);
   });
 });
 

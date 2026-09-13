@@ -42,12 +42,34 @@ import { ZOMBIE_WALKER } from "../sim/zombies.js";
 import { conditionOf, extraCostOf, isBlocked, routeWear, ROUTE_FLOODED_AT } from "../sim/routes.js";
 import { stealthDetectChance, stealthRead, stealthTell } from "../sim/detection.js";
 import { MOVE_COST } from "../actions/costs.js";
+import {
+  BARE_HANDS,
+  BARE_NOISE,
+  PISTOL_NOISE,
+  WEAPONS,
+  effectiveDamage,
+  retaliateChance,
+  surestOf,
+  weaponFor,
+  type WeaponDef,
+} from "./weapons.js";
 
 // --- tuning constants -----------------------------------------------------------------------
 
 /** Time cost (hours) of each combat/stealth action. */
 export const STRIKE_COST = 1;
 export const FIRE_COST = 1;
+/**
+ * A committed swing and a shove both cost one beat, the same as a strike.
+ *
+ * The T80 brief priced HEAVY as "double damage, double noise, guaranteed retaliation" and PUSH as "no
+ * damage, clears alerted, −0.3 on your next slip" — three costs and one, and no hours in either. An
+ * extra hour on top was drafted here and then dropped: it would have made HEAVY strictly worse than two
+ * ordinary strikes against anything it fails to kill, and PUSH — which deals no damage at all — is
+ * already paying its hour in full for a defensive effect. Both verbs pay in the fight, not the clock.
+ */
+export const HEAVY_COST = STRIKE_COST;
+export const PUSH_COST = STRIKE_COST;
 /**
  * Slipping past the dead costs an hour more than walking the same road clear (`MOVE_COST` + 1).
  *
@@ -61,10 +83,23 @@ export const FIRE_COST = 1;
 export const SLIP_COST = MOVE_COST + 1;
 export const RETREAT_COST = MOVE_COST;
 
-/** Noise each deposits (via the T14 model). A shot is far louder than a swing; slipping is quiet. */
-export const MELEE_NOISE = 15;
-export const FIRE_NOISE = 75;
+/**
+ * Noise each deposits (via the T14 model). A shot is far louder than a swing; slipping is quiet.
+ *
+ * Since T80 these are the *bare-hands* and *pistol* rows of the weapon table rather than the only two
+ * numbers in the game — a heavier tool is louder, a rifle is louder still, and a heavy swing is double
+ * whatever it is swung with. They keep their names and their values because they are what every T14/T15
+ * noise measurement has meant, and because the pistol is the only firearm the shipped city can hand you.
+ */
+export const MELEE_NOISE = BARE_NOISE;
+export const FIRE_NOISE = PISTOL_NOISE;
 export const SLIP_NOISE = 5;
+/** A shove is quieter than a swing and far quieter than a shot: a scuffle, not a blow. */
+export const PUSH_NOISE = 10;
+/** A heavy swing doubles the weapon's damage, its noise, and the durability it spends. */
+export const HEAVY_DMG_MULT = 2;
+export const HEAVY_NOISE_MULT = 2;
+export const HEAVY_WEAR_MULT = 2;
 
 /**
  * The enemy roster (T15 walker + T46 type-distinct dead). The engine holds the authoritative combat
@@ -175,13 +210,35 @@ function bodyIndexFor(bodies: readonly ContentId[], def: EnemyDef): number {
   return bodies.findIndex((t) => fightsAs(t) === def.id);
 }
 
-/** Melee does 1–2; a firearm does 3 — enough to drop a walker in one shot (armor never blunts a shot). */
-const MELEE_DMG_MIN = 1;
-const MELEE_DMG_MAX = 2;
-const FIRE_DMG = 3;
-
-/** An alerted dead lands its blow this often; a firearm kept it at range, so it barely answers. */
+/**
+ * How often an alerted dead lands its answer, by the kind of blow it is answering.
+ *
+ * **`FIRE_RETALIATE_CHANCE` is the second half of T80's central fix and the first time a shot can cost
+ * you anything but ammo.** Before this task `resolveFire` never called {@link enemyRetaliate} at all,
+ * so — measured, not inferred — firing was a **0%** chance of a wound and a **0%** chance of a bite
+ * against every enemy in the game that does not burst when it dies, against melee's 56.8% / 29.1%
+ * on a plain walker and 99.0% / 89.2% on a Riot. That is not a tuning error, it is a dominant strategy
+ * with no counterweight, because the designed counterweight (`FIRE_NOISE` 75) only began to bite when
+ * T75/T76 gave noise something to summon.
+ *
+ * A quarter is deliberately far below melee's half: a firearm still *is* the safe answer, and should
+ * be. What it can no longer be is a free one — and it only ever rolls on a shot that did **not** put
+ * the body down, so the pistol that one-shots a walker is still untouched when it connects.
+ */
 const MELEE_RETALIATE_CHANCE = 0.5;
+const FIRE_RETALIATE_CHANCE = 0.25;
+const RETALIATE_BASE = { melee: MELEE_RETALIATE_CHANCE, firearm: FIRE_RETALIATE_CHANCE } as const;
+
+/**
+ * Probability a shoved enemy takes off the very next escape roll (the PUSH verb's whole payload).
+ *
+ * PUSH also clears `CombatState.alerted`, which is worth another `ALERTED_DETECT` 15 points on a
+ * retreat (`sim/detection.ts`), so a shove-then-run reads **0.45 lower** than the same retreat taken
+ * straight — one hour and no damage for a materially cleaner way out. It is subtracted through
+ * `composeStealth`'s `extra`, which is summed before the single clamp, so it can never drive the roll
+ * below zero and can never make an escape *certain*.
+ */
+export const PUSH_ESCAPE_BONUS = 0.3;
 
 /**
  * The named wounds a melee retaliation inflicts (ids match content/wounds/, T16). Deliberately NOT
@@ -205,6 +262,25 @@ export function hasLoadedFirearm(player: Player): boolean {
   const hasGun = player.inventory.some((e) => FIREARM_TYPES.has(e.type) && e.quantity > 0);
   const hasAmmo = player.inventory.some((e) => e.type === AMMO_TYPE && e.quantity > 0);
   return hasGun && hasAmmo;
+}
+
+/**
+ * The gun that comes up: the **surest** firearm in the pack, ties broken by item id so the choice is
+ * total and reproducible. Not the quietest, and the player is not asked — under a body's weight you
+ * bring up what you trust, and a menu of three guns for a game that can only hand you one would be
+ * three-quarters decoration.
+ *
+ * **On the shipped city that is always the pistol**, because `item.pistol` is the only firearm in any
+ * loot table, encounter or start kit; the shotgun and rifle rows of {@link WEAPONS} are reachable only
+ * by a hand-built state until content places them (PL-M5-36). Falls back to the pistol profile when the
+ * pack holds a firearm type with no profile at all, so an unknown gun still fires like a gun.
+ */
+export function firearmFor(player: Player): WeaponDef {
+  const held = player.inventory
+    .filter((e) => FIREARM_TYPES.has(e.type) && e.quantity > 0)
+    .map((e) => WEAPONS[e.type])
+    .filter((w): w is WeaponDef => w !== undefined && w.kind === "firearm");
+  return surestOf(held) ?? WEAPONS["item.pistol"]!;
 }
 
 /** Spend one round of ammo; returns the new Player (removes the stack when it hits zero). */
@@ -291,6 +367,22 @@ function escapeRoadSuffix(state: GameState, to: NodeId): string {
 }
 
 /**
+ * What the player is swinging, as a label suffix — empty for bare hands, so every pre-T80 choice label
+ * is unchanged for an empty-handed player (which is every player in the shipped city until the crafting
+ * economy mints them a tool).
+ *
+ * This is where FR-PLR-04 becomes *visible*. A weapon that changes the arithmetic and says nothing is
+ * the same invisible stat block the GDD forbids twice over; naming it in the label puts the capability
+ * at the point of decision, where the player can act on it, and keeps the numbers off the screen.
+ * A **broken** artifact reads as bare hands here for the same reason it fights as them — the suffix
+ * disappears, which is the tell that the thing in your hands has stopped being a weapon.
+ */
+function weaponSuffix(state: GameState): string {
+  const w = weaponFor(state);
+  return w.id === BARE_HANDS.id ? "" : ` with the ${w.name}`;
+}
+
+/**
  * Choices at a *contested* node (walkers present, no fight yet): fight, fire (if armed), and a
  * stealth "slip away" to every discovered neighbour {@link escapeTargets} still offers. The stealth
  * options are what make the encounter avoidable (FR-CBT-01/05), and there is always at least one of
@@ -298,13 +390,17 @@ function escapeRoadSuffix(state: GameState, to: NodeId): string {
  */
 export function encounterChoices(state: GameState, graph: RegionGraph): readonly SceneChoice[] {
   const foe = enemyForNode(state);
+  const w = weaponFor(state);
   const choices: SceneChoice[] = [
-    { id: "fight", label: `Fight the ${foe.name}`, timeCost: STRIKE_COST,
-      action: { type: "fight", choiceId: "fight", timeCost: STRIKE_COST, params: { noise: MELEE_NOISE } } },
+    { id: "fight", label: `Fight the ${foe.name}${weaponSuffix(state)}`, timeCost: STRIKE_COST,
+      action: { type: "fight", choiceId: "fight", timeCost: STRIKE_COST, params: { noise: w.noise } } },
+    { id: "heavy", label: `Swing hard at the ${foe.name} (committed, louder)`, timeCost: HEAVY_COST,
+      action: { type: "heavy", choiceId: "heavy", timeCost: HEAVY_COST, params: { noise: w.noise * HEAVY_NOISE_MULT } } },
   ];
   if (hasLoadedFirearm(state.player)) {
+    const gun = firearmFor(state.player);
     choices.push({ id: "fire", label: "Fire on the walker (loud)", timeCost: FIRE_COST,
-      action: { type: "fire", choiceId: "fire", timeCost: FIRE_COST, params: { noise: FIRE_NOISE } } });
+      action: { type: "fire", choiceId: "fire", timeCost: FIRE_COST, params: { noise: gun.noise } } });
   }
   for (const to of escapeTargets(state, graph)) {
     const name = graph.nodes[to]?.name ?? to;
@@ -317,15 +413,35 @@ export function encounterChoices(state: GameState, graph: RegionGraph): readonly
   return choices;
 }
 
-/** Choices *inside* an ongoing fight: strike, fire (if armed), and retreat to a discovered neighbour. */
+/**
+ * Choices *inside* an ongoing fight — the six verbs FR-CBT-02 asks for, finally all present.
+ *
+ * The requirement's own list is *attack / heavy / aim / push / retreat / hide*, and the mapping is
+ * stated here rather than quietly assumed: **attack → strike**, **heavy → heavy**, **aim → fire** (the
+ * deliberate, expensive, loud shot), **push → push**, **retreat → retreat**, **hide → slip** (offered
+ * one step earlier, at the contested node, because hiding from a fight you are already in is what
+ * retreating *is*). Two of the six are therefore renames of verbs this module has had since T15, and
+ * the honest count of what T80 adds is **two**: {@link resolveHeavy} and {@link resolvePush}.
+ */
 export function combatChoices(state: GameState, graph: RegionGraph): readonly SceneChoice[] {
+  const w = weaponFor(state);
+  const shoved = state.combat?.offBalance === true;
   const choices: SceneChoice[] = [
-    { id: "strike", label: "Strike", timeCost: STRIKE_COST,
-      action: { type: "strike", choiceId: "strike", timeCost: STRIKE_COST, params: { noise: MELEE_NOISE } } },
+    { id: "strike", label: `Strike${weaponSuffix(state)}`, timeCost: STRIKE_COST,
+      action: { type: "strike", choiceId: "strike", timeCost: STRIKE_COST, params: { noise: w.noise } } },
+    { id: "heavy", label: "Swing hard (committed, louder)", timeCost: HEAVY_COST,
+      action: { type: "heavy", choiceId: "heavy", timeCost: HEAVY_COST, params: { noise: w.noise * HEAVY_NOISE_MULT } } },
   ];
+  // The shove is only worth offering while there is still something to shove: once it is already off
+  // balance, a second push would spend an hour to re-buy an effect the player already holds.
+  if (!shoved) {
+    choices.push({ id: "push", label: "Shove it back and make room", timeCost: PUSH_COST,
+      action: { type: "push", choiceId: "push", timeCost: PUSH_COST, params: { noise: PUSH_NOISE } } });
+  }
   if (hasLoadedFirearm(state.player)) {
+    const gun = firearmFor(state.player);
     choices.push({ id: "fire", label: "Fire (loud)", timeCost: FIRE_COST,
-      action: { type: "fire", choiceId: "fire", timeCost: FIRE_COST, params: { noise: FIRE_NOISE } } });
+      action: { type: "fire", choiceId: "fire", timeCost: FIRE_COST, params: { noise: gun.noise } } });
   }
   for (const to of escapeTargets(state, graph)) {
     const name = graph.nodes[to]?.name ?? to;
@@ -408,9 +524,13 @@ function killEnemy(state: GameState, def: EnemyDef): GameState {
   return { ...state, nodes, player, combat: null };
 }
 
-/** An alerted dead answers a melee exchange — a coin-ish flip (or *every* time, if it has initiative). */
-function enemyRetaliate(state: GameState, def: EnemyDef): GameState {
-  const chance = def.initiative ? 1 : MELEE_RETALIATE_CHANCE;
+/**
+ * An alerted dead answers an exchange — a coin-ish flip, every time if it has initiative, always after
+ * a committed swing, and a quarter of the time when it is answering a shot ({@link retaliateChance}).
+ * The draw is taken either way, so a miss costs the same RNG as a hit and the stream stays predictable.
+ */
+function enemyRetaliate(state: GameState, def: EnemyDef, w: WeaponDef, heavy = false): GameState {
+  const chance = retaliateChance(RETALIATE_BASE, w, { initiative: def.initiative, heavy });
   const hit = drawFloat(state.rng, state.meta.seed, "combat");
   if (hit.value >= chance) {
     return { ...state, rng: hit.rng }; // a miss — but the draw was still consumed (deterministic)
@@ -421,36 +541,110 @@ function enemyRetaliate(state: GameState, def: EnemyDef): GameState {
 }
 
 /**
- * Resolve one melee strike on the active fight: damage the enemy (armor blunts a blow, floored at 0
- * net), then it answers if still up. Armored dead (Riot) shrug off blunt strikes — the fight wants a
- * firearm or a wide berth.
+ * Roll one blow's damage off the weapon profile. A **flat** weapon (`dmgMin === dmgMax`, which is every
+ * firearm) takes no draw at all — the shot's arithmetic stays the single sentence it has always been,
+ * and the `combat` stream keeps the shape a shot has had since T15.
  */
-function resolveStrike(state: GameState): GameState {
+function rollDamage(state: GameState, w: WeaponDef): { readonly value: number; readonly state: GameState } {
+  if (w.dmgMin >= w.dmgMax) return { value: w.dmgMin, state };
+  const d = drawInt(state.rng, state.meta.seed, "combat", w.dmgMin, w.dmgMax);
+  return { value: d.value, state: { ...state, rng: d.rng } };
+}
+
+/**
+ * Resolve one melee blow on the active fight against **what the player is holding** (T80): the weapon's
+ * own damage band, less whatever armor its `armorPierce` could not get through, then its own durability
+ * cost, then the enemy's answer at the weapon's own rate if it is still up.
+ *
+ * `heavy` is the committed swing: {@link HEAVY_DMG_MULT}× the damage, {@link HEAVY_WEAR_MULT}× the wear
+ * (paid by the same choice that doubles the noise in the action's params), and an answer from the enemy
+ * **whatever happens**, including the swing that kills it.
+ *
+ * **That last clause is a correction the measurement forced, and the brief did not ask for it.** Written
+ * the obvious way — "guaranteed retaliation", i.e. the enemy always answers *if it is still up* — HEAVY
+ * came out **strictly dominant**, which is the exact defect this task exists to remove, reintroduced by
+ * its own fix. Measured over 3000 duels a side, bare-handed against a walker: `heavy` 1.49h and 49.4%
+ * wounded, against `strike`'s 2.25h and 56.8% — faster *and* safer, on every enemy in the table, because
+ * double damage kills so often that the guarantee almost never got to fire (against a Crawler it never
+ * fired at all: 1.00h, 0.0% wounded). A guarantee you escape by winning is not a cost. So the answer is
+ * unconditional: you committed, and it had hold of you as it fell.
+ *
+ * Bare-handed and ordinary, this is byte-for-byte the pre-T80 strike: `drawInt(1, 2)`, minus armor, a
+ * coin-flip answer, no wear. That is the property that keeps every T15 melee measurement meaningful.
+ */
+function resolveStrike(state: GameState, heavy = false): GameState {
   const combat = state.combat;
   if (combat === null) return state;
   const def = ENEMIES[combat.enemy] ?? ENEMIES[WALKER_ENEMY]!;
-  const dmg = drawInt(state.rng, state.meta.seed, "combat", MELEE_DMG_MIN, MELEE_DMG_MAX);
-  const dealt = Math.max(0, dmg.value - def.armor);
+  const w = weaponFor(state);
+  const rolled = rollDamage(state, w);
+  const swing = heavy ? rolled.value * HEAVY_DMG_MULT : rolled.value;
+  const dealt = effectiveDamage(swing, def.armor, w.armorPierce);
   const hp = combat.hp - dealt;
   // A melee strike wears an equipped durability artifact (T51 · FR-ECO-07 — the safety-loop sink, and the
-  // reason to repair rather than replace). Inert on every prior run: no current item has non-null
-  // durability and the start equipment is empty, so this passes the state through unchanged.
-  const withRng = wearWeaponOnStrike({ ...state, rng: dmg.rng });
-  if (hp <= 0) return killEnemy(withRng, def);
-  const bruised: GameState = { ...withRng, combat: { ...combat, hp, alerted: true } };
-  return enemyRetaliate(bruised, def);
+  // reason to repair rather than replace). Inert for bare hands (durabilityCost 0) and on every run that
+  // never mints an artifact, so this passes the state through unchanged exactly as it always did.
+  const withRng = wearWeaponOnStrike(rolled.state, w.durabilityCost * (heavy ? HEAVY_WEAR_MULT : 1));
+  // A committed swing is answered EVEN WHEN IT LANDS THE KILL — you are inside its reach and it gets a
+  // hand on you as it goes down. See {@link resolveHeavyIsAnswered} for why that is not flavour.
+  if (hp <= 0) {
+    const down = killEnemy(withRng, def);
+    return heavy ? enemyRetaliate(down, def, w, true) : down;
+  }
+  const bruised: GameState = { ...withRng, combat: { ...combat, hp, alerted: true, offBalance: false } };
+  return enemyRetaliate(bruised, def, w, heavy);
 }
 
-/** Resolve a shot: spend a round, deal heavy damage that ignores armor; the dead rarely answer a firearm. */
+/**
+ * Resolve a shot — and, since T80, **a shot that can miss**.
+ *
+ * Three things happen in order, and only the first is new: an accuracy roll off the firearm's own
+ * profile decides whether the round finds anything; a hit deals the profile's flat damage through
+ * whatever armor its pierce ignores (3, i.e. all of it — the pre-T80 "armor never reduces a shot",
+ * unchanged); and a shot that leaves the body standing gets answered a quarter of the time.
+ *
+ * The round, the hour and the 75 points of noise are spent **either way**. That is the point: the
+ * failure mode of a firearm in this game is not "you wasted a bullet", it is "you have announced
+ * yourself to the whole region and it is still coming".
+ */
 function resolveFire(state: GameState): GameState {
   const started = state.combat === null ? beginCombat(state) : state;
   const combat = started.combat!;
   const def = ENEMIES[combat.enemy] ?? ENEMIES[WALKER_ENEMY]!;
+  const w = firearmFor(started.player);
   const player = spendAmmo(started.player);
-  const hp = combat.hp - FIRE_DMG;
-  const fired: GameState = { ...started, player };
-  if (hp <= 0) return killEnemy(fired, def);
-  return { ...fired, combat: { ...combat, hp, alerted: true } };
+  let next: GameState = { ...started, player };
+  let landed = true;
+  if (w.accuracy < 1) {
+    const shot = drawFloat(next.rng, next.meta.seed, "combat");
+    landed = shot.value < w.accuracy;
+    next = { ...next, rng: shot.rng };
+  }
+  const rolled = landed ? rollDamage(next, w) : { value: 0, state: next };
+  next = rolled.state;
+  const hp = combat.hp - (landed ? effectiveDamage(rolled.value, def.armor, w.armorPierce) : 0);
+  if (hp <= 0) return killEnemy(next, def);
+  const standing: GameState = { ...next, combat: { ...combat, hp, alerted: true, offBalance: false } };
+  return enemyRetaliate(standing, def, w);
+}
+
+/**
+ * Resolve a shove: no damage, no answer, no draw — the enemy goes back on its heels and stays there
+ * until the next thing that happens to it.
+ *
+ * It clears `alerted` and sets `offBalance`, and the pair is worth `ALERTED_DETECT` 15 +
+ * {@link PUSH_ESCAPE_BONUS} 30 = **45 points off the very next escape roll**. So the verb is not a
+ * damage option at all; it is the answer to *this fight is going badly and I need to leave cleanly*,
+ * which before T80 had no answer but a retreat at the full alerted rate. Both halves are consumed by
+ * the next combat action of any kind, so it cannot be banked.
+ *
+ * Unreachable outside a live fight (it is offered only by {@link combatChoices}); with no fight it is a
+ * total no-op that still spends its hour, which is the same shape every other misrouted action has.
+ */
+function resolvePush(state: GameState): GameState {
+  const combat = state.combat;
+  if (combat === null) return state;
+  return { ...state, combat: { ...combat, alerted: false, offBalance: true } };
 }
 
 /**
@@ -506,9 +700,13 @@ function resolveEscape(state: GameState, graph: RegionGraph, to: NodeId, clearCo
   // `alerted` only applies to a retreat — breaking off a fight the dead have hold of. A slip happens
   // before any fight exists, so there is nothing alerted to break off.
   const alerted = clearCombat && state.combat !== null && state.combat.alerted;
+  // T80: a body you have just shoved back is not in a position to catch you. Like `alerted`, it counts
+  // only on a retreat — a slip happens before any fight exists, so there is nothing shoved to run from.
+  const shoved = clearCombat && state.combat?.offBalance === true;
+  const extra = (grasp !== null ? GRASP_ESCAPE_BONUS : 0) - (shoved ? PUSH_ESCAPE_BONUS : 0);
   const chance = stealthDetectChance(state, base, {
     ...(alerted ? { alerted: true } : {}),
-    ...(grasp !== null ? { extra: GRASP_ESCAPE_BONUS } : {}),
+    ...(extra !== 0 ? { extra } : {}),
   });
   const roll = drawFloat(state.rng, state.meta.seed, "stealth");
   const detected = roll.value < chance;
@@ -539,6 +737,11 @@ export function resolveCombatAction(state: GameState, graph: RegionGraph, action
       return resolveStrike(beginCombat(state));
     case "strike":
       return resolveStrike(state);
+    // A committed swing opens a fight the same way `fight` does — you can choose to start hard.
+    case "heavy":
+      return resolveStrike(state.combat === null ? beginCombat(state) : state, true);
+    case "push":
+      return resolvePush(state);
     case "fire":
       return resolveFire(state);
     case "slip":
@@ -552,7 +755,8 @@ export function resolveCombatAction(state: GameState, graph: RegionGraph, action
 
 /** Whether an action is one this module owns (used by validation + dispatch). */
 export function isCombatAction(action: Action): boolean {
-  return action.type === "fight" || action.type === "strike" || action.type === "fire" ||
+  return action.type === "fight" || action.type === "strike" || action.type === "heavy" ||
+    action.type === "push" || action.type === "fire" ||
     action.type === "slip" || action.type === "retreat";
 }
 
@@ -579,6 +783,16 @@ function stealthTellFor(state: GameState): string {
 }
 
 /**
+ * The T80 signpost for a shoved enemy, in the same "signpost, don't retune" spirit as T77's stealth
+ * tell: PUSH spends an hour and deals no damage, so a player who is not told what it bought would
+ * reasonably conclude it bought nothing. Empty whenever nothing is off balance, which is every fight
+ * in the game that does not use the verb — so no existing transcript changes.
+ */
+function shovedTell(state: GameState): string {
+  return state.combat?.offBalance === true ? " You have it back on its heels — this is the moment to go." : "";
+}
+
+/**
  * Narration for the current situation, or null when there is neither a fight nor a threat here. Names
  * the type you face and gives its non-audio signature (FR-AUD-06) so the read never depends on sound.
  * A plain walker node keeps its exact pre-T46 wording (the accessibility transcript relies on it).
@@ -588,10 +802,11 @@ export function combatNarration(state: GameState): string | null {
   if (state.combat !== null) {
     const def = ENEMIES[state.combat.enemy] ?? ENEMIES[WALKER_ENEMY]!;
     const hurt = state.combat.hp < state.combat.maxHp ? " It is wounded but still coming." : " It hasn't seen you flinch yet.";
+    const shoved = shovedTell(state);
     if (def.id === WALKER_ENEMY) {
-      return `You are in it now — a walker, ${state.combat.hp}/${state.combat.maxHp} still standing.${hurt}${tell}`;
+      return `You are in it now — a walker, ${state.combat.hp}/${state.combat.maxHp} still standing.${hurt}${shoved}${tell}`;
     }
-    return `You are in it now — a ${def.name}, ${def.signature}; ${state.combat.hp}/${state.combat.maxHp} still standing.${hurt}${tell}`;
+    return `You are in it now — a ${def.name}, ${def.signature}; ${state.combat.hp}/${state.combat.maxHp} still standing.${hurt}${shoved}${tell}`;
   }
   const node = state.nodes[state.player.location];
   if (node !== undefined && node.walkers > 0) {

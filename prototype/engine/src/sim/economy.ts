@@ -533,13 +533,19 @@ export function tickSpoilage(state: GameState, graph: RegionGraph | undefined, h
  * combat melee resolution. Inert on every prior run: no current item has non-null durability and the start
  * `equipment` is empty, so the equipped-artifact lookup misses and the state passes through unchanged. Only
  * an economy-minted artifact wears — and the repair recipe is the only thing that restores it. Pure.
+ *
+ * `points` is the weapon profile's own `durabilityCost` since T80 (a heavy swing spends double), so the
+ * drain is a property of what you are holding rather than a single global rate. It defaults to
+ * {@link WEAPON_WEAR}, which is what every pre-T80 caller charged; a cost of 0 (bare hands, or a
+ * profile that costs nothing to swing) wears nothing at all.
  */
-export function wearWeaponOnStrike(state: GameState): GameState {
+export function wearWeaponOnStrike(state: GameState, points: number = WEAPON_WEAR): GameState {
   const equippedId = state.player.equipment[WEAPON_SLOT];
   if (equippedId === undefined) return state;
   const item = state.items[equippedId];
   if (item === undefined || item.durability === null) return state;
-  const next = clamp0to100(item.durability - WEAPON_WEAR);
+  if (!(points > 0)) return state; // a weapon with no durability cost (bare hands) wears nothing
+  const next = clamp0to100(item.durability - points);
   if (next === item.durability) return state;
   return { ...state, items: { ...state.items, [equippedId]: { ...item, durability: next } } };
 }
