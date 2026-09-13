@@ -64,6 +64,21 @@ export const ITEM_WEIGHTS: { readonly [type: string]: number } = {
   "item.warm-clothing": 3,
   "item.molotov": 2,
   "item.tool-reinforced": 6, // a minted durability artifact — worn by use, kept alive by repair (FR-ECO-07)
+  // The T81 melee roster (FR-CBT-04 · GDD IX). Carry weight is the FIFTH axis these weapons trade on,
+  // after damage / noise / wear / reach, and it is the one that bites hardest: the firefighter's axe at
+  // 8 is a fifth of the whole pack, so arming yourself properly costs two days of water. Adding lookup
+  // keys is byte-identity-safe (weight is a derived lookup, never an RNG-indexed array) and these items
+  // only ever exist in a run that registered the weapon content set.
+  "item.knife": 1,
+  "item.chair-leg": 2,
+  "item.pipe": 3,
+  "item.machete": 3,
+  "item.hammer": 3,
+  "item.bat": 4,
+  "item.crowbar": 5,
+  "item.axe-fire": 8,
+  "item.shotgun": 8,
+  "item.rifle": 8,
 };
 
 /** Weight of one unit of `type` (unknown ids fall back to {@link DEFAULT_ITEM_WEIGHT}). */
@@ -130,4 +145,19 @@ export function dropItem(inventory: readonly InventoryEntry[], type: string): re
   const entry = inventory[idx]!;
   if (entry.quantity <= 1) return inventory.filter((_, i) => i !== idx);
   return inventory.map((e, i) => (i === idx ? { ...e, quantity: e.quantity - 1 } : e));
+}
+
+/**
+ * Leave a tracked **artifact** behind (M5 task T81). {@link dropItem} deliberately only touches
+ * non-unique stacks (`itemId === undefined`), which was correct while the one artifact in the game was
+ * a weapon you had built at a bench and would never abandon. T81 has the world hand out chair legs and
+ * lengths of pipe, each an artifact with its own instance — so without this, every junk weapon a run
+ * picked up was welded into the pack for the rest of the run, and the carry-weight trade the whole
+ * roster is balanced on would have ratcheted shut. Matches by instance id, not by type: two found
+ * crowbars are two different crowbars (Principle 6). Returns the same reference when it is not carried.
+ * Pure; the caller is responsible for clearing an equipment slot that pointed at it.
+ */
+export function dropArtifact(inventory: readonly InventoryEntry[], itemId: string): readonly InventoryEntry[] {
+  const idx = inventory.findIndex((e) => e.itemId === itemId);
+  return idx === -1 ? inventory : inventory.filter((_, i) => i !== idx);
 }

@@ -35,6 +35,7 @@ const CONTENT = {
   recipes: loadPool("recipes"),
   jobs: loadPool("jobs"),
   factions: loadPool("factions"),
+  weapons: loadPool("weapons"),
 };
 
 const guardScript = (s) => s.replace(/<\/script/gi, "<\\/script");

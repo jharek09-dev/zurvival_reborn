@@ -3,7 +3,7 @@ export { createInitialState, type InitialStateOptions } from "./state/createInit
 
 // Seeded RNG — named streams (T5, DESIGN §9)
 export { seedStreamState, stepFloat } from "./rng/prng.js";
-export { drawFloat, drawInt, drawPick, type Draw } from "./rng/streams.js";
+export { drawFloat, drawInt, drawPick, drawWeighted, type Draw, type Weighted } from "./rng/streams.js";
 
 // Turn pipeline shell (T4, DESIGN §5)
 export {
@@ -163,8 +163,21 @@ export {
   surestOf,
   effectiveDamage,
   retaliateChance,
+  // The T81 weapon content set: the rarity denominator, the pool gate, the loot rows, and provenance
+  // rendered in words (the half of PL-M4-33 that keeps raw durability ints off the screen).
+  BASE_LOOT_WEIGHT,
+  weaponPool,
+  weaponsActive,
+  weaponLootFor,
+  artifactMarks,
+  marksSuffix,
 } from "./combat/weapons.js";
-export type { WeaponDef } from "./combat/weapons.js";
+export type { WeaponDef, WeaponCategory } from "./combat/weapons.js";
+
+// Taking up what you are carrying (T81 · FR-CBT-04 · FR-PLR-04) — the verb that gets the roster out of
+// the pack and into a hand; before it, `equipment[WEAPON_SLOT]` had exactly one writer in the engine.
+export { EQUIP_COST, carriedWeapons, gearChoices, isGearAction, resolveGearAction, equippedItem } from "./actions/gear.js";
+export type { CarriedWeapon } from "./actions/gear.js";
 
 // The stealth read — noise -> arousal -> detection closed into one chain (T77 · FR-CBT-05 · PL-M2-02)
 export {
@@ -377,6 +390,7 @@ export {
   fits,
   addItemBounded,
   dropItem,
+  dropArtifact,
   type AddResult,
 } from "./sim/inventory.js";
 
@@ -385,6 +399,7 @@ export {
   LOOT_TABLES,
   LOOT_CONTEST_DIVISOR,
   lootTableFor,
+  lootEntriesFor,
   searchYieldCap,
   resolveSearchLoot,
   contestRegion,

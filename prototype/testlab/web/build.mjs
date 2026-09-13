@@ -69,6 +69,7 @@ const CONTENT = {
   recipes: loadPool("recipes"),
   jobs: loadPool("jobs"),
   factions: loadPool("factions"),
+  weapons: loadPool("weapons"),
 };
 
 const css = fs.readFileSync(path.join(here, "testlab.css"), "utf8");

@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/weapon.schema.json",
+  "id": "item.machete",
+  "name": "machete",
+  "description": "A brush blade with a taped grip. It goes through most things in one stroke and it does not announce you doing it — but the edge rolls, and rolled steel bruises rather than cuts.",
+  "kind": "melee",
+  "category": "bladed",
+  "dmgMin": 2,
+  "dmgMax": 4,
+  "noise": 12,
+  "armorPierce": 1,
+  "durabilityCost": 4,
+  "retaliateModifier": -5,
+  "startDurability": 60,
+  "lootWeight": 2,
+  "lootKinds": [
+    "industrial",
+    "generic"
+  ],
+  "notes": "T81 · bladed, the quiet answer to armor: pierce 1 against noise 12. It wears fastest of anything here (4 a swing on 60) — 'reliable, silent, wears' (GDD IX), with the wear as the bill."
+}

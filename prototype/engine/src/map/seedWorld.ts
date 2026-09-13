@@ -24,6 +24,7 @@ import type { EncounterDef } from "../sim/events.js";
 import type { SignalDef } from "../sim/radio.js";
 import type { RecipeDef } from "../sim/economy.js";
 import type { JobDef } from "../sim/jobs.js";
+import type { WeaponDef } from "../combat/weapons.js";
 import type { NodeDef, RegionDef, RegionGraph } from "./types.js";
 import { seedRoster, distinctTypes } from "../sim/roster.js";
 import type { ContentId } from "../state/types.js";
@@ -129,6 +130,7 @@ export function startRun(
   recipeDefs: readonly RecipeDef[] = [],
   jobDefs: readonly JobDef[] = [],
   factionDefs: readonly FactionDef[] = [],
+  weaponDefs: readonly WeaponDef[] = [],
 ): RunStart {
   const graph = buildRegionGraph(
     regionDefs,
@@ -141,6 +143,8 @@ export function startRun(
     // The survivor catalog rides the graph only alongside a faction pool (for `ask` leads); passing it
     // otherwise is harmless (unread + never serialized), but keeping them paired keeps the intent clear.
     factionDefs.length > 0 ? npcDefs : [],
+    // The weapon content set (T81) — the gate for weapon loot placement; absent ⇒ no weapons in loot.
+    weaponDefs,
   );
   const base = createInitialState({ ...opts, startLocation: graph.startNodeId });
 

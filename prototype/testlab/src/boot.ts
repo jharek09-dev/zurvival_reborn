@@ -2,7 +2,7 @@
  * Boot — stand up the full content-complete city exactly the way the shipped clients do.
  *
  * Mirrors `harness/src/playCli.ts` `boot()` and `harness/web/ui.js` `newRun()`: every pool registered
- * (regions, nodes, npcs, encounters, radio signals, recipes, jobs, factions) plus the authored story arcs,
+ * (regions, nodes, npcs, encounters, radio signals, recipes, jobs, factions, weapons) plus the authored story arcs,
  * so a Test Lab run is the full-city beta, not the slice. Content is passed IN — the browser page has it
  * inlined as `window.CONTENT`, the CLI reads `content/` — so this module never touches the filesystem and
  * bundles cleanly.
@@ -29,6 +29,7 @@ import {
   type RecipeDef,
   type JobDef,
   type FactionDef,
+  type WeaponDef,
   type DifficultyMode,
   type InventoryEntry,
 } from "../../engine/src/index.js";
@@ -43,9 +44,11 @@ export interface Content {
   readonly recipes: readonly RecipeDef[];
   readonly jobs: readonly JobDef[];
   readonly factions: readonly FactionDef[];
+  /** The T81 weapon content set — the gate for weapon loot placement. */
+  readonly weapons: readonly WeaponDef[];
 }
 
-export const CONTENT_POOLS = ["regions", "nodes", "npcs", "encounters", "signals", "recipes", "jobs", "factions"] as const;
+export const CONTENT_POOLS = ["regions", "nodes", "npcs", "encounters", "signals", "recipes", "jobs", "factions", "weapons"] as const;
 
 /** Pinned run-creation timestamp: the core never reads a clock, and replay needs boots to be byte-identical. */
 export const FIXED_CREATED_AT = "2026-09-12T00:00:00.000Z";
@@ -101,6 +104,7 @@ export function bootCity(
     content.recipes,
     content.jobs,
     content.factions,
+    content.weapons,
   );
   return { state: opts.stocked ? stock(state) : state, graph };
 }
@@ -119,5 +123,6 @@ export function graphFor(content: Content): RegionGraph {
     content.jobs,
     content.factions,
     content.npcs,
+    content.weapons,
   );
 }

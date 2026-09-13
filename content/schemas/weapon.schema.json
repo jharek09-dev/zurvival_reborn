@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/weapon.schema.json",
+  "title": "Weapon",
+  "description": "A weapon profile (FR-CBT-04 · GDD Part IX \"weapons are tools with trade-offs, not power tiers\"). One row per item type the player can fight with, across the improvised / bladed / blunt / firearm families. As with enemies, the engine holds the authoritative combat dials as constants (combat/weapons.ts) and these files mirror them for the schema gate and a harness drift-guard; what the REGISTERED pool actually gates is loot placement, so a run that loads no weapon content set places no weapons in the world. Damage buys noise: no profile may be at least as good as another on every axis the player pays on (damage, noise, wear, retaliation, pierce, durability, carry weight) — that is the anti-power-tier rule, and a test enforces it.",
+  "type": "object",
+  "required": ["id", "name", "description", "kind", "category", "dmgMin", "dmgMax", "noise"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "Optional editor hint pointing at this schema." },
+    "id": { "type": "string", "pattern": "^(?:item|weapon)\\.[a-z0-9]+(?:[-_.][a-z0-9]+)*$", "description": "Stable content id: the item type this profile belongs to (item.<slug>), or weapon.bare for the empty-handed floor, which has no item behind it." },
+    "name": { "type": "string", "minLength": 1, "description": "Player-facing name, used in choice labels — \"Strike with the firefighter's axe\" (ICU MessageFormat string)." },
+    "description": { "type": "string", "minLength": 1, "description": "How the weapon reads in the hand: what it is good for and what it costs (ICU MessageFormat string)." },
+    "kind": { "enum": ["melee", "firearm"], "description": "How a fight resolves it: a melee profile swings (and is what the equipped artifact must be); a firearm spends a round and is brought up out of the pack, never equipped." },
+    "category": { "enum": ["improvised", "bladed", "blunt", "firearm"], "description": "The GDD Part IX family the trade-offs are authored as: improvised (everywhere, fragile, weak, quiet), bladed (reliable, quiet, wears), blunt (forgiving, durable, some noise), firearms (powerful and safe-feeling, but loud). Explosives are authored-for but unshipped — item.molotov still has no combat action (PL-M4-30)." },
+    "dmgMin": { "type": "integer", "minimum": 0, "maximum": 20, "description": "Low end of one blow's damage. Equal to dmgMax means a FLAT weapon, which draws no RNG at all (every firearm is one)." },
+    "dmgMax": { "type": "integer", "minimum": 0, "maximum": 20, "description": "High end of one blow's damage." },
+    "noise": { "type": "integer", "minimum": 0, "maximum": 100, "description": "T14 noise deposited by one blow — the weapon's real price, and since T75/T76 the term that decides what walks toward you afterwards." },
+    "armorPierce": { "type": "integer", "minimum": 0, "maximum": 10, "description": "Points of the enemy's armor this ignores. Firearms carry enough (3) to ignore every armor value in the game; a melee weapon that carries any is an answer to riot plate. Defaults to 0." },
+    "durabilityCost": { "type": "integer", "minimum": 0, "maximum": 20, "description": "Durability spent per blow by the equipped artifact — the FR-ECO-07 repair loop's drain. 0 for bare hands and for firearms, which are ammunition-fed stacks with nothing to wear. Defaults to 0." },
+    "retaliateModifier": { "type": "integer", "minimum": -100, "maximum": 100, "description": "Percentage points added to the enemy's answer chance. A weapon with reach keeps them off you (negative); a short, wild one puts you inside their reach (positive). Never overrides a committed swing or a fast dead's initiative — both are absolute. Defaults to 0." },
+    "accuracy": { "type": "number", "minimum": 0, "maximum": 1, "description": "Chance the blow lands. Exactly 1 means it always lands and draws nothing, which is every melee profile in the shipped game. Defaults to 1." },
+    "startDurability": { "type": ["integer", "null"], "minimum": 1, "maximum": 100, "description": "Durability a FOUND one arrives at, and the tell that this profile has a tracked artifact behind it. null (the default) means no artifact: bare hands, and every firearm." },
+    "lootWeight": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Rarity in the weighted loot draw, read against the engine's BASE_LOOT_WEIGHT for an ordinary item. 0 (the default) means never placed by loot — bare hands, and the crafted reinforced tool, which the bench mints instead." },
+    "lootKinds": { "type": "array", "items": { "enum": ["generic", "store", "medical", "police", "residential", "industrial"] }, "uniqueItems": true, "description": "Node kinds whose search can turn this up. Empty (the default) means nowhere." },
+    "notes": { "type": "string", "description": "Author commentary (JSON has no comments, ADR-0002)." }
+  }
+}

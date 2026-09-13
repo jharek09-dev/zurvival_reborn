@@ -215,12 +215,17 @@ describe("equipment defines capability (T80 · FR-PLR-04)", () => {
     expect(after.items[after.player.equipment[WEAPON_SLOT]!]?.durability).toBe(0);
   });
 
-  it("the choice label names what you are swinging — and stops naming it once it breaks", () => {
+  it("the choice label names what you are swinging — and says so when it breaks", () => {
     expect(choice(fixture("l1", { weapon: "item.tool-reinforced" }).state, fixture("l1").graph, "fight").label)
       .toBe("Fight the walker with the reinforced tool");
     expect(choice(run().state, run().graph, "fight").label).toBe("Fight the walker"); // unchanged since T15
+    // REBASELINED AT T81, deliberately. T80 let the suffix simply vanish when the weapon broke — "the
+    // tell that the thing in your hands has stopped being a weapon" — which was fine while the only
+    // breakable thing was a bench tool with fifty swings in it. T81 hands out chair legs with six, so a
+    // silent "Fight the walker" would leave the player no way to learn their axe had snapped. It is
+    // named instead, in words and never as a number (FR-UI-02), which is also what points at the repair.
     expect(choice(fixture("l2", { weapon: "item.tool-reinforced", durability: 0 }).state, fixture("l2").graph, "fight").label)
-      .toBe("Fight the walker");
+      .toBe("Fight the walker — the reinforced tool is broken");
   });
 
   it("a heavier weapon deposits its own noise, and a heavy swing doubles it — at the node AND in the fight", () => {

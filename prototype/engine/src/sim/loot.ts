@@ -18,9 +18,11 @@
  * deterministic (named `loot` RNG stream), dependency-free, integer-only (ADR-0001).
  */
 
-import type { GameState, NodeId, RegionState } from "../state/types.js";
-import { drawInt, drawPick } from "../rng/streams.js";
-import { addItemBounded } from "./inventory.js";
+import type { ContentId, GameState, ItemInstance, NodeId, RegionState } from "../state/types.js";
+import { drawInt, drawPick, drawWeighted, type Weighted } from "../rng/streams.js";
+import { addItemBounded, fits } from "./inventory.js";
+import { WEAPONS, BASE_LOOT_WEIGHT, weaponLootFor } from "../combat/weapons.js";
+import { WEAPON_SLOT } from "./economy.js";
 import { profileOf, scaleInt } from "./difficulty.js";
 import { bankHours } from "./clocks.js";
 
@@ -84,6 +86,91 @@ export function lootTableFor(kind: string | undefined, includeRadio = false, inc
 }
 
 /**
+ * The loot table as **weighted** entries (M5 task T81 · FR-CBT-04 · GDD X "rough tiers from common junk
+ * to rare finds").
+ *
+ * Two things happen here and only when `includeWeapons` is true — i.e. only when the run registered a
+ * weapon content set (`graph.weapons`), which no pre-T81 run and no pool-less fixture does:
+ *
+ *   1. **Every weapon leaves the flat table and re-enters at its own `lootWeight`.** That is the fix for
+ *      the tier problem at its root: on the pre-T81 uniform police table `item.pistol` came out of
+ *      **24.6%** of searches (measured, `measure/t81.ts --loot`) — a gun was exactly as likely as a
+ *      bandage. It is filtered out of the base list first, so a weapon already sitting in a hand-written
+ *      table is not counted twice.
+ *   2. **Ordinary items each carry {@link BASE_LOOT_WEIGHT}.** They stay equals with one another, so the
+ *      only relative frequency this task changes is weapon-vs-not. A weapon-free kind (`medical`) is
+ *      therefore an exactly uniform table again, just expressed in weights.
+ *
+ * With the gate off the caller uses the untouched {@link lootTableFor} + `drawPick` path instead, so a
+ * run without the pool draws bit-for-bit as before (the `floor(f·len)` hazard: see {@link lootTableFor}).
+ */
+export function lootEntriesFor(
+  kind: string | undefined,
+  includeRadio = false,
+  includeEconomy = false,
+): readonly Weighted<string>[] {
+  const base = lootTableFor(kind, includeRadio, includeEconomy).filter((id) => WEAPONS[id] === undefined);
+  const entries: Weighted<string>[] = base.map((value) => ({ value, weight: BASE_LOOT_WEIGHT }));
+  for (const w of weaponLootFor(kind)) entries.push({ value: w.id, weight: w.weight });
+  return entries;
+}
+
+/**
+ * A deterministic id for an artifact the world just handed you. Distinct prefix from the bench's mint
+ * (`economy.ts`), because where a weapon came from is the first line of its provenance and two artifacts
+ * minted on the same turn must not collide. One search costs ≥1h so the turn alone is near-unique; the
+ * numeric suffix is the backstop.
+ */
+function foundArtifactId(state: GameState, type: string): string {
+  const base = `${type}#found-t${state.meta.turn}`;
+  if (!(base in state.items)) return base;
+  let i = 2;
+  while (`${base}.${i}` in state.items) i++;
+  return `${base}.${i}`;
+}
+
+/**
+ * Pocket a found weapon as a **tracked artifact** rather than a stack (T81).
+ *
+ * This is the second half of "there are no melee weapons in the game", and the half that is not content:
+ * before T81 the only writer of `player.equipment[WEAPON_SLOT]` in the entire engine was the crafting
+ * bench's mint, and `ItemInstance` was only ever created there too — so a weapon dropped into the pack by
+ * `addItemBounded` would have been a *stack*, with no durability to wear, no ledger to repair, and no way
+ * into a hand. Measured on the pre-T81 tree: **0 of 30 scavenging runs ever held a melee weapon**.
+ *
+ * A found weapon therefore arrives with a durability track at the profile's `startDurability`, the
+ * provenance the repair ledger appends to (`foundDay`/`foundAt`, the Principle 6 shape `metadata` has
+ * carried since T51), and **is taken up on the spot only when that is not a decision** — the hands are
+ * empty, or what they hold has broken. Choosing *between* two working weapons is the `equip` verb's job
+ * (`actions/gear.ts`); doing it here would quietly overwrite the axe with the chair leg you just found.
+ *
+ * Returns null when the pack cannot take the weight, which the caller treats exactly as the full-pack
+ * rule always has: the find stays in the world and the region is **not** debited.
+ */
+function pocketWeapon(state: GameState, nodeId: NodeId, type: ContentId, startDurability: number): GameState | null {
+  if (!fits(state.player.inventory, type)) return null;
+  const id = foundArtifactId(state, type);
+  const item: ItemInstance = {
+    type,
+    quality: 100,
+    durability: startDurability,
+    metadata: { foundDay: state.meta.day, foundAt: nodeId, repairs: [] },
+  };
+  const held = state.player.equipment[WEAPON_SLOT];
+  const heldItem = held === undefined ? undefined : state.items[held];
+  const handsFree = held === undefined || heldItem === undefined || heldItem.durability === 0;
+  return {
+    ...state,
+    items: { ...state.items, [id]: item },
+    player: {
+      ...state.player,
+      inventory: [...state.player.inventory, { type, quantity: 1, itemId: id }],
+      ...(handsFree ? { equipment: { ...state.player.equipment, [WEAPON_SLOT]: id } } : {}),
+    },
+  };
+}
+
+/**
  * The most loot (in region points) a single search can pull, given the region's remaining richness
  * and how picked-over the node already is. Diminishing on both axes; never more than what remains.
  * 0 ⇒ a thin region or an exhausted node yields nothing but time and noise (FR-ECO-03 partial).
@@ -99,7 +186,7 @@ export function searchYieldCap(regionLoot: number, searchPct: number): number {
  * by exactly what was taken (finite + depleting), and drops one plausible item into the inventory.
  * A depleted region or a picked-clean node yields nothing. Pure; consumes the `loot` RNG stream.
  */
-export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string | undefined, includeRadio = false, includeEconomy = false): GameState {
+export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string | undefined, includeRadio = false, includeEconomy = false, includeWeapons = false): GameState {
   const node = state.nodes[nodeId];
   if (node === undefined) return state;
   const region = state.regions[node.regionId];
@@ -117,7 +204,27 @@ export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string
 
   const drawn = drawInt(state.rng, state.meta.seed, "loot", 1, rawCap);
   const take = Math.min(region.loot, drawn.value);
-  const pick = drawPick(drawn.rng, state.meta.seed, "loot", lootTableFor(kind, includeRadio, includeEconomy));
+  // T81: with the weapon content set registered the table is drawn by WEIGHT, which costs the identical
+  // single `drawInt` step (see `drawWeighted`) — so the stream advances the same either way and only the
+  // value can differ. Without it, the untouched uniform `drawPick` path: byte-identical for every run
+  // that registers no pool, which is every pre-T81 run and every pool-less fixture.
+  const pick = includeWeapons
+    ? drawWeighted(drawn.rng, state.meta.seed, "loot", lootEntriesFor(kind, includeRadio, includeEconomy))
+    : drawPick(drawn.rng, state.meta.seed, "loot", lootTableFor(kind, includeRadio, includeEconomy));
+
+  const debit = (next: GameState): GameState => ({
+    ...next,
+    rng: pick.rng,
+    regions: { ...next.regions, [node.regionId]: { ...region, loot: clampPct(region.loot - take) } },
+  });
+
+  // A weapon with a durability track is pocketed as a tracked ARTIFACT, not a stack (T81) — see
+  // `pocketWeapon`. A refusal there is the full-pack rule, handled identically below.
+  const def = WEAPONS[pick.value];
+  if (includeWeapons && def !== undefined && def.startDurability !== null) {
+    const pocketed = pocketWeapon(state, nodeId, def.id, def.startDurability);
+    return pocketed === null ? { ...state, rng: pick.rng } : debit(pocketed);
+  }
 
   // Weight cap (T18 · FR-PLR-03): pocket the find only if it fits. A full pack leaves it in the
   // world and the region is NOT debited — carrying is finite, so a full pack stops draining the well.

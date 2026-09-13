@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/weapon.schema.json",
+  "id": "item.bat",
+  "name": "baseball bat",
+  "description": "Ash, thirty-two inches, someone's name in marker on the knob. Forgiving in a way nothing else here is — a bad swing still connects — and it carries across the street.",
+  "kind": "melee",
+  "category": "blunt",
+  "dmgMin": 2,
+  "dmgMax": 4,
+  "noise": 25,
+  "durabilityCost": 1,
+  "retaliateModifier": -10,
+  "startDurability": 80,
+  "lootWeight": 3,
+  "lootKinds": [
+    "residential",
+    "store"
+  ],
+  "notes": "T81 · blunt, 'forgiving, durable, tiring, some noise' (GDD IX) read literally: the best damage spread outside the axe, the second-best reach, wear 1 on 80 = eighty swings — bought with noise 25 and no answer to armor at all."
+}

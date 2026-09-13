@@ -51,6 +51,8 @@ import {
   retaliateChance,
   surestOf,
   weaponFor,
+  marksSuffix,
+  equippedItem,
   type WeaponDef,
 } from "./weapons.js";
 
@@ -270,10 +272,14 @@ export function hasLoadedFirearm(player: Player): boolean {
  * bring up what you trust, and a menu of three guns for a game that can only hand you one would be
  * three-quarters decoration.
  *
- * **On the shipped city that is always the pistol**, because `item.pistol` is the only firearm in any
- * loot table, encounter or start kit; the shotgun and rifle rows of {@link WEAPONS} are reachable only
- * by a hand-built state until content places them (PL-M5-36). Falls back to the pistol profile when the
- * pack holds a firearm type with no profile at all, so an unknown gun still fires like a gun.
+ * **T81 makes this live, and PL-M5-37 with it.** Until T81 the shipped city placed only `item.pistol`,
+ * so "the surest gun in the pack" had exactly one answer and the rule was theory (PL-M5-36, now closed:
+ * all three firearms are in the police table). Now a player can genuinely carry a pistol and a shotgun,
+ * and this brings up the **shotgun** (accuracy 0.85 against 0.75) — the surer gun, and the LOUDER one
+ * (85 against 75), with no way to ask for the quiet one. That is a real tactical choice the menu still
+ * does not offer; it is recorded rather than smuggled in here, because a gun-selection menu is its own
+ * design decision and not this task's. Falls back to the pistol profile when the pack holds a firearm
+ * type with no profile at all, so an unknown gun still fires like a gun.
  */
 export function firearmFor(player: Player): WeaponDef {
   const held = player.inventory
@@ -374,12 +380,31 @@ function escapeRoadSuffix(state: GameState, to: NodeId): string {
  * This is where FR-PLR-04 becomes *visible*. A weapon that changes the arithmetic and says nothing is
  * the same invisible stat block the GDD forbids twice over; naming it in the label puts the capability
  * at the point of decision, where the player can act on it, and keeps the numbers off the screen.
- * A **broken** artifact reads as bare hands here for the same reason it fights as them — the suffix
- * disappears, which is the tell that the thing in your hands has stopped being a weapon.
+ * A **broken** artifact fights as bare hands, and T80 let its suffix simply disappear — "the tell that
+ * the thing in your hands has stopped being a weapon". That was defensible while the only breakable
+ * thing in the game was a bench-minted tool with fifty swings in it. T81 hands out chair legs with
+ * **six**, so a silent disappearance is now a legibility hole rather than a tell: the label would go
+ * back to plain "Strike" with nothing to say the axe in your hands snapped. So a broken weapon is
+ * NAMED as broken — in words, never as a number (FR-UI-02) — and the repair the economy already ships
+ * has something pointing at it. An empty-handed player's label is still exactly the T15 one.
+ *
+ * A working weapon carries its marks too ({@link artifactMarks}): "worn", "about to go", "it carries
+ * the marks now". That is the FR-PLR-04 principle T80 set — capability at the point of decision, with
+ * the numbers off the screen — extended to condition, which is the half a found weapon actually has.
  */
 function weaponSuffix(state: GameState): string {
   const w = weaponFor(state);
-  return w.id === BARE_HANDS.id ? "" : ` with the ${w.name}`;
+  const item = equippedItem(state);
+  if (w.id === BARE_HANDS.id) {
+    // Bare hands with something equipped means that something is broken (the only way `weaponFor` falls
+    // back while holding a melee artifact). Anything else — truly empty hands, or a firearm in the
+    // weapon slot, which is not a melee weapon — keeps the untouched T15 label.
+    const held = item === undefined ? undefined : WEAPONS[item.type];
+    return item !== undefined && item.durability === 0 && held !== undefined && held.kind === "melee"
+      ? ` — the ${held.name} is broken`
+      : "";
+  }
+  return ` with the ${w.name}${marksSuffix(item)}`;
 }
 
 /**

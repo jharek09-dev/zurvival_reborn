@@ -1,0 +1,12 @@
+{
+  "$schema": "../schemas/weapon.schema.json",
+  "id": "weapon.bare",
+  "name": "bare hands",
+  "description": "Nothing in your hands. You hit what you can reach and it hits back — the floor every other weapon in this list is measured against.",
+  "kind": "melee",
+  "category": "improvised",
+  "dmgMin": 1,
+  "dmgMax": 2,
+  "noise": 15,
+  "notes": "T81 · the pre-T80 melee profile EXACTLY (drawInt(1,2), MELEE_NOISE, no pierce, no wear, no modifier). Has no item behind it and is never placed by loot; it is what a broken weapon drops to."
+}

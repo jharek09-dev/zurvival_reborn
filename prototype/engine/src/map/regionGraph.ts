@@ -19,6 +19,7 @@ import type { RecipeDef } from "../sim/economy.js";
 import type { JobDef } from "../sim/jobs.js";
 import type { FactionDef } from "../sim/social.js";
 import type { NPCDef } from "../sim/npcs.js";
+import type { WeaponDef } from "../combat/weapons.js";
 import { MapError, type NodeDef, type RegionDef, type RegionGraph } from "./types.js";
 
 /** Index an array of defs by id, rejecting duplicates. */
@@ -49,6 +50,7 @@ export function buildRegionGraph(
   jobDefs: readonly JobDef[] = [],
   factionDefs: readonly FactionDef[] = [],
   peopleDefs: readonly NPCDef[] = [],
+  weaponDefs: readonly WeaponDef[] = [],
 ): RegionGraph {
   if (nodeDefs.length === 0) throw new MapError("no nodes: a region graph needs at least one node");
 
@@ -114,6 +116,9 @@ export function buildRegionGraph(
     // catalog rides alongside it (read for `ask` leads); present only with a faction pool.
     ...(factionDefs.length > 0 ? { factions: factionDefs } : {}),
     ...(factionDefs.length > 0 && peopleDefs.length > 0 ? { people: peopleDefs } : {}),
+    // The weapon content set (T81) gates weapon placement in loot; without it a search draws the exact
+    // pre-T81 uniform table, which is what keeps every prior run byte-identical.
+    ...(weaponDefs.length > 0 ? { weapons: weaponDefs } : {}),
   };
 }
 

@@ -1,0 +1,20 @@
+{
+  "$schema": "../schemas/weapon.schema.json",
+  "id": "item.axe-fire",
+  "name": "firefighter's axe",
+  "description": "Fibreglass haft, pick on one side, edge on the other, the paint worn back to steel where a hundred hands have held it. It goes through a door. It goes through riot plate. Everything in the block hears it happen.",
+  "kind": "melee",
+  "category": "bladed",
+  "dmgMin": 3,
+  "dmgMax": 5,
+  "noise": 30,
+  "armorPierce": 2,
+  "durabilityCost": 3,
+  "retaliateModifier": -15,
+  "startDurability": 100,
+  "lootWeight": 2,
+  "lootKinds": [
+    "police"
+  ],
+  "notes": "T81 · THE legendary seed the GDD names three times (Principle 6, Part X legendary items, the Manifesto). Hardest hitter, only profile that ignores riot plate outright (pierce 2 >= armor 1 with room to spare), best reach — and the LOUDEST swing in the game at noise 30, double bare hands, plus carry weight 8. Found in the police table only, which is the kind node.the-terraces.fire-station carries; weight swept at BASE_LOOT_WEIGHT 24 over 200 full police sweeps (1 -> 12.5%, 2 -> 22.0%, 3 -> 30.5%, 4 -> 41.0%, where it is as likely as a pistol and no longer a legendary); at the shipped BASE_LOOT_WEIGHT 18, weight 2 measures 32.0% over 300 sweeps. So roughly one thorough run in three ever holds it."
+}

@@ -20,7 +20,7 @@ import type { RegionGraph } from "../map/types.js";
 import { neighborsOf } from "../map/regionGraph.js";
 import { discoverAround } from "../map/fogOfWar.js";
 import { resolveSearchLoot } from "../sim/loot.js";
-import { dropItem, inventoryWeight, itemName, CARRY_CAPACITY, PACK_HEAVY } from "../sim/inventory.js";
+import { dropItem, dropArtifact, inventoryWeight, itemName, CARRY_CAPACITY, PACK_HEAVY } from "../sim/inventory.js";
 import { NOISE_SEARCH } from "../sim/noise.js";
 import { phaseSearchNoise } from "../sim/timeOfDay.js";
 import { routeWear, extraCostOf, isBlocked, conditionOf } from "../sim/routes.js";
@@ -58,6 +58,8 @@ import {
   applyShelterRest,
 } from "../sim/shelter.js";
 import { stashChoices, isStashAction, resolveStashAction, atOwnShelter } from "../sim/stash.js";
+import { carriedWeapons, gearChoices, isGearAction, resolveGearAction } from "./gear.js";
+import { marksSuffix, weaponProfile, weaponsActive } from "../combat/weapons.js";
 import { storyChoices, isStoryAction, resolveStoryAction, storyLine } from "../sim/story.js";
 import {
   activeEncounter,
@@ -300,6 +302,12 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   // Drop a carried item to reclaim weight (T18 · FR-PLR-03) — the leave-behind lever. Surfaced only
   // when the pack is heavy (>= PACK_HEAVY): below that there's ample room, so drops would just clutter
   // the single-decision screen (FR-UI). One choice per non-unique stack, stable-ordered by type; free.
+  // Take up a carried weapon (T81 · FR-CBT-04): the verb that gets the roster out of the pack and into a
+  // hand. Free like the T18 drop and the T39 stash, offered here in the quiet explore branch ONLY — a
+  // fight, an overrun, an active encounter or loitering walkers all pre-empt this branch, so you fight
+  // with what you walked in holding. Inert for any run carrying no weapon artifact (every pre-T81 run).
+  for (const choice of gearChoices(state)) choices.push(choice);
+
   if (node && inventoryWeight(state.player.inventory) >= PACK_HEAVY) {
     for (const type of [...new Set(state.player.inventory.filter((e) => e.itemId === undefined).map((e) => e.type))].sort()) {
       choices.push({
@@ -307,6 +315,18 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
         label: `Drop ${itemName(type)}`,
         timeCost: DROP_COST,
         action: { type: "drop", choiceId: `drop:${type}`, timeCost: DROP_COST, params: { item: type } },
+      });
+    }
+    // A tracked artifact is dropped by INSTANCE, not by type (T81): two found crowbars are two different
+    // crowbars. Without this every junk weapon the world hands out would be welded into the pack for the
+    // rest of the run — `dropItem` only ever touched non-unique stacks — and the carry-weight trade the
+    // weapon roster is balanced on would ratchet shut. Same free cost and same PACK_HEAVY gate as above.
+    for (const w of carriedWeapons(state)) {
+      choices.push({
+        id: `drop:${w.itemId}`,
+        label: `Leave the ${weaponProfile(w.type).name}${marksSuffix(w.item)} behind`,
+        timeCost: DROP_COST,
+        action: { type: "drop", choiceId: `drop:${w.itemId}`, timeCost: DROP_COST, params: { itemId: w.itemId } },
       });
     }
   }
@@ -357,6 +377,7 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
   if (isCompanionOrderAction(action)) return resolveCompanionOrder(state, action);
   if (isShelterAction(action)) return resolveShelterAction(state, action);
   if (isStashAction(action)) return resolveStashAction(state, action);
+  if (isGearAction(action)) return resolveGearAction(state, action);
   if (isStoryAction(action)) return resolveStoryAction(state, action);
   if (isInfectionAction(action)) return resolveInfectionAction(state, action);
   if (isRadioAction(action)) return resolveRadioAction(state, graph, action);
@@ -373,9 +394,24 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
       // The scavenged radio (T50) is findable only when the radio system is active (a signals pool is
       // registered); the economy items (T51 — components / blueprints / fresh food / dirty water) only
       // when a recipe pool is. Both additive and gated, so a run with neither draws byte-identically (loot.ts).
-      return resolveSearchLoot(searched, state.player.location, kind, radioPool(graph).length > 0, economyActive(graph));
+      // T81: weapons are placed only when the weapon content set is registered (`graph.weapons`), and
+      // then the table is drawn by WEIGHT rather than uniformly — one `drawInt` step either way, so a
+      // pool-less run still draws bit-for-bit as before.
+      return resolveSearchLoot(searched, state.player.location, kind, radioPool(graph).length > 0, economyActive(graph), weaponsActive(graph));
     }
     case "drop": {
+      // T81: an `itemId` drops one tracked artifact by instance; the `item` form is the untouched T18
+      // stack drop. Leaving a weapon behind also empties the hand that held it (the equipment slot would
+      // otherwise point at an instance the pack no longer carries) and forgets the instance entirely —
+      // its provenance goes with it, which is exactly what abandoning a thing means.
+      const itemId = action.params?.["itemId"];
+      if (typeof itemId === "string") {
+        const inventory = dropArtifact(state.player.inventory, itemId);
+        if (inventory === state.player.inventory) return state;
+        const items = Object.fromEntries(Object.entries(state.items).filter(([id]) => id !== itemId));
+        const equipment = Object.fromEntries(Object.entries(state.player.equipment).filter(([, id]) => id !== itemId));
+        return { ...state, items, player: { ...state.player, inventory, equipment } };
+      }
       const item = action.params?.["item"];
       if (typeof item !== "string") return state;
       const inventory = dropItem(state.player.inventory, item);

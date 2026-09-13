@@ -1,0 +1,19 @@
+{
+  "$schema": "../schemas/weapon.schema.json",
+  "id": "item.rifle",
+  "name": "rifle",
+  "description": "A bolt-action with a worn stock. It reaches further than anything else you own and handles like a fencepost with something already on top of you.",
+  "kind": "firearm",
+  "category": "firearm",
+  "dmgMin": 3,
+  "dmgMax": 3,
+  "noise": 95,
+  "armorPierce": 3,
+  "retaliateModifier": 10,
+  "accuracy": 0.8,
+  "lootWeight": 1,
+  "lootKinds": [
+    "police"
+  ],
+  "notes": "T80 dials, T81 placement. Also unreachable until T81 (PL-M5-36). The loudest thing in the game at noise 95, and retaliate +10 for how badly it handles up close."
+}
