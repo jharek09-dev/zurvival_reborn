@@ -27,6 +27,7 @@ import type { JobDef } from "../sim/jobs.js";
 import type { WeaponDef } from "../combat/weapons.js";
 import type { ProjectDef } from "../sim/project.js";
 import type { EndingDef } from "../sim/ending.js";
+import { STAND_ARMED_FLAG, type StandDef } from "../sim/stand.js";
 import type { NodeDef, RegionDef, RegionGraph } from "./types.js";
 import { seedRoster, distinctTypes } from "../sim/roster.js";
 import type { ContentId } from "../state/types.js";
@@ -135,6 +136,7 @@ export function startRun(
   weaponDefs: readonly WeaponDef[] = [],
   projectDefs: readonly ProjectDef[] = [],
   endingDefs: readonly EndingDef[] = [],
+  standDefs: readonly StandDef[] = [],
 ): RunStart {
   const graph = buildRegionGraph(
     regionDefs,
@@ -155,6 +157,9 @@ export function startRun(
     // The ending pool (T61) — the gate for assembled endings; absent ⇒ a run closes on the plain reason
     // scene, exactly as every run before it.
     endingDefs,
+    // The stand pool (T62) — the gate for the final-choice scene; absent ⇒ a death ends the run on the
+    // frame it lands, exactly as every run before it.
+    standDefs,
   );
   const base = createInitialState({ ...opts, startLocation: graph.startNodeId });
 
@@ -184,5 +189,15 @@ export function startRun(
   // Register any opt-in factions (T53) into `groups` + `player.reputation`; inert when none are supplied, so
   // every prior run carries empty `groups`/`reputation` exactly as before (byte-identical).
   const factioned = seedFactions(peopled, factionDefs);
-  return { state: registerArcs(factioned, arcIds), graph };
+  const arced = registerArcs(factioned, arcIds);
+  // **Arm the Last Stand (T62).** This is the one thing in `startRun` that writes a flag from a content
+  // pool rather than leaving the pool on the graph, and the reason is narrow: `runEndReason(state)`
+  // takes no graph, so the only way it can know whether a death should open a scene is to find the
+  // answer in state. `story.endingFlags` has been a `Flags` record since v7, so this costs **no save
+  // rung**; without a pool the key is never written and the flag reads false, which is byte-for-byte
+  // the pre-T62 run. T87 bent the same rule in the same place for the same reason.
+  const armed = standDefs.length > 0
+    ? { ...arced, story: { ...arced.story, endingFlags: { ...arced.story.endingFlags, [STAND_ARMED_FLAG]: true } } }
+    : arced;
+  return { state: armed, graph };
 }

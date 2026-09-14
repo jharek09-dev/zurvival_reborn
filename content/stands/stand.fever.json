@@ -1,0 +1,45 @@
+{
+  "$schema": "../schemas/stand.schema.json",
+  "id": "stand.fever",
+  "reasons": [
+    "infection"
+  ],
+  "opening": "The fever has the wheel now and you can feel how little of you is still driving. There is a minute here, and then there is not.",
+  "acts": [
+    {
+      "id": "leave-what-you-carry",
+      "weight": 80,
+      "effect": "drop",
+      "when": {
+        "minItems": 3
+      },
+      "label": "Set the pack down where it will be found.",
+      "text": "You got it off your shoulders while your hands still answered, and left it out in the open. Somebody less far along than you was going to need water more than you were going to need to have carried it."
+    },
+    {
+      "id": "leave-the-mark",
+      "weight": 72,
+      "effect": "mark",
+      "label": "Warn whoever comes next.",
+      "text": "You wrote it where they would see it before they came in — dead here, careful — and the letters went crooked at the end, which is its own kind of warning."
+    },
+    {
+      "id": "name-the-day",
+      "weight": 66,
+      "when": {
+        "minDay": 3
+      },
+      "label": "Count the days out loud, while you still have them straight.",
+      "text": "You counted them off, out loud, in order, and got to the end of them and found that they had been days — not a blur, not a fall, days, each one with something in it you had done on purpose."
+    },
+    {
+      "id": "say-it",
+      "weight": 70,
+      "when": {
+        "minMet": 1
+      },
+      "label": "Say the thing you never said.",
+      "text": "You said it while the words were still yours to arrange, to nobody in particular and to one person exactly, and then you let the fever have the rest of them."
+    }
+  ]
+}

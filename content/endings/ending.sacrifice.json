@@ -2,13 +2,22 @@
   "$schema": "../schemas/ending.schema.json",
   "id": "ending.sacrifice",
   "shape": "sacrifice",
-  "opening": "You went down at your own door, on the side of it where the work had been done.",
+  "opening": "You did not spend the last of it on yourself. That was a decision, made late and made fast, and it was yours to make.",
   "clauses": [
+    {
+      "id": "at-your-own-door",
+      "weight": 95,
+      "when": {
+        "requiresAtBase": true
+      },
+      "text": "You went down at your own door, on the side of it where the work had been done."
+    },
     {
       "id": "held-before",
       "weight": 92,
       "when": {
-        "minNightsHeld": 1
+        "minNightsHeld": 1,
+        "requiresAtBase": true
       },
       "text": "The walls had turned it away before — more than once, on nights nobody was awake to count. They did not owe you another one."
     },
@@ -16,15 +25,17 @@
       "id": "already-breached",
       "weight": 70,
       "when": {
-        "minBreached": 1
+        "minBreached": 1,
+        "requiresBaseLost": true
       },
-      "text": "They had been through those walls once before, and you had gone on living there anyway, which is the part of it worth remembering."
+      "text": "They had come through those walls once already, and taken the place off you, and you had gone on anyway — which is the part of it worth remembering."
     },
     {
       "id": "the-rooms",
       "weight": 74,
       "when": {
-        "minRooms": 1
+        "minRooms": 1,
+        "requiresAtBase": true
       },
       "text": "Inside there were rooms you had made mean something — a place to cook, a place to keep water, a place that was not just out of the rain."
     },
@@ -32,7 +43,8 @@
       "id": "unfinished-work",
       "weight": 72,
       "when": {
-        "minStages": 1
+        "minStages": 1,
+        "requiresAtBase": true
       },
       "text": "The work you had started was still standing half-done behind you, close enough that anyone coming after could see what it was going to be."
     },
@@ -40,7 +52,8 @@
       "id": "the-long-hold",
       "weight": 68,
       "when": {
-        "minDays": 3
+        "minDays": 3,
+        "requiresClaimed": true
       },
       "text": "You had held that address for days by then, which in what is left of this city is a long tenancy."
     },
@@ -48,7 +61,10 @@
       "id": "cost-them",
       "weight": 60,
       "when": {
-        "minFights": 5
+        "minFights": 5,
+        "reasons": [
+          "lastStand"
+        ]
       },
       "text": "You did not go quietly and it was not cheap for them."
     },
@@ -56,7 +72,8 @@
       "id": "kept-your-hands",
       "weight": 54,
       "when": {
-        "minHumanityShift": 8
+        "minHumanityShift": 8,
+        "requiresClaimed": true
       },
       "text": "Nothing you did to keep that door shut was anything you would have needed to lie about afterwards."
     },
@@ -64,7 +81,8 @@
       "id": "what-it-cost",
       "weight": 54,
       "when": {
-        "maxHumanityShift": -8
+        "maxHumanityShift": -8,
+        "requiresClaimed": true
       },
       "text": "You had done harder things than this to keep that door shut, and at the end it was the door that mattered to you, not the things."
     },
@@ -74,7 +92,7 @@
       "when": {
         "minCompanions": 1
       },
-      "text": "There was somebody behind you when it took you, and the door held long enough to be worth standing in."
+      "text": "There was somebody behind you when it took you, and you held long enough for that to have been the point of it."
     },
     {
       "id": "for-nobody",
@@ -83,6 +101,100 @@
         "requiresAlone": true
       },
       "text": "There was nobody behind you. You stood in it anyway."
+    },
+    {
+      "id": "the-ground-you-held",
+      "weight": 44,
+      "when": {
+        "standActs": [
+          "hold-the-line",
+          "hold-the-door"
+        ]
+      },
+      "text": "You picked a spot and you did not come off it, and that is a smaller thing than it sounds and a larger one than it looks."
+    },
+    {
+      "id": "nowhere-in-particular",
+      "weight": 42,
+      "when": {
+        "forbidsClaimed": true
+      },
+      "text": "You never had an address in this city. It turned out you did not need one to have something left worth spending."
+    },
+    {
+      "id": "short-and-spent",
+      "weight": 32,
+      "when": {
+        "maxDays": 2
+      },
+      "text": "You were only ever here a couple of days. You still found something at the end of them worth putting yourself between."
+    },
+    {
+      "id": "the-walking",
+      "weight": 28,
+      "when": {
+        "minNodesSeen": 5,
+        "forbidsClaimed": true
+      },
+      "text": "You had walked half this city without once stopping anywhere long enough to call it yours, and then you stopped for good, on purpose, in a doorway that was nobody's."
+    },
+    {
+      "id": "the-long-way",
+      "weight": 78,
+      "when": {
+        "minNodesSeen": 6
+      },
+      "text": "You had covered a lot of this city by then — more of it than most people ever see of the one they live in — and you spent the end of it standing still."
+    },
+    {
+      "id": "emptied-them",
+      "weight": 74,
+      "when": {
+        "minNodesCleaned": 3
+      },
+      "text": "You had gone through building after building until there was nothing left in them, and you finished with nothing on you that was going to help."
+    },
+    {
+      "id": "the-crowd",
+      "weight": 68,
+      "when": {
+        "minOverruns": 2
+      },
+      "text": "The mass had rolled over you more than once already and you had got up both times. The third time you did not try."
+    },
+    {
+      "id": "the-dead-you-knew",
+      "weight": 64,
+      "when": {
+        "minSurvivorsLost": 8
+      },
+      "text": "By then the city had taken almost everyone in it who had a name. You were not the first and you had stopped expecting to be the last."
+    },
+    {
+      "id": "clean-at-the-end",
+      "weight": 58,
+      "when": {
+        "minHumanityShift": 8,
+        "minMoralActs": 2
+      },
+      "text": "You had not had to become anything you would rather not be, and at the end you did not start."
+    },
+    {
+      "id": "the-price-of-it",
+      "weight": 58,
+      "when": {
+        "maxHumanityShift": -8,
+        "minMoralActs": 2
+      },
+      "text": "There were things you had done to get this far that you would not have wanted read out. The last one was not among them."
+    },
+    {
+      "id": "a-run-of-days",
+      "weight": 54,
+      "when": {
+        "minDays": 4
+      },
+      "text": "Four days, five, however many it had been — long enough that stopping was a decision and not just what happened next."
     }
   ]
 }

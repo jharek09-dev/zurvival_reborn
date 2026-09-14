@@ -1,0 +1,68 @@
+{
+  "$schema": "../schemas/stand.schema.json",
+  "id": "stand.last-stand",
+  "reasons": [
+    "lastStand"
+  ],
+  "opening": "It has you, and there is no getting loose. Whatever you do now, you do once.",
+  "acts": [
+    {
+      "id": "take-it-with-you",
+      "weight": 80,
+      "effect": "kill",
+      "when": {
+        "requiresCombat": true
+      },
+      "label": "Put it down. Spend everything on this one.",
+      "text": "You got an arm free and you used it, and it stopped moving before you did. One less of them on this street, for whatever that is worth to whoever comes through here next."
+    },
+    {
+      "id": "hold-the-line",
+      "weight": 88,
+      "effect": "kill",
+      "shape": "sacrifice",
+      "when": {
+        "requiresCombat": true,
+        "minWalkers": 2
+      },
+      "label": "It is not the only one here. Do not give them the ground.",
+      "text": "It was not the only one on this street and you did not give the street up. You took the one that had you and you held where you were standing, and the rest had to come through it to get past."
+    },
+    {
+      "id": "leave-what-you-carry",
+      "weight": 76,
+      "effect": "drop",
+      "when": {
+        "minItems": 3
+      },
+      "label": "Get the pack off. Leave it somewhere it will be seen.",
+      "text": "You worked the straps loose and set it down clear of yourself, where anyone with eyes would find it. It was not much. It was everything you had walked the city for."
+    },
+    {
+      "id": "leave-the-mark",
+      "weight": 60,
+      "effect": "mark",
+      "label": "Write it on the wall while you still can.",
+      "text": "You got the words onto the wall with what you had — dead here, careful — and it was not a message so much as a hand held out to someone you would never meet."
+    },
+    {
+      "id": "hold-the-door",
+      "weight": 96,
+      "shape": "sacrifice",
+      "when": {
+        "minCompanions": 1
+      },
+      "label": "Hold it here. Let them get clear.",
+      "text": "You put yourself in the gap and stayed in it, and the sound of them running got further away and then stopped being a sound at all, which is how you knew it had worked."
+    },
+    {
+      "id": "say-it",
+      "weight": 70,
+      "when": {
+        "minMet": 1
+      },
+      "label": "Say the thing you never said.",
+      "text": "You said it out loud, to nobody in particular and to one person exactly, and the saying of it took the last of the air you had been saving for something else."
+    }
+  ]
+}

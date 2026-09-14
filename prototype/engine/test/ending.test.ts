@@ -451,6 +451,7 @@ describe("matchesEnding: every predicate, and its bound is the one it names", ()
     fightsEnded: 6, overruns: 2, nodesSeen: 9, nodesCleaned: 3, encounters: 7,
     committed: null, stages: 2,
     hurt: true, feverish: false, starving: false, parched: false, battered: true,
+    standAct: null, standShape: null,
   };
   const yes = (r: Parameters<typeof matchesEnding>[1]): boolean => matchesEnding(S, r);
 

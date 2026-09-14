@@ -19,6 +19,7 @@ import type { JobDef } from "../sim/jobs.js";
 import type { WeaponDef } from "../combat/weapons.js";
 import type { ProjectDef } from "../sim/project.js";
 import type { EndingDef } from "../sim/ending.js";
+import type { StandDef } from "../sim/stand.js";
 import type { FactionDef } from "../sim/social.js";
 import type { NPCDef } from "../sim/npcs.js";
 
@@ -172,6 +173,16 @@ export interface RegionGraph {
    * narration, the choice ids and the save all stay byte-identical. Never serialized.
    */
   readonly endings?: readonly EndingDef[];
+  /**
+   * The run's registered stand pool (M5 task T62) — transient content the client loaded from
+   * `content/stands/`, carried here exactly as the ending and project pools are. Optional and
+   * defaulting to empty: a graph built without it never arms a stand, so a death ends the run on the
+   * frame it lands and `availableActions` returns `[]`, which is precisely what every run did before
+   * T62. Never serialized. Note that the *gate* the engine actually reads at run-end is the
+   * `stand.armed` flag `startRun` seeds from this pool, because `runEndReason` takes no graph — see
+   * `sim/stand.ts`.
+   */
+  readonly stands?: readonly StandDef[];
   /**
    * The run's registered faction pool (M4 task T53) — transient content the client loaded from
    * `content/factions/`, carried here so the social interpreter reaches it the same way the job pool does.

@@ -138,6 +138,7 @@ describe("the requirement vocabulary does not drift between the schema and the e
     maxBreached: -1,
     requiresClaimed: true, requiresBaseLost: true, requiresBattered: true, forbidsBattered: true,
     requiresAlone: true, requiresFeverish: true, requiresAtBase: true, forbidsClaimed: true,
+    standActs: ["no-act-by-this-name"],
   } as const satisfies Record<string, unknown>;
 
   const NEUTRAL = {
@@ -148,6 +149,7 @@ describe("the requirement vocabulary does not drift between the schema and the e
     fightsEnded: 0, overruns: 0, nodesSeen: 1, nodesCleaned: 0, encounters: 0,
     committed: null, stages: 0,
     hurt: false, feverish: false, starving: false, parched: false, battered: false,
+    standAct: null, standShape: null,
   } as const;
 
   it("every key the schema permits is one the engine reads", () => {

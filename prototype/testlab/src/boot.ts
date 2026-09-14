@@ -32,6 +32,7 @@ import {
   type WeaponDef,
   type ProjectDef,
   type EndingDef,
+  type StandDef,
   type DifficultyMode,
   type InventoryEntry,
 } from "../../engine/src/index.js";
@@ -52,9 +53,11 @@ export interface Content {
   readonly projects: readonly ProjectDef[];
   /** The T61 ending pool — the gate for endings assembled from run components. */
   readonly endings: readonly EndingDef[];
+  /** The T62 stand pool — the gate for the final-choice scene a death opens. */
+  readonly stands: readonly StandDef[];
 }
 
-export const CONTENT_POOLS = ["regions", "nodes", "npcs", "encounters", "signals", "recipes", "jobs", "factions", "weapons", "projects", "endings"] as const;
+export const CONTENT_POOLS = ["regions", "nodes", "npcs", "encounters", "signals", "recipes", "jobs", "factions", "weapons", "projects", "endings", "stands"] as const;
 
 /** Pinned run-creation timestamp: the core never reads a clock, and replay needs boots to be byte-identical. */
 export const FIXED_CREATED_AT = "2026-09-12T00:00:00.000Z";
@@ -113,6 +116,7 @@ export function bootCity(
     content.weapons,
     content.projects,
     content.endings,
+    content.stands,
   );
   return { state: opts.stocked ? stock(state) : state, graph };
 }
@@ -134,5 +138,6 @@ export function graphFor(content: Content): RegionGraph {
     content.weapons,
     content.projects,
     content.endings,
+    content.stands,
   );
 }

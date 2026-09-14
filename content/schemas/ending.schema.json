@@ -176,6 +176,14 @@
         "forbidsClaimed": {
           "type": "boolean",
           "description": "The run never claimed a base at all. The vocabulary is otherwise monotone, so this is how a clause about being rootless is kept off a survivor who settled on day 2."
+        },
+        "standActs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "Act ids the run's final turn may have been spent on (M5 task T62). Absent means any, INCLUDING a run that took no act at all — so a clause that sets this never fires for a run played without a content/stands/ pool. This is how the Last Stand's choice reaches the closing prose: a clause can name what the survivor DID rather than only what was true of them. Ids are the bare act ids as authored in content/stands/ (hold-the-line, leave-what-you-carry, take-it-with-you, leave-the-mark, say-it, ...) plus the engine's own floor act `stand.let-go`."
         }
       }
     },
@@ -238,11 +246,11 @@
     "clauses": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 24,
+      "maxItems": 32,
       "items": {
         "$ref": "#/$defs/clause"
       },
-      "description": "The candidate sentences. Author MORE than ENDING_CLAUSE_LIMIT — the cap binding is what makes two runs of the same shape differ instead of converging on everything that was true of you. A clause with no `when` is unconditional and will crowd the list at equal weight, so give those a low weight and use them as the floor."
+      "description": "The candidate sentences. Author MORE than ENDING_CLAUSE_LIMIT — the cap binding is what makes two runs of the same shape differ instead of converging on everything that was true of you. A clause with no `when` is unconditional and will crowd the list at equal weight, so give those a low weight and use them as the floor. The ceiling was raised from 24 to 32 by T62 for a measured reason: making `sacrifice` reachable from anywhere in the city and from all four deaths (it had been reachable only at your own door, and therefore not at all) meant every clause in that file that quietly assumed a base had to be gated, which left a rootless survivor four admissible clauses against a cap of three — and the distinct-text count FELL, 22 Last Stand texts to 17. It recovered to 27 only once the shape carried the same spread of run-fact clauses `fade` already had. REACHING A SHAPE COSTS CONTENT: the thinner the gate, the more sentences it needs behind it."
     }
   }
 }

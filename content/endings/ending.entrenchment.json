@@ -156,6 +156,46 @@
         ]
       },
       "text": "It did not come through the door for you in the end. You were at home when it happened, in the place you had made, which is not the worst way this city lets a person go."
+    },
+    {
+      "id": "what-you-left",
+      "weight": 38,
+      "when": {
+        "standActs": [
+          "leave-what-you-carry"
+        ]
+      },
+      "text": "What you were carrying came off your shoulders and stayed where it fell, out in the open, put there rather than dropped."
+    },
+    {
+      "id": "the-mark",
+      "weight": 36,
+      "when": {
+        "standActs": [
+          "leave-the-mark"
+        ]
+      },
+      "text": "You got a warning onto the wall before the end, three words of it, which is the last thing you did about this city and not the smallest."
+    },
+    {
+      "id": "the-last-one",
+      "weight": 34,
+      "when": {
+        "standActs": [
+          "take-it-with-you"
+        ]
+      },
+      "text": "You took one of them with you on the way out, which is a thing this city has never once done for anybody."
+    },
+    {
+      "id": "stopped",
+      "weight": 26,
+      "when": {
+        "standActs": [
+          "stand.let-go"
+        ]
+      },
+      "text": "At the end you stopped, in a place you had made yours, and there are worse rooms in this city to have stopped in."
     }
   ]
 }

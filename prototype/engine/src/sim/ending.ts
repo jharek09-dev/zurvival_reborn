@@ -75,6 +75,7 @@ import { runEndReason, endingNarration, type RunEndReason } from "./survival.js"
 import { humanityOf } from "./events.js";
 import { isCompanion } from "./companions.js";
 import { winNarration, PROJECT_STAGE_FLAG_PREFIX, committedProject } from "./project.js";
+import { standTaken, standActLine } from "./stand.js";
 
 // --- the four shapes -------------------------------------------------------------------------------
 
@@ -193,6 +194,29 @@ export interface RunSummary {
   readonly parched: boolean;
   /** Any of the four — the pyrrhic read (PL-M5-67). Measured true for **100% of wins**. */
   readonly battered: boolean;
+
+  // --- the last act (T62) ---
+  /**
+   * The id of the act the survivor spent their final turn on, or null — for a win, for a run still
+   * going, and for any run played without a `content/stands/` pool.
+   *
+   * Read off the Living History rather than off a flag, because that is what the task's brief asked
+   * for: the stand writes what it did into the log and this module reads it, so there is exactly one
+   * closing-text path rather than two. It is also the T61 rule holding — *the shape is a read, and
+   * reads are taken from finished state*.
+   */
+  readonly standAct: ContentId | null;
+  /**
+   * The ending shape that act **declares**, or null when it declares none.
+   *
+   * This is the field that makes `sacrifice` reachable (PL-M5-69), and it is worth being precise about
+   * why it is not the widening T61 refused. Before T62 a death contained no *act*, so `atBase` was the
+   * only proxy available for "this death bought something". It is a poor one and it measured 0.0%. An
+   * act is the real thing: a survivor who held a line, held a door, or left everything they carried
+   * where it would be found has done something for something other than their own survival, wherever
+   * they were standing. `atBase` is left exactly as it was and is still a route in its own right.
+   */
+  readonly standShape: string | null;
 }
 
 /** Count history beats of the given types. */
@@ -222,6 +246,9 @@ export function summarizeRun(state: GameState, graph?: RegionGraph): RunSummary 
   const feverish = cond.infection.stage !== "none";
   const starving = cond.needs.hunger >= ENDING_NEED_PRESSURE;
   const parched = cond.needs.thirst >= ENDING_NEED_PRESSURE;
+  // The final act, if one was taken (T62). Scanned backwards from the end of the log, so it costs a
+  // handful of reads rather than a second walk of a 1400-event history.
+  const taken = standTaken(h);
   return {
     reason,
     won: reason === "escaped" || reason === "held",
@@ -264,6 +291,9 @@ export function summarizeRun(state: GameState, graph?: RegionGraph): RunSummary 
     starving,
     parched,
     battered: hurt || feverish || starving || parched,
+
+    standAct: taken === null ? null : taken.act,
+    standShape: taken === null ? null : taken.shape,
   };
 }
 
@@ -315,6 +345,16 @@ export function shapeOfSummary(s: RunSummary): EndingShape | null {
   if (s.reason === null) return null;
   if (s.reason === "escaped") return "escape";
   if (s.reason === "held") return "entrenchment";
+  // T62 — **the last act, and it is the most proximate statement the run makes about itself.** It sits
+  // above the derived tests for the same reason `runEndReason` checks the Last Stand before the slow
+  // deaths: a survivor who chose, in their final turn, to hold a line or leave everything they carried
+  // where it would be found has told you what the run was more directly than any count of nights or
+  // rooms can. Narrowed against `ENDING_SHAPES` rather than trusted: the value reaches here as a plain
+  // string off the Living History (a hand-edited save can put anything in a beat), and an unrecognised
+  // one falls through to the derivation rather than producing a shape the game does not have.
+  if (s.standShape !== null && (ENDING_SHAPES as readonly string[]).includes(s.standShape)) {
+    return s.standShape as EndingShape;
+  }
   if (s.reason === "lastStand" && s.atBase) return "sacrifice";
   if (s.claimed) return "entrenchment";
   return "fade";
@@ -390,6 +430,14 @@ export interface EndingRequirement {
   readonly requiresFeverish?: boolean;
   /** No companion at the end. */
   readonly requiresAlone?: boolean;
+  /**
+   * Act ids the run's final turn may have been spent on (T62). Absent ⇒ any, including none.
+   *
+   * This is how the stand's choice reaches the closing prose: a clause can name what the survivor did
+   * rather than only what was true of them. Ids are the bare act ids as authored in `content/stands/`
+   * (`hold-the-line`, `leave-what-you-carry`, …) plus the engine's floor act `stand.let-go`.
+   */
+  readonly standActs?: readonly string[];
   /** The survivor was standing in a base they still held when the run stopped. */
   readonly requiresAtBase?: boolean;
   /**
@@ -420,6 +468,7 @@ const ALL_REQUIREMENT_KEYS: Record<keyof EndingRequirement, true> = {
   minNodesSeen: true, minNodesCleaned: true, minEncounters: true, minStages: true,
   requiresClaimed: true, requiresBaseLost: true, requiresBattered: true, forbidsBattered: true,
   requiresAlone: true, requiresFeverish: true, requiresAtBase: true, forbidsClaimed: true,
+  standActs: true,
 };
 export const ENDING_REQUIREMENT_KEYS: readonly string[] = Object.keys(ALL_REQUIREMENT_KEYS);
 
@@ -501,6 +550,7 @@ export function matchesEnding(s: RunSummary, req: EndingRequirement | undefined)
   if (req.requiresAtBase === true && !s.atBase) return false;
   if (req.forbidsClaimed === true && s.claimed) return false;
   if (req.requiresAlone === true && s.companions > 0) return false;
+  if (req.standActs !== undefined && (s.standAct === null || !req.standActs.includes(s.standAct))) return false;
   return true;
 }
 
@@ -566,13 +616,18 @@ export function assembleEnding(state: GameState, graph?: RegionGraph): Ending | 
   const scene = reasonScene(state, graph, reason);
   // `shape` is non-null here because `reason` is, but the compiler does not know that and neither does
   // a hand-built state, so it is answered rather than asserted.
-  if (shape === null) return { shape: "fade", reason, source: null, lines: [scene], clauseIds: [] };
+  // The act line is computed before the early returns, because an act was taken whether or not the
+  // pool has words for the shape it landed in — a partial content set must not silently swallow the
+  // last thing the survivor did.
+  const actLine = summary.standAct === null ? null : standActLine(graph, summary.standAct, summary.reason);
+  const spoken = actLine !== null && actLine.trim() !== "" ? [actLine] : [];
+  if (shape === null) return { shape: "fade", reason, source: null, lines: [scene, ...spoken], clauseIds: [] };
   const def = pool.find((d) => d.shape === shape);
   // A pool that is live but has nothing authored for this shape still closes on the scene it always
   // did, rather than on an empty string or on another shape's words. A content set is not required to
   // author all four (the schema gate cannot express "covers every shape", and a partial set is a
   // legitimate thing to ship mid-authoring).
-  if (def === undefined) return { shape, reason, source: null, lines: [scene], clauseIds: [] };
+  if (def === undefined) return { shape, reason, source: null, lines: [scene, ...spoken], clauseIds: [] };
 
   // `def.clauses ?? []` rather than `def.clauses`: `buildRegionGraph` now rejects a def without an
   // array, but this module is also reachable from a client that builds a graph by hand, and the failure
@@ -583,11 +638,16 @@ export function assembleEnding(state: GameState, graph?: RegionGraph): Ending | 
     .sort((a, b) => weightOf(b) - weightOf(a) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .slice(0, ENDING_CLAUSE_LIMIT);
 
+  // **What the survivor DID goes between how they died and what the run was** (T62). The order is the
+  // reading order of the moment: the death sentence, the act taken against it, then the shape and its
+  // clauses. `lines[0]` is untouched, so T61's guarantee — that the first line is byte-for-byte the
+  // pre-T61 text — survives a second task intact, and a run played without a stand pool has no act and
+  // therefore no extra line at all.
   return {
     shape,
     reason,
     source: def.id,
-    lines: [scene, def.opening, ...picked.map((c) => c.text)],
+    lines: [scene, ...spoken, def.opening, ...picked.map((c) => c.text)],
     clauseIds: picked.map((c) => c.id),
   };
 }
@@ -601,5 +661,13 @@ export const endingText = (ending: Ending): string => ending.lines.join(" ");
  */
 export function closingNarration(state: GameState, graph: RegionGraph | undefined, reason: RunEndReason): string {
   const ending = assembleEnding(state, graph);
-  return ending === null ? reasonScene(state, graph, reason) : endingText(ending);
+  if (ending !== null) return endingText(ending);
+  // No ending pool. A stand pool can be registered without one (the two gates are independent), and in
+  // that case the closing is the plain reason scene — but the act the survivor spent their last turn on
+  // still belongs in it, or a client that ships stands and no endings would offer a final choice and
+  // then never mention it again.
+  const scene = reasonScene(state, graph, reason);
+  const taken = standTaken(state.history);
+  const act = taken === null ? null : standActLine(graph, taken.act, taken.reason ?? reason);
+  return act !== null && act.trim() !== "" ? `${scene} ${act}` : scene;
 }
