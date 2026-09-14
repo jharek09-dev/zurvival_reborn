@@ -72,6 +72,7 @@ const CONTENT = {
   weapons: loadPool("weapons"),
   projects: loadPool("projects"),
   endings: loadPool("endings"),
+  stands: loadPool("stands"),
 };
 
 const css = fs.readFileSync(path.join(here, "testlab.css"), "utf8");

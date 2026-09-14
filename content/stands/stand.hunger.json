@@ -1,0 +1,45 @@
+{
+  "$schema": "../schemas/stand.schema.json",
+  "id": "stand.hunger",
+  "reasons": [
+    "starved"
+  ],
+  "opening": "You have been running on nothing for long enough that the hunger has gone quiet, which is the part that should have frightened you. There is a little left. Not much.",
+  "acts": [
+    {
+      "id": "leave-what-you-carry",
+      "weight": 78,
+      "effect": "drop",
+      "when": {
+        "minItems": 3
+      },
+      "label": "Leave the pack where it will be found.",
+      "text": "You set it down where the light would catch it. There was nothing in it you could eat, or you would have eaten it, but there was plenty in it somebody else could use."
+    },
+    {
+      "id": "leave-the-mark",
+      "weight": 70,
+      "effect": "mark",
+      "label": "Mark the place.",
+      "text": "You got the words down where they would be read — dead here, careful — using the last of what your hands would do on command."
+    },
+    {
+      "id": "the-long-walk",
+      "weight": 64,
+      "when": {
+        "minDay": 3
+      },
+      "label": "Think about how far you got.",
+      "text": "You went back over it, day by day, and none of the days had been wasted, which is not the same as saying any of them had been enough."
+    },
+    {
+      "id": "say-it",
+      "weight": 68,
+      "when": {
+        "minMet": 1
+      },
+      "label": "Say the thing you never said.",
+      "text": "You said it into the quiet, to nobody in particular and to one person exactly, and the quiet took it the way it takes everything here."
+    }
+  ]
+}

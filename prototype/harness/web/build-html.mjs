@@ -38,6 +38,7 @@ const CONTENT = {
   weapons: loadPool("weapons"),
   projects: loadPool("projects"),
   endings: loadPool("endings"),
+  stands: loadPool("stands"),
 };
 
 const guardScript = (s) => s.replace(/<\/script/gi, "<\\/script");

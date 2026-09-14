@@ -1,0 +1,45 @@
+{
+  "$schema": "../schemas/stand.schema.json",
+  "id": "stand.thirst",
+  "reasons": [
+    "dehydrated"
+  ],
+  "opening": "You stopped somewhere out of the sun a while back and you have not got up since. Your mouth has been past hurting for a day.",
+  "acts": [
+    {
+      "id": "leave-what-you-carry",
+      "weight": 78,
+      "effect": "drop",
+      "when": {
+        "minItems": 3
+      },
+      "label": "Leave the pack out where it will be seen.",
+      "text": "You pushed it out into the light so it would not be missed, which took longer than it should have, and was the last useful thing you did with your arms."
+    },
+    {
+      "id": "leave-the-mark",
+      "weight": 70,
+      "effect": "mark",
+      "label": "Mark the place.",
+      "text": "You scratched it into the wall beside you — dead here, careful — so that the next one through would at least know the shape of what the block does to people."
+    },
+    {
+      "id": "the-long-walk",
+      "weight": 64,
+      "when": {
+        "minDay": 3
+      },
+      "label": "Think about how far you got.",
+      "text": "You went back over the ground you had covered, block by block, and it turned out to be further than it had felt at the time, which is true of most of it."
+    },
+    {
+      "id": "say-it",
+      "weight": 68,
+      "when": {
+        "minMet": 1
+      },
+      "label": "Say the thing you never said.",
+      "text": "You got it out, barely, with a voice that had been gone since morning, to nobody in particular and to one person exactly."
+    }
+  ]
+}

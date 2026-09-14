@@ -344,8 +344,17 @@ export function inLastStand(state: GameState): boolean {
   return state.combat?.grabbed === true && woundBurden(state.player.condition) >= LAST_STAND_AT;
 }
 
-/** Why the run has ended, or null if the survivor lives. Derived from condition — no stored flag. */
-export function runEndReason(state: GameState): RunEndReason | null {
+/**
+ * The death (or win) condition that holds right now, **ignoring whether the survivor has had their
+ * final turn**. Derived from condition — no stored flag.
+ *
+ * Split out of {@link runEndReason} by T62, which is the only caller that needs the raw answer: while
+ * a Last Stand is open the run is *not over* but something is still killing the player, and the module
+ * rendering that scene has to be able to ask which. Keeping one function and two readings of it is the
+ * T82 `RUN_END_REASONS` discipline — two copies of "what is killing this player" is exactly the drift
+ * that guard exists to prevent.
+ */
+export function deathReason(state: GameState): RunEndReason | null {
   const { needs, infection } = state.player.condition;
   // T82: a fight can finally be the answer. Checked FIRST because it is the most proximate cause — a
   // player who is held, badly hurt and also out of water died in the grapple, not of thirst, and the
@@ -367,6 +376,66 @@ export function runEndReason(state: GameState): RunEndReason | null {
   if (needs.hunger >= NEED_FATAL) return "starved";
   return null;
 }
+
+/**
+ * Why the run has ended, or null if the survivor lives — **including the case where they are dying but
+ * have not yet spent their last turn** (T62 · FR-CBT-10 · PL-M5-44).
+ *
+ * Before T62 this *was* {@link deathReason}: the blow that completed the Last Stand condition ended the
+ * run on the same frame, so `availableActions` returned `[]` and the player got no final choice at all.
+ * Now a death **opens a stand** — one heightened turn in which the survivor spends whatever they have
+ * left — and this function reports null for exactly that window, so every consumer keeps the run alive
+ * without being taught a new question. That is deliberate and it is the whole mechanism: `isRunOver`,
+ * the harness loops, the Test Lab runner and `sceneOf` all go on meaning what they always meant.
+ *
+ * **Reads state and nothing else**, which is why the gate is a flag rather than a content check: this
+ * function takes no graph (T87's note on the same constraint), so it cannot ask whether a stand pool is
+ * registered. `startRun` seeds {@link STAND_ARMED_FLAG} when one is, and without it this expression is
+ * byte-for-byte the pre-T62 one — a run built with no stands, and every save written before T62,
+ * behaves exactly as it always did.
+ *
+ * The `deathReason` import is not circular: `sim/stand.ts` imports this module, and this function
+ * reaches back only through two plain flag reads written out here rather than imported.
+ */
+export function runEndReason(state: GameState): RunEndReason | null {
+  const flags = state.story.endingFlags;
+  // **A SPENT STAND IS TERMINAL, WHATEVER IS TRUE OF THE BODY A FRAME LATER — and this is not a detail.**
+  // The first cut asked the condition again after the act, and the act that puts down the thing holding
+  // you *clears `state.combat`*, so `inLastStand` went false and the survivor walked away from their own
+  // Last Stand: measured, the run carried on for another 15-30 turns and died of something else later.
+  // A stand is not an exchange you can win. The death it was taken against is recorded when it is spent
+  // and reported from then on, which is also what makes the ending reproducible from a save loaded on
+  // the frame after.
+  for (const reason of STAND_DEATH_LIST) {
+    if (flags[`${STAND_DEATH_FLAG_PREFIX}${reason}`] === true) return reason;
+  }
+  const reason = deathReason(state);
+  if (reason === null) return null;
+  // The stand window. Inlined rather than imported from `sim/stand.ts` because that module imports
+  // this one; the constants are re-exported there and asserted equal by a test, so the pair cannot
+  // drift silently.
+  if (flags[STAND_ARMED_FLAG] === true && flags[STAND_SPENT_FLAG] !== true && STAND_DEATHS.has(reason)) {
+    return null;
+  }
+  return reason;
+}
+
+/**
+ * @see sim/stand.ts — the canonical declarations. Duplicated here only to avoid an import cycle, and
+ * `prototype/engine/test/stand.test.ts` asserts every one of them equal across the two modules, so the
+ * duplication cannot drift silently.
+ *
+ * The three keys are **exact strings with disjoint prefixes**, deliberately: `stand.spent` is not a
+ * prefix of `stand.death.lastStand`, and neither is a prefix of `stand.armed`. T87's audit found a
+ * stage id of `committed` producing the commit flag itself and concluded that *any suffix rule has that
+ * failure somewhere*; this is that conclusion applied before the fact.
+ */
+export const STAND_ARMED_FLAG = "stand.armed";
+export const STAND_SPENT_FLAG = "stand.spent";
+export const STAND_DEATH_FLAG_PREFIX = "stand.death.";
+/** The four deaths that open a stand. The two wins (T87) close on the project's own authored ending. */
+const STAND_DEATH_LIST: readonly RunEndReason[] = ["lastStand", "infection", "dehydrated", "starved"];
+const STAND_DEATHS: ReadonlySet<RunEndReason> = new Set<RunEndReason>(STAND_DEATH_LIST);
 
 export const isRunOver = (state: GameState): boolean => runEndReason(state) !== null;
 

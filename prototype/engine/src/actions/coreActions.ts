@@ -95,6 +95,7 @@ import { economyChoices, isEconomyAction, resolveEconomyAction, economyLine, eco
 import { jobChoices, isJobAction, resolveJobAction, jobLine, jobIdOf, jobOf } from "../sim/jobs.js";
 import { socialChoices, isSocialAction, resolveSocialAction, socialLine, socialActive, attitudeRead, companionUnease, shelterMoodRead } from "../sim/social.js";
 import { projectChoices, isProjectAction, resolveProjectAction, projectLine } from "../sim/project.js";
+import { standIsOpen, standChoices, standNarration, isStandAction, resolveStandAction } from "../sim/stand.js";
 import { closingNarration } from "../sim/ending.js";
 
 // The core action time costs moved to the leaf module `actions/costs.ts` (T77) so the combat layer —
@@ -201,6 +202,14 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   const node = state.nodes[here];
   if (node === undefined) return [];
 
+  // **The Last Stand (T62 · FR-CBT-10 · PL-M5-44).** A death no longer ends the run on the frame it
+  // lands: it opens one heightened turn in which the survivor spends whatever they have left. This sits
+  // ABOVE the run-over check because the two are mutually exclusive by construction — `runEndReason`
+  // returns null for exactly the window `standIsOpen` is true — and above the overrun and combat
+  // branches because nothing outranks dying. Every act on the menu ends the run, so the window cannot
+  // be held open, and the menu always carries the floor act, so this branch can never hand back an
+  // empty list (the T57 exit-gate invariant, in the one place a player can least afford to lose it).
+  if (standIsOpen(state)) return standChoices(state, graph);
   if (isRunOver(state)) return []; // the run has ended — nothing follows it (a death T22, or a T87 win)
   // A horde standing on you (T76) pre-empts EVERYTHING below, including a fight already in progress:
   // FR-CBT-08 says a mass is routed or fled, never out-traded, so there is no fight choice while one
@@ -568,6 +577,7 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
   if (isEconomyAction(action)) return resolveEconomyAction(state, graph, action);
   if (isJobAction(action)) return resolveJobAction(state, graph, action);
   if (isProjectAction(action)) return resolveProjectAction(state, graph, action);
+  if (isStandAction(action)) return resolveStandAction(state, graph, action);
   switch (action.type) {
     case "move": {
       const to = action.params?.["to"];
@@ -835,6 +845,15 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
 
   if (graph === undefined || node === undefined) {
     return { turn, day, hour, phase, narration: "", choices: [] };
+  }
+
+  // T62: the survivor is dying but has not yet spent their last turn. The scene is the heightened one,
+  // and the choices are the final ones — this is the whole of "death is a scene, not a card". `lines[0]`
+  // of that narration is byte-for-byte the sentence this branch used to print below, so the authored
+  // death scenes are extended rather than replaced (T61's gate, reused).
+  const standing = standNarration(state, graph);
+  if (standing !== null) {
+    return { turn, day, hour, phase, location: here, narration: standing, choices: standChoices(state, graph) };
   }
 
   // The run has ended (T22): narrate how — a death, or since T87 a way out taken, offer nothing further.

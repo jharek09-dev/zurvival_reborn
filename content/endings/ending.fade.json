@@ -107,6 +107,57 @@
         "minCompanions": 1
       },
       "text": "Someone was still with you when it happened, which is more than most of this city managed."
+    },
+    {
+      "id": "what-you-left",
+      "weight": 38,
+      "when": {
+        "standActs": [
+          "leave-what-you-carry"
+        ]
+      },
+      "text": "The pack was beside you rather than on you, set down on purpose while you still could, which is not nothing to have got right at the end."
+    },
+    {
+      "id": "the-mark",
+      "weight": 36,
+      "when": {
+        "standActs": [
+          "leave-the-mark"
+        ]
+      },
+      "text": "There are three words scratched on the wall above where you stopped, in your own hand, and they are a warning rather than a name."
+    },
+    {
+      "id": "the-last-one",
+      "weight": 34,
+      "when": {
+        "standActs": [
+          "take-it-with-you"
+        ]
+      },
+      "text": "The thing that had you did not outlast you. It is on the floor where you left it, and that was the last decision you got to make."
+    },
+    {
+      "id": "the-reckoning",
+      "weight": 30,
+      "when": {
+        "standActs": [
+          "name-the-day",
+          "the-long-walk"
+        ]
+      },
+      "text": "You went back over it at the end, in order, and it held together — which is more than most of what happens here does."
+    },
+    {
+      "id": "stopped",
+      "weight": 26,
+      "when": {
+        "standActs": [
+          "stand.let-go"
+        ]
+      },
+      "text": "You did not fight the last of it. After everything you had spent fighting the rest, that reads less like giving up than like knowing the difference."
     }
   ]
 }
