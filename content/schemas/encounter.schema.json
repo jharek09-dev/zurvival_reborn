@@ -61,7 +61,10 @@
         "requiresShelter": { "type": "boolean" },
         "carriesItem": { "type": "string", "pattern": "^item\\." },
         "metNpc": { "type": "string", "pattern": "^npc\\." },
-        "npcHere": { "type": "string", "pattern": "^npc\\." }
+        "npcHere": { "type": "string", "pattern": "^npc\\." },
+        "faction": { "type": "string", "pattern": "^faction\\.", "description": "T86 \u00b7 the faction whose standing minReputation/maxReputation bound. Required whenever either bound is set; a bound with no faction, or one naming a faction this run never registered, FAILS the requirement rather than passing silently." },
+        "minReputation": { "type": "integer", "minimum": -100, "maximum": 100 },
+        "maxReputation": { "type": "integer", "minimum": -100, "maximum": 100 }
       }
     },
     "stage": {
@@ -94,6 +97,7 @@
         { "additionalProperties": false, "required": ["kind", "flag"], "properties": { "kind": { "const": "setRegionFlag" }, "flag": { "type": "string", "minLength": 1 }, "value": { "type": "boolean" }, "region": { "type": "string", "pattern": "^region\\." } } },
         { "additionalProperties": false, "required": ["kind", "delta"], "properties": { "kind": { "const": "adjustHumanity" }, "delta": { "type": "integer", "minimum": -100, "maximum": 100 } } },
         { "additionalProperties": false, "required": ["kind", "npc", "delta"], "properties": { "kind": { "const": "adjustTrust" }, "npc": { "type": "string", "pattern": "^npc\\." }, "delta": { "type": "integer", "minimum": -100, "maximum": 100 } } },
+        { "additionalProperties": false, "required": ["kind", "faction", "delta"], "properties": { "kind": { "const": "adjustReputation" }, "faction": { "type": "string", "pattern": "^faction\\." }, "delta": { "type": "integer", "minimum": -100, "maximum": 100 } } },
         { "additionalProperties": false, "required": ["kind", "need", "delta"], "properties": { "kind": { "const": "adjustNeed" }, "need": { "enum": ["hunger", "thirst", "fatigue"] }, "delta": { "type": "integer", "minimum": -100, "maximum": 100 } } },
         { "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "adjustMind" }, "stress": { "type": "integer", "minimum": -100, "maximum": 100 }, "morale": { "type": "integer", "minimum": -100, "maximum": 100 } } },
         { "additionalProperties": false, "required": ["kind", "item", "quantity"], "properties": { "kind": { "const": "grantItem" }, "item": { "type": "string", "pattern": "^item\\." }, "quantity": { "type": "integer", "minimum": 1, "maximum": 20 } } },

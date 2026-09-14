@@ -38,6 +38,7 @@ import type {
   HistoryEvent,
   InventoryEntry,
   NodeId,
+  GroupId,
   NodeState,
   Phase,
   RegionId,
@@ -52,6 +53,14 @@ import { addItemBounded } from "./inventory.js";
 import { depleteStash, stashUnits } from "./stash.js";
 import { depositNoiseAt } from "./noise.js";
 import { adjustTrust } from "./trust.js";
+import {
+  adjustReputationPublic,
+  factionIdOfNpc,
+  remember,
+  reputationOf,
+  socialActive,
+  REPUTATION_CRUELTY,
+} from "./reputation.js";
 import { inflictNamedWound } from "./wounds.js";
 import { isRunOver } from "./survival.js";
 import { overrunsPlayer } from "./hordes.js";
@@ -121,6 +130,15 @@ export interface EncounterRequirement {
   readonly metNpc?: ActorId;
   /** A living survivor with this id must be at the player's node. */
   readonly npcHere?: ActorId;
+  /**
+   * The faction whose standing {@link minReputation} / {@link maxReputation} bound (T86 · FR-NPC-10).
+   * Ignored unless at least one bound is set; a bound with no `faction`, or one naming a faction the run
+   * never registered, fails the requirement rather than passing silently — an authored gate that cannot
+   * be evaluated must not be treated as satisfied.
+   */
+  readonly faction?: GroupId;
+  readonly minReputation?: number;
+  readonly maxReputation?: number;
 }
 
 /** One declarative consequence. The interpreter ({@link applyEncounterEffect}) applies each purely. */
@@ -129,6 +147,7 @@ export type EncounterEffect =
   | { readonly kind: "setRegionFlag"; readonly flag: string; readonly value?: boolean; readonly region?: RegionId }
   | { readonly kind: "adjustHumanity"; readonly delta: number }
   | { readonly kind: "adjustTrust"; readonly npc: ActorId; readonly delta: number }
+  | { readonly kind: "adjustReputation"; readonly faction: GroupId; readonly delta: number }
   | { readonly kind: "adjustNeed"; readonly need: "hunger" | "thirst" | "fatigue"; readonly delta: number }
   | { readonly kind: "adjustMind"; readonly stress?: number; readonly morale?: number }
   | { readonly kind: "grantItem"; readonly item: string; readonly quantity: number }
@@ -375,6 +394,12 @@ export function humanityBand(state: GameState): string | null {
 interface EffectCtx {
   readonly encounterId: string;
   readonly node: NodeId;
+  /**
+   * The run's transient graph (T86). Optional: `adjustReputation` and the cruelty hook need the faction
+   * pool, and a call site that has no graph — every pre-T86 one — resolves them as no-ops, which is the
+   * same thing a run with no registered pool does.
+   */
+  readonly graph?: RegionGraph;
 }
 
 /**
@@ -383,6 +408,70 @@ interface EffectCtx {
  * Every branch is a fixed transform — this is the whole of the "no hard-coded branching" contract:
  * new encounters compose these verbs in data, they never add a branch here.
  */
+/**
+ * Everyone standing here watches a cruel act (T86 · FR-NPC-02, the `saw-cruelty` hook T53 reserved).
+ * Companions in the party and living survivors at the node both remember it — respect falls, fear
+ * climbs — and a survivor who belongs to a faction costs the player {@link REPUTATION_CRUELTY} standing
+ * with their people (spilling to that faction's rivals, who are pleased to hear it).
+ *
+ * Deterministic: survivors are visited in sorted id order. Inert — the same object back — without a
+ * graph or without a registered faction pool, which is the byte-identity guarantee, and inert when
+ * nobody is present, which is the common case.
+ */
+function witnessCruelty(state: GameState, ctx: EffectCtx): GameState {
+  const graph = ctx.graph;
+  if (graph === undefined || !socialActive(graph)) return state;
+  const turn = state.meta.turn;
+  const here = ctx.node;
+  let out = state;
+
+  // The first cut remembered onto every entry in `actors`, so a companion holding the base a region
+  // away picked up `saw-cruelty` too — and because `sim/social.ts` reads exactly those fields for
+  // desertion and betrayal, three remote cruel acts put a companion guarding the stash into betrayal
+  // range for something they could not have seen.
+  // Companions who are STANDING HERE, in sorted id order. The sort is hygiene, not load-bearing, and
+  // mutation testing says so: `remember` is applied to each companion independently with no
+  // cross-element interaction, so dropping the sort is a PROVEN-EQUIVALENT mutant today. It stays
+  // because the faction loop below is NOT order-independent and these two lists should not drift apart
+  // in how carefully they are built. There is deliberately no `alive` check:
+  // `Survivor` has no such field — `killCompanion` DELETES the entry from `actors` and stamps a
+  // `fallen.<id>` flag — so a check for one would be dead code that reads like a guarantee.
+  const companions = Object.keys(out.actors).sort().filter((id) => out.actors[id]?.location === here);
+  if (companions.length > 0) {
+    const actors = { ...out.actors };
+    for (const id of companions) {
+      const c = actors[id];
+      if (c !== undefined) actors[id] = remember(c, "saw-cruelty", turn);
+    }
+    out = { ...out, actors };
+  }
+
+  const present = Object.keys(out.npcs).sort().filter((id) => {
+    const n = out.npcs[id];
+    return n !== undefined && n.alive && n.location === here;
+  });
+  if (present.length === 0) return out;
+  const npcs = { ...out.npcs };
+  for (const id of present) {
+    const n = npcs[id];
+    if (n !== undefined) npcs[id] = remember(n, "saw-cruelty", turn);
+  }
+  out = { ...out, npcs };
+
+  // ONE charge per FACTION, not per witness. Charging per head made the standing cost depend on how many
+  // of a faction's people the off-screen sim happened to park in one room, and — because each charge
+  // spilled to every rival while the rival's own single charge did not scale — a cruel act in front of
+  // three of one faction's people came out as a NET GAIN with their rivals: measured at Slagworks
+  // −25 → +2 for emptying the Quad's ration crate, which is larger than every positive act the Crew
+  // authors put together. Deterministic: the distinct faction ids are visited in sorted order.
+  // The order here is inherited from `present`, which is already sorted by survivor id, so the Set
+  // preserves a deterministic sequence without a second sort — and the sequence matters, because a
+  // charge that clamps and then spills is not commutative at the band edges.
+  const factions = [...new Set(present.map((id) => factionIdOfNpc(graph, id)).filter((f): f is string => f !== null))];
+  for (const fid of factions) out = adjustReputationPublic(out, graph, fid, REPUTATION_CRUELTY);
+  return out;
+}
+
 export function applyEncounterEffect(state: GameState, effect: EncounterEffect, ctx: EffectCtx): GameState {
   switch (effect.kind) {
     case "setFlag":
@@ -394,11 +483,20 @@ export function applyEncounterEffect(state: GameState, effect: EncounterEffect, 
       const storyFlags = { ...region.storyFlags, [effect.flag]: effect.value ?? true };
       return { ...state, regions: { ...state.regions, [rid]: { ...region, storyFlags } } };
     }
+    case "adjustReputation":
+      // T86 · the authored standing channel. Inert without a faction pool, and the rival spill is
+      // derived inside `adjustReputation` — nothing about a feud is stored.
+      return adjustReputationPublic(state, ctx.graph, effect.faction, effect.delta);
     case "adjustHumanity": {
       const humanity = clampPct(humanityOf(state) + effect.delta);
       const withValue = { ...state, player: { ...state.player, humanity } };
+      // T86 · `saw-cruelty` finally has its occasion. T53 wrote the SOCIAL_DELTAS entry with the comment
+      // "reserved; needs an events hook" and the design review asked for exactly this one: cruelty done
+      // in front of people is remembered by the people who saw it. Eight authored encounters carry a
+      // negative `adjustHumanity`. Inert without a graph or a faction pool.
+      const witnessed = effect.delta < 0 ? witnessCruelty(withValue, ctx) : withValue;
       // A moral act is recorded for the run's memory (the M5 endings read the log, T61/T62).
-      return appendBeat(withValue, beat(withValue, "moral", [ctx.encounterId], { delta: effect.delta, humanity }));
+      return appendBeat(witnessed, beat(witnessed, "moral", [ctx.encounterId], { delta: effect.delta, humanity }));
     }
     case "adjustTrust": {
       const npc = state.npcs[effect.npc];
@@ -523,6 +621,14 @@ export function matchesRequirement(
   if (req.requiresShelter === true && (state.player.shelterId === null || state.player.shelterId !== nodeId)) return false;
   if (req.carriesItem !== undefined && !state.player.inventory.some((e) => e.type === req.carriesItem && e.quantity > 0)) return false;
   if (req.metNpc !== undefined && state.npcs[req.metNpc]?.met !== true) return false;
+  // T86 · standing with a faction. A bound with no `faction`, or one naming a faction this run never
+  // registered, FAILS — an authored gate the run cannot evaluate must not read as satisfied.
+  if (req.minReputation !== undefined || req.maxReputation !== undefined) {
+    if (req.faction === undefined) return false;
+    if (!(req.faction in state.player.reputation)) return false;
+    if (!inRange(reputationOf(state, req.faction), req.minReputation, req.maxReputation)) return false;
+  }
+
   if (req.npcHere !== undefined) {
     const npc = state.npcs[req.npcHere];
     if (npc === undefined || !npc.alive || npc.location !== nodeId) return false;
@@ -764,7 +870,9 @@ export function resolveEventAction(state: GameState, graph: RegionGraph | undefi
   const choice = cur.stage.choices.find((c) => c.id === choiceId);
   if (choice === undefined) return state;
 
-  const ctx: EffectCtx = { encounterId: cur.def.id, node: cur.active.node };
+  const ctx: EffectCtx = graph === undefined
+    ? { encounterId: cur.def.id, node: cur.active.node }
+    : { encounterId: cur.def.id, node: cur.active.node, graph };
   let s = state;
   for (const effect of choice.effects) s = applyEncounterEffect(s, effect, ctx);
 

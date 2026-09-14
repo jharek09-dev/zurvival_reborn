@@ -1,0 +1,70 @@
+{
+  "id": "encounter.hillcrest.the-vote",
+  "category": "social",
+  "title": "The vote on the quad",
+  "premise": "Standing: the Quad Collective decide, by show of hands, that you are one of theirs.",
+  "requirements": {
+    "regionIds": [
+      "region.hillcrest"
+    ],
+    "faction": "faction.quad-collective",
+    "minReputation": 40
+  },
+  "scope": "run",
+  "stages": [
+    {
+      "id": "s",
+      "narration": "They have put it to a vote, because that is what they do, and the butcher paper under the arch carries the count in a careful, teacherly hand. Your name is at the top of it. Beneath the tally somebody has written a single line about a chore roster, and initialled it, and left the pen on the string for you.",
+      "choices": [
+        {
+          "id": "sign",
+          "label": "Take the pen and put your name on the roster",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "grantItem",
+              "item": "item.canned-food",
+              "quantity": 1
+            },
+            {
+              "kind": "grantItem",
+              "item": "item.water",
+              "quantity": 1
+            },
+            {
+              "kind": "adjustMind",
+              "morale": 12
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.quad-collective",
+              "delta": 8
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "signed on with the Quad Collective"
+            }
+          ]
+        },
+        {
+          "id": "decline",
+          "label": "Thank them and leave the pen where it is",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "adjustMind",
+              "stress": 6
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "declined the Quad Collective's roster"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "T86 · the Quad's gated beat, pointed at the standing they can actually reach. It was first written on the LOW side (a vote about what you are), and the ceiling probe then measured the Collective's floor at −8 across every run — a gate no player could ever cross. A committee that rations by vote deciding to take someone in is the better fiction anyway. Region-gated: region.hillcrest is entered in 0% of ordinary runs (mortality, not topology — an immortal goal-directed bot reaches it in 87.5%), which is PL-M5-62, not something this beat can fix."
+}

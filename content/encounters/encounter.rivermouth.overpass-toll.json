@@ -33,6 +33,11 @@
               "kind": "logHistory",
               "event": "encounter.note",
               "note": "paid the overpass toll"
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.slagworks-crew",
+              "delta": 6
             }
           ],
           "requirements": {
@@ -54,6 +59,11 @@
             {
               "kind": "adjustMind",
               "stress": 6
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.slagworks-crew",
+              "delta": -4
             }
           ]
         },
@@ -93,6 +103,11 @@
             {
               "kind": "setFlag",
               "flag": "enc.toll.done"
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.slagworks-crew",
+              "delta": -18
             }
           ]
         },
@@ -104,6 +119,11 @@
             {
               "kind": "advanceStage",
               "to": "chase"
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.slagworks-crew",
+              "delta": -8
             }
           ]
         }
@@ -161,5 +181,5 @@
       ]
     }
   ],
-  "notes": "negotiation(talk) -> fight(violence, seeds T15 walkers) -> chase; a way out at every stage."
+  "notes": "negotiation(talk) -> fight(violence, seeds T15 walkers) -> chase; a way out at every stage. T86: the chain across the overpass is Slagworks Crew work. Pay it and they reckon you useful; put two of them down and the Ironworks closes to you — which the Holdout and the Quad, who feud with them, are glad to hear."
 }

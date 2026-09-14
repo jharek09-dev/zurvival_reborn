@@ -703,6 +703,30 @@ export {
   type NpcLead,
 } from "./sim/npcs.js";
 
+// Faction reputation — the standing axis made consequential (T86 · FR-NPC-10 · closes PL-M4-43)
+export {
+  reputationOf,
+  adjustReputation,
+  adjustReputationPublic,
+  factionRivalsOf,
+  standingOf,
+  standingIsHostile,
+  standingIsWarm,
+  effectiveDisposition,
+  standingBand,
+  standingLine,
+  REPUTATION_MIN,
+  REPUTATION_MAX,
+  REPUTATION_SHARE,
+  REPUTATION_RECRUIT,
+  REPUTATION_THREATEN,
+  REPUTATION_CRUELTY,
+  REPUTATION_SPILL_PCT,
+  REPUTATION_HOSTILE_AT,
+  REPUTATION_WARM_AT,
+  type StandingBand,
+} from "./sim/reputation.js";
+
 // Factions & inter-NPC relationships — per-character memory driving trust/respect/fear, ask-for-leads,
 // desertion/betrayal, inter-NPC bonds → shelter morale, and the off-screen people-sim (T53 · FR-NPC-02/05/06/07)
 export {

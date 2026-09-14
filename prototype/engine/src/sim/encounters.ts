@@ -24,6 +24,15 @@ import type { ActorId, GameState, NodeId, NPCState } from "../state/types.js";
 import type { Action, SceneChoice } from "../pipeline/contract.js";
 import type { RegionGraph } from "../map/types.js";
 import { applyTrustEvent, canParley, canRecruit } from "./trust.js";
+import {
+  adjustReputation,
+  effectiveDisposition,
+  factionIdOfNpc,
+  standingIsHostile,
+  REPUTATION_RECRUIT,
+  REPUTATION_SHARE,
+  REPUTATION_THREATEN,
+} from "./reputation.js";
 import { FOOD_ITEM, WATER_ITEM, EAT_RELIEF, DRINK_RELIEF, RELIEF_OFFER_AT } from "./survival.js";
 import { recruit, companionsHere, canRecruitEligible, companionName, COMPANION_SHARE_TRUST } from "./companions.js";
 import { stageRank } from "./infection.js";
@@ -68,7 +77,7 @@ export function survivorsHere(state: GameState, node: NodeId): readonly NPCState
  * present (talk while unmet, share food/water when carried & needed, recruit when the gate opens, threaten
  * while they'll still engage), then feed-your-companion options. Empty when no one is here. Stable order.
  */
-export function encounterPeople(state: GameState): readonly SceneChoice[] {
+export function encounterPeople(state: GameState, graph?: RegionGraph): readonly SceneChoice[] {
   const here = state.player.location;
   const choices: SceneChoice[] = [];
 
@@ -79,7 +88,19 @@ export function encounterPeople(state: GameState): readonly SceneChoice[] {
 
   for (const npc of survivorsHere(state, here)) {
     const id = npc.id;
-    const willEngage = canParley(npc);
+    // T86 · a survivor speaks for their people. Once a faction has been pushed to
+    // REPUTATION_HOSTILE_AT or below, its members will not TALK to the player however well this
+    // particular survivor was treated — trust is personal, standing is collective, and the collective
+    // closes the door first. Derived from the pool, so `graph` absent (or a run with no factions) is
+    // the exact T35 behaviour.
+    //
+    // But the door is not nailed shut. Sharing food or water stays on offer, because if every verb that
+    // could RAISE standing went away at the floor, a hated faction would be a permanent dead end with no
+    // authored way back — the audit measured exactly that: at hated standing, not one offered choice
+    // could raise the faction again. They will not speak to you; they will still take a meal.
+    const engagesAtAll = canParley(npc);
+    const shunned = standingIsHostile(state, graph, id);
+    const willEngage = engagesAtAll && !shunned;
 
     if (willEngage && !npc.met) {
       choices.push({
@@ -89,7 +110,7 @@ export function encounterPeople(state: GameState): readonly SceneChoice[] {
         action: { type: "talk", choiceId: `talk:${id}`, timeCost: TALK_COST, params: { npc: id } },
       });
     }
-    if (willEngage && carries(state, FOOD_ITEM) && npc.needs.hunger >= RELIEF_OFFER_AT) {
+    if (engagesAtAll && carries(state, FOOD_ITEM) && npc.needs.hunger >= RELIEF_OFFER_AT) {
       choices.push({
         id: `give-food:${id}`,
         label: `Share food with ${npc.name}`,
@@ -97,7 +118,7 @@ export function encounterPeople(state: GameState): readonly SceneChoice[] {
         action: { type: "give-food", choiceId: `give-food:${id}`, timeCost: GIVE_COST, params: { npc: id } },
       });
     }
-    if (willEngage && carries(state, WATER_ITEM) && npc.needs.thirst >= RELIEF_OFFER_AT) {
+    if (engagesAtAll && carries(state, WATER_ITEM) && npc.needs.thirst >= RELIEF_OFFER_AT) {
       choices.push({
         id: `give-water:${id}`,
         label: `Share water with ${npc.name}`,
@@ -105,7 +126,7 @@ export function encounterPeople(state: GameState): readonly SceneChoice[] {
         action: { type: "give-water", choiceId: `give-water:${id}`, timeCost: GIVE_COST, params: { npc: id } },
       });
     }
-    if (npc.met && canRecruit(npc) && canRecruitEligible(state, npc) && !visiblyDying) {
+    if (npc.met && canRecruit(npc) && canRecruitEligible(state, npc, graph) && !visiblyDying) {
       choices.push({
         id: `recruit:${id}`,
         label: `Ask ${npc.name} to join you`,
@@ -185,7 +206,12 @@ function give(
     // remembered — respect edges up, fear eases — but this overlay is gated, so a pool-less run is untouched.
     const fed = applyTrustEvent({ ...npc, needs }, "share");
     const remembered = socialActive(graph) ? remember(fed, "kindness", state.meta.turn) : fed;
-    return { ...state, player, npcs: { ...state.npcs, [npcId]: remembered } };
+    const shared = { ...state, player, npcs: { ...state.npcs, [npcId]: remembered } };
+    // T86 · word gets back to their own. A shared meal is a PRIVATE act: it moves this faction and
+    // nobody else. Spilling it onto their rivals as well made standing farmable — alternate a meal
+    // between two feuding factions and both climb — so the spill lives on the public channel only
+    // (`adjustReputationPublic`; see REPUTATION_SPILL_PCT). Inert without a pool.
+    return adjustReputation(shared, graph, factionIdOfNpc(graph, npcId), REPUTATION_SHARE);
   }
   if (compId !== null) {
     const c = state.actors[compId];
@@ -208,7 +234,10 @@ function threaten(state: GameState, id: ActorId, graph: RegionGraph | undefined)
   // climbs hard, respect barely — which is what later drives desertion/betrayal. Gated, so no prior run moves.
   const cowed = applyTrustEvent(npc, "threaten");
   const remembered = socialActive(graph) ? remember(cowed, "menaced-me", state.meta.turn) : cowed;
-  return { ...state, npcs: { ...state.npcs, [id]: remembered } };
+  const cowedState = { ...state, npcs: { ...state.npcs, [id]: remembered } };
+  // T86 · the asymmetry is the point: menacing one of their people costs three shares' worth of
+  // standing, so a faction is cheap to lose and slow to win back (the T34 TRUST_DELTAS idiom).
+  return adjustReputation(cowedState, graph, factionIdOfNpc(graph, id), REPUTATION_THREATEN);
 }
 
 /**
@@ -229,8 +258,15 @@ export function resolveEncounterAction(state: GameState, action: Action, graph?:
       return give(state, npcId, compId, WATER_ITEM, "thirst", DRINK_RELIEF, graph);
     case "threaten":
       return npcId === null ? state : threaten(state, npcId, graph);
-    case "recruit":
-      return npcId === null ? state : recruit(state, npcId);
+    case "recruit": {
+      if (npcId === null) return state;
+      const joined = recruit(state, npcId, graph);
+      // T86 · taking one of their people in is the strongest positive standing move the engine offers,
+      // and `recruit` refuses cleanly, so gate on the recruit having actually happened rather than on
+      // the offer having been made.
+      if (joined === state || joined.actors[npcId] === undefined) return joined;
+      return adjustReputation(joined, graph, factionIdOfNpc(graph, npcId), REPUTATION_RECRUIT);
+    }
     default:
       return state;
   }

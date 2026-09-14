@@ -1,0 +1,96 @@
+{
+  "id": "encounter.ironworks.the-reckoning",
+  "category": "social",
+  "title": "The reckoning at the works",
+  "premise": "Standing: the Slagworks Crew have decided what you are, and this is their ground.",
+  "requirements": {
+    "regionIds": [
+      "region.ironworks"
+    ],
+    "faction": "faction.slagworks-crew",
+    "maxReputation": -40
+  },
+  "scope": "run",
+  "stages": [
+    {
+      "id": "s",
+      "narration": "Two of them step out of the sheet-metal shadow ahead of you and a third closes the gap behind, unhurried, the way people move when the arithmetic is already done. Nobody says your name. Nobody has to — word runs the length of the Ironworks faster than you walk it, and it got here first.",
+      "choices": [
+        {
+          "id": "pay",
+          "label": "Put down what you're carrying and back out of the works",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "depleteStash",
+              "units": 2
+            },
+            {
+              "kind": "adjustMind",
+              "stress": 10
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.slagworks-crew",
+              "delta": 14
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "paid off the Slagworks Crew to walk out of the Ironworks"
+            }
+          ]
+        },
+        {
+          "id": "stand",
+          "label": "You've come too far to be turned around — stand",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "seedWalkers",
+              "count": 2,
+              "types": [
+                "zombie.fresh"
+              ]
+            },
+            {
+              "kind": "addNoise",
+              "amount": 30
+            },
+            {
+              "kind": "adjustMind",
+              "stress": 16
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.slagworks-crew",
+              "delta": -10
+            }
+          ]
+        },
+        {
+          "id": "run",
+          "label": "Take the gap behind the third one and run",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "adjustNeed",
+              "need": "fatigue",
+              "delta": 18
+            },
+            {
+              "kind": "addNoise",
+              "amount": 20
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "ran the Ironworks gauntlet"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "T86 · the low-standing cash-out, sited on the REGION rather than the faction's home node: measured before this task, the Foundry itself is stood on in 0% of ordinary runs, so a homeNode gate would have constrained an empty set. One-shot, so it pre-empts the ambient tier once — the district stops being background."
+}

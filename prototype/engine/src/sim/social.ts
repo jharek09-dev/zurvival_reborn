@@ -46,6 +46,10 @@ import type { Action, SceneChoice } from "../pipeline/contract.js";
 import type { RegionGraph } from "../map/types.js";
 import type { NPCDef, NpcLead } from "./npcs.js";
 import { companionIds, isCompanion } from "./companions.js";
+// T86 moved the faction-graph readers into `sim/reputation.ts` so that module can stay a leaf (events.ts
+// reads reputation, social.ts reads events.ts — importing the other way would close a cycle). They are
+// re-exported verbatim below, so every prior import site and the barrel are untouched.
+import { factionPool, factionOf, factionIdOfNpc, areRivals, socialActive, standingIsHostile, remember, respectOf, fearOf, memoryOf, band, DEFAULT_RESPECT, type AxisActor } from "./reputation.js";
 import { bankHours, wholeHours } from "./clocks.js";
 import { humanityOf } from "./events.js";
 import { neighborsOf } from "../map/regionGraph.js";
@@ -87,14 +91,17 @@ export interface FactionDef {
   readonly baseline?: FactionBaseline;
   /** Pairs of members (or cross-faction ids) who don't get along — seeds a negative `relationships` bond. */
   readonly rivalries?: readonly FactionPair[];
+  /**
+   * Factions this one feuds with (T86). Optional: a feud between two factions whose named survivors
+   * already grudge each other is DERIVED from `rivalries` and needs no entry here — this is for a
+   * standing-level rivalry with no survivor pair behind it. Symmetric; one end is enough.
+   * See {@link import("./reputation.js").factionRivalsOf}.
+   */
+  readonly rivals?: readonly GroupId[];
 }
 
 // --- dials (first-pass identity values; M5 T59/T60 balance) -----------------------------------
 
-/** Most memories a survivor keeps — bounded so a long run never grows the save unboundedly (PL-M2-06). */
-export const MEMORY_CAP = 12;
-/** Neutral starting respect when a survivor has never been read (they don't defer to a stranger yet). */
-export const DEFAULT_RESPECT = 30;
 /** Time cost (hours) of asking a survivor what they know — a real, costed turn (FR-CORE-03). */
 export const ASK_COST = 1;
 /** Trust a survivor needs before they'll share a lead, unless the lead authors its own `minTrust`. */
@@ -102,20 +109,6 @@ export const ASK_TRUST_MIN = 40;
 /** Confiding builds the bond a little — the trust/respect a shared lead earns (listening matters both ways). */
 export const ASK_TRUST_GAIN = 3;
 export const ASK_RESPECT_GAIN = 4;
-
-/**
- * Signed respect/fear steps per remembered act — asymmetric (harm outweighs help), echoing T34's `TRUST_DELTAS`.
- * `trust` is NOT here: it keeps moving through T34's `applyTrustEvent`, so this overlay never double-counts it.
- */
-export const SOCIAL_DELTAS: { readonly [kind: string]: { readonly respect: number; readonly fear: number } } = {
-  kindness: { respect: 4, fear: -2 }, // sharing food/water
-  "stood-by-me": { respect: 8, fear: 0 }, // helped / kept a promise
-  confided: { respect: 2, fear: 0 }, // shared a lead (the ask bond)
-  "menaced-me": { respect: -6, fear: 18 }, // threatened — a bully is feared, not respected (drives the hard turns)
-  "robbed-me": { respect: -6, fear: 10 },
-  abandoned: { respect: -10, fear: 6 },
-  "saw-cruelty": { respect: -4, fear: 8 }, // witnessed cruelty to another (reserved; needs an events hook)
-};
 
 /** A companion is neglected (unfed) above this need — an individual mistreatment that erodes morale + trust. */
 export const NEGLECT_AT = 50;
@@ -166,24 +159,23 @@ const clampPct = (n: number): number => Math.max(0, Math.min(100, Math.trunc(n))
 
 // --- pool on the transient graph (never serialized) -------------------------------------------
 
-/** The registered faction pool for this run, or empty when none is registered (inert). */
-export function factionPool(graph: RegionGraph | undefined): readonly FactionDef[] {
-  return graph?.factions ?? [];
-}
-
-/** Look up a faction def by id. */
-export function factionOf(graph: RegionGraph | undefined, id: GroupId): FactionDef | undefined {
-  return factionPool(graph).find((f) => f.id === id);
-}
-
 /**
- * Is the social system active on this run? The master gate: a graph built without a faction pool leaves the
- * whole social layer dark — no memory, no respect/fear, no ask, no desertion/betrayal, no morale drift, no
- * off-screen people tick, no movement — so every prior run (which registers none) is byte-identical.
+ * The faction-graph readers now live in {@link import("./reputation.js")} (T86) — re-exported here so
+ * every T53-era import path keeps working unchanged.
  */
-export function socialActive(graph: RegionGraph | undefined): boolean {
-  return factionPool(graph).length > 0;
-}
+export { factionPool, factionOf, factionIdOfNpc, areRivals, socialActive };
+export {
+  MEMORY_CAP,
+  DEFAULT_RESPECT,
+  SOCIAL_DELTAS,
+  respectOf,
+  fearOf,
+  memoryOf,
+  remember,
+  band,
+  type AttitudeBand,
+  type AxisActor,
+} from "./reputation.js";
 
 /** The survivor catalog registered for this run (for reading authored `knowledge`), or empty. */
 export function peopleCatalog(graph: RegionGraph | undefined): readonly NPCDef[] {
@@ -193,54 +185,6 @@ export function peopleCatalog(graph: RegionGraph | undefined): readonly NPCDef[]
 /** The authored def for a survivor id (for their `knowledge` leads). */
 export function npcDefOf(graph: RegionGraph | undefined, id: ContentId): NPCDef | undefined {
   return peopleCatalog(graph).find((d) => d.id === id);
-}
-
-// --- the attitude axes (optional/tolerated-absent — the T52 discipline) -----------------------
-
-/** A survivor with the optional social axes — both {@link NPCState} and {@link Survivor} satisfy it. */
-type AxisActor = {
-  readonly respect?: number;
-  readonly fear?: number;
-  readonly memory?: readonly SocialMemory[];
-};
-
-/** Respect toward the player (defaults to {@link DEFAULT_RESPECT} when never read). */
-export function respectOf(actor: AxisActor): number {
-  return actor.respect ?? DEFAULT_RESPECT;
-}
-/** Fear of the player (defaults to 0). */
-export function fearOf(actor: AxisActor): number {
-  return actor.fear ?? 0;
-}
-/** A survivor's remembered social events (empty when none). */
-export function memoryOf(actor: AxisActor): readonly SocialMemory[] {
-  return actor.memory ?? [];
-}
-
-/**
- * Record a remembered act and nudge the survivor's respect/fear by it (FR-NPC-02). Pure — returns a new
- * survivor with the memory appended (bounded to {@link MEMORY_CAP}) and the axes moved. Generic over
- * {@link NPCState} and {@link Survivor}. Callers apply this ONLY when {@link socialActive}, so a pool-less
- * run never writes a memory/respect/fear field — the byte-identity guarantee.
- */
-export function remember<T extends AxisActor>(actor: T, kind: string, turn: number, other?: ActorId): T {
-  const d = SOCIAL_DELTAS[kind];
-  const respect = clampPct(respectOf(actor) + (d?.respect ?? 0));
-  const fear = clampPct(fearOf(actor) + (d?.fear ?? 0));
-  const entry: SocialMemory = other === undefined ? { kind, turn } : { kind, turn, other };
-  const prior = memoryOf(actor);
-  const memory = [...prior, entry].slice(-MEMORY_CAP);
-  return { ...actor, respect, fear, memory };
-}
-
-/** A legible band for respect/fear/trust prose (never a number — FR-UI-02). */
-export type AttitudeBand = "none" | "low" | "some" | "high";
-export function band(value: number): AttitudeBand {
-  const v = clampPct(value);
-  if (v < 20) return "none";
-  if (v < 45) return "low";
-  if (v < 70) return "some";
-  return "high";
 }
 
 // --- faction seeding (startRun) ---------------------------------------------------------------
@@ -273,24 +217,6 @@ export function seedFactions(state: GameState, defs: readonly FactionDef[]): Gam
 }
 
 // --- inter-NPC bonds (FR-NPC-07) --------------------------------------------------------------
-
-/** The faction id that lists `npcId` as a member (first by sorted faction id), or null. */
-export function factionIdOfNpc(graph: RegionGraph | undefined, npcId: ContentId): GroupId | null {
-  for (const f of [...factionPool(graph)].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) {
-    if (f.members.includes(npcId)) return f.id;
-  }
-  return null;
-}
-
-/** Whether two survivors are named rivals in any faction's `rivalries`. */
-export function areRivals(graph: RegionGraph | undefined, a: ContentId, b: ContentId): boolean {
-  for (const f of factionPool(graph)) {
-    for (const r of f.rivalries ?? []) {
-      if ((r.a === a && r.b === b) || (r.a === b && r.b === a)) return true;
-    }
-  }
-  return false;
-}
 
 /**
  * The seeded bond between two survivors: negative if they are rivals, positive if they share a faction, else
@@ -352,6 +278,11 @@ function askableHere(state: GameState, graph: RegionGraph | undefined): readonly
   for (const id of Object.keys(state.npcs).sort()) {
     const npc = state.npcs[id]!;
     if (!npc.alive || !npc.met || npc.location !== here) continue;
+    // T86 · a faction that has cut the player off does not go on confiding in them. `ask` was the one
+    // people-verb T86's first cut left open, so a hated faction kept handing over the most valuable
+    // social output in the game — a map reveal — while the same Scene paragraph said there was nothing
+    // to talk about. Derived from the pool, so a run with no factions is the exact T53 behaviour.
+    if (standingIsHostile(state, graph, npc.id)) continue;
     const lead = untoldLead(state, graph, npc);
     if (lead !== null) out.push({ npc, lead });
   }
