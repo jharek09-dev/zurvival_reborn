@@ -561,11 +561,20 @@ export function renderShelter(state: GameState, graph?: RegionGraph): readonly s
 
   // The standing status, then the persisted daily report — what your absence cost, from the append-only
   // Living History (the this-turn `jobLine` alone is gone one action later, so scan the log instead, F4).
-  const sLine = shelterLine(state);
+  const sLine = shelterLine(state, graph);
   if (sLine) body.push("", sLine);
   const REPORTABLE = new Set([
     "shelter.weakened",
     "shelter.fortified",
+    // T83: the nights. A base screen that does not report the siege is a base screen that never
+    // mentions the only thing that can take the base away. `siege.passed` is deliberately NOT here:
+    // measured, it is 74.5% of resolved nights, and "something moved past and kept going" four times in
+    // a row would push the three outcomes that matter off a four-line list. It still renders through
+    // `historyLine` in the Map & Journal log, where the full record belongs.
+    "siege.repelled",
+    "siege.held",
+    "siege.breached",
+    "shelter.abandoned",
     "social.deserted",
     "social.betrayed",
     "social.confided",
@@ -575,7 +584,7 @@ export function renderShelter(state: GameState, graph?: RegionGraph): readonly s
   const baseNews = state.history.filter((e) => REPORTABLE.has(e.type)).slice(-4).reverse();
   section(body, "Recent at the base", baseNews.map(historyLine));
 
-  body.push("", "Claim, fortify, assign jobs, and rest appear in your choices at the base.");
+  body.push("", "Claim, fortify, assign jobs, rest — and leaving — appear in your choices at the base.");
   return frame(screenById("shelter"), body);
 }
 
@@ -668,6 +677,23 @@ export function historyLine(ev: HistoryEvent): string {
       break;
     case "shelter.weakened":
       what = "your walls took damage";
+      break;
+    // T83 — the night attack. Each of the four outcomes reads differently, because "siege held" and
+    // "siege breached" are not the same night and the log is where the player finds out which it was.
+    case "siege.passed":
+      what = "something moved past the walls in the dark and kept going";
+      break;
+    case "siege.repelled":
+      what = "they came at the walls in the night, and the walls held them";
+      break;
+    case "siege.held":
+      what = "they came in the night and took what they could reach";
+      break;
+    case "siege.breached":
+      what = "they came through the walls in the night — the place is theirs now";
+      break;
+    case "shelter.abandoned":
+      what = "you closed the door behind you for the last time";
       break;
     case "story.arc":
     case "story.beat":
