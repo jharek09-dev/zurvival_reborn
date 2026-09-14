@@ -5,6 +5,7 @@
   "name": "Subway Entrance",
   "description": "Stairs down into standing water and total dark, where the trains stopped. A tunnel runs under the city — toward the hospital, if the wall map is right.",
   "kind": "generic",
+  "richness": 35,
   "adjacent": [
     "node.downtown.city-hall",
     "node.downtown.parking-structure",

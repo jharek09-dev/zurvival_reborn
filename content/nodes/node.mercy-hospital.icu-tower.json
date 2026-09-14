@@ -5,6 +5,7 @@
   "name": "ICU Tower",
   "description": "The intensive-care floors, monitors dead on their arms, a patient strapped into every bed. Not all of the straps held.",
   "kind": "medical",
+  "richness": 80,
   "walkers": 3,
   "adjacent": [
     "node.mercy-hospital.morgue",

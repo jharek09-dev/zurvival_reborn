@@ -12,6 +12,12 @@ export {
   isVisited,
   discoveredNodeIds,
   discoverAround,
+  isScouted,
+  scoutIsFresh,
+  markScoutedHere,
+  nodesWithin,
+  scoutFrom,
+  SCOUT_MEMORY_DAYS,
   type NodeMap,
 } from "./fogOfWar.js";
 export {

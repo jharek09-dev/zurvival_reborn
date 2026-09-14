@@ -5,6 +5,7 @@
   "name": "University Quad",
   "description": "The green heart of the campus, ringed by lecture halls and watched from a hundred dark windows. Cross it fast, or skirt the colonnade.",
   "kind": "generic",
+  "richness": 25,
   "adjacent": [
     "node.hillcrest.dormitory",
     "node.hillcrest.lecture-hall",

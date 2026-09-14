@@ -5,6 +5,7 @@
   "name": "Emergency Room",
   "description": "Triage tents still standing in the ambulance drive, the doors beyond them dark. This is where the city's sick came, and where it turned.",
   "kind": "medical",
+  "richness": 90,
   "adjacent": [
     "node.mercy-hospital.ambulance-bay",
     "node.mercy-hospital.blood-bank",

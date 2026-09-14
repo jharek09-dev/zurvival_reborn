@@ -18,8 +18,9 @@ import type { GameState, NodeId, NPCState } from "../state/types.js";
 import type { Action, Scene, SceneChoice } from "../pipeline/contract.js";
 import type { RegionGraph } from "../map/types.js";
 import { neighborsOf } from "../map/regionGraph.js";
-import { discoverAround } from "../map/fogOfWar.js";
-import { resolveSearchLoot } from "../sim/loot.js";
+import { nodesWithin } from "../map/fogOfWar.js";
+import { discoverAround, scoutFrom, isScouted, scoutIsFresh, markScoutedHere } from "../map/fogOfWar.js";
+import { resolveSearch, richnessAuthored, richnessOf, searchYieldCap } from "../sim/loot.js";
 import { dropItem, dropArtifact, inventoryWeight, itemName, CARRY_CAPACITY, PACK_HEAVY } from "../sim/inventory.js";
 import { NOISE_SEARCH } from "../sim/noise.js";
 import { phaseSearchNoise } from "../sim/timeOfDay.js";
@@ -94,11 +95,52 @@ import { socialChoices, isSocialAction, resolveSocialAction, socialLine, socialA
 // The core action time costs moved to the leaf module `actions/costs.ts` (T77) so the combat layer —
 // which `coreActions` imports, and which must define `SLIP_COST` as `MOVE_COST + 1` — can read them
 // without closing an import cycle. Re-exported here so every existing importer is unchanged.
-export { MOVE_COST, SEARCH_COST, REST_COST, DROP_COST } from "./costs.js";
-import { MOVE_COST, SEARCH_COST, REST_COST, DROP_COST } from "./costs.js";
+export { MOVE_COST, SEARCH_COST, REST_COST, DROP_COST, SCOUT_COST, NOTE_COST } from "./costs.js";
+import { MOVE_COST, SEARCH_COST, REST_COST, DROP_COST, SCOUT_COST, NOTE_COST } from "./costs.js";
 
 /** How much a single search advances a node's searchPct (3 searches exhaust a node). */
 export const SEARCH_GAIN = 34;
+
+/**
+ * How far the `scout` verb sees (M5 task T84 · FR-MAP-02). Two route steps: one further than arriving
+ * somewhere already gives you for free, so the verb buys a frontier the walk does not.
+ */
+export const SCOUT_HOPS = 2;
+
+/**
+ * The notes a player can pin to a node (M5 task T84 · GDD Part VII design rule 5, Principle 3).
+ *
+ * `NodeState.playerNotes` has been in the shape since T3 and the map screen has advertised the verb in
+ * so many words — *"Travel (with its time and noise) and add-a-note appear in your choices"* — since
+ * T54, while the field had **exactly one writer in the engine: the seed, writing `[]`** (PL-M4-46,
+ * verified `measure/t84.ts`). This is that line made true.
+ *
+ * A fixed phrase set rather than free text, because the engine's contract is a *choice* list: the
+ * client picks an id, it does not type. The engine still accepts any string on `params.text`, so a GUI
+ * client can offer the handwriting the GDD describes — these are what the text harness can offer, and
+ * they are the GDD's own examples ("safehouse here", "gun store, came back empty").
+ *
+ * **Exactly one is ever offered at a time**, chosen from the node by `noteFor` — see the offer site.
+ */
+export const NOTE_PHRASES = {
+  safehouse: "safehouse here",
+  empty: "came back empty",
+  again: "worth another look",
+  dead: "dead here — careful",
+} as const;
+
+/** Every phrase the text harness can pin, for a client that wants to render the vocabulary. */
+export const NOTE_PHRASE_LIST: readonly string[] = Object.values(NOTE_PHRASES);
+
+/** Longest note the engine will store, so a hand-edited save cannot put a novel in a node. */
+export const NOTE_MAX_LENGTH = 120;
+/**
+ * Most notes one node will hold. A **backstop, not a working limit**: the harness offers four distinct
+ * phrases and `noteFor` stops offering once the node carries them all, so on the shipped vocabulary the
+ * `.slice()` below can never truncate. It exists for the free-text path a GUI client can use
+ * (`params.text` accepts any string), which has no such ceiling.
+ */
+export const NOTE_MAX_PER_NODE = 6;
 /** Fatigue a single rest recovers — re-exported from the survival module (T22 owns needs). */
 export { REST_RECOVERY } from "../sim/survival.js";
 /** Fatigue recovered per hour of sleep — re-exported from survival (T22/T58 owns needs). */
@@ -181,9 +223,23 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
     const name = graph.nodes[to]?.name ?? to;
     const cond = conditionOf(wear);
     const suffix = cond === "costly" ? " — the road is rough" : cond === "flooded" ? " — the way is flooded" : "";
+    // T84: what you know about where you are going. A node you have SCOUTED (stood in, or looked at
+    // from a block away) reports its dead before you commit two hours to walking in; a merely
+    // *discovered* one is a name and a direction, which is all walking ever bought you. This is the
+    // whole return on `scout` — the reveal radius is the cheap half (see `map/fogOfWar.ts#scoutFrom`).
+    // Only a FRESH look is quoted. The count itself is read live, which is why the freshness window
+    // matters: without it a node glanced at on day one went on reporting its day-four population, which
+    // is a surveillance channel the game does not otherwise have. A stale mark says so and no more.
+    const intel = scoutIsFresh(neighbor, state.meta.day)
+      ? neighbor.walkers > 0
+        ? ` — ${neighbor.walkers === 1 ? "one of the dead" : `${neighbor.walkers} dead`} standing there`
+        : " — you looked: it is quiet"
+      : isScouted(neighbor)
+        ? " — you have been, but not lately"
+        : "";
     choices.push({
       id: `move:${to}`,
-      label: `Travel to ${name}${suffix}`,
+      label: `Travel to ${name}${suffix}${intel}`,
       timeCost: cost,
       action: { type: "move", choiceId: `move:${to}`, timeCost: cost, params: { to } },
     });
@@ -198,7 +254,47 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
       nightNoise > 0
         ? { type: "search", choiceId: "search", timeCost: SEARCH_COST, params: { noise: NOISE_SEARCH + nightNoise } }
         : { type: "search", choiceId: "search", timeCost: SEARCH_COST };
-    choices.push({ id: "search", label: `Search ${name}`, timeCost: SEARCH_COST, action: searchAction });
+    // T84: say when a place has nothing left to give. Searching a stripped node is NOT a dead
+    // affordance — it still advances `searchPct`, which is the prerequisite for claiming a safehouse —
+    // but it will not pay in goods, and a Scene that offers two hours and 25 noise without saying so is
+    // lying by omission. Measured: at full regional stock 11 of 180 (node, searchPct) pairs on the
+    // shipped city have a zero cap, rising as the district thins — and the pre-T84 tree reaches 32 of
+    // 180 once a region is down to a third, so this is a pre-existing shape that per-node richness
+    // makes visible earlier, not one it invents.
+    const stock = state.regions[node.regionId]?.loot ?? 0;
+    const yieldable = searchYieldCap(stock, node.searchPct, richnessAuthored(graph) ? richnessOf(graph, here) : undefined) > 0;
+    const searchLabel = yieldable ? `Search ${name}` : `Search ${name} — it looks stripped`;
+    choices.push({ id: "search", label: searchLabel, timeCost: SEARCH_COST, action: searchAction });
+  }
+
+  // Scout (T84 · FR-MAP-02): one hour, no noise, look two route steps out. Offered only while there is
+  // something left to look at — a neighbourhood already scouted to the last block would be an hour spent
+  // on nothing, and a choice that cannot change the state is the dead affordance this task is here to
+  // remove, not add. Placed after `search` so the explore branch reads walk / search / look / eat.
+  if (unscoutedWithin(state, graph, here) > 0) {
+    choices.push({
+      id: "scout",
+      label: "Scout the surrounding blocks",
+      timeCost: SCOUT_COST,
+      action: { type: "scout", choiceId: "scout", timeCost: SCOUT_COST, params: { noise: 0 } },
+    });
+  }
+
+  // Add a note (T84 · GDD Part VII rule 5): the map is a journal, and until now nothing could write in
+  // it. Free (the T18 pack-management rule) and — deliberately — **exactly one choice**, carrying the
+  // phrase this place has earned (`noteFor`). The first cut offered every phrase in the vocabulary on
+  // every quiet turn — four extra lines on a screen FR-UI-01 asks to hold one decision, and a
+  // random-picking bot would have journalled instead of playing a proportionate share of the time, an
+  // instrument defect of exactly the T81 class. Caught by `loop.test.ts` before it reached a
+  // measurement, which is the assertion earning its keep.
+  const noteText = noteFor(state, graph, node);
+  if (noteText !== null) {
+    choices.push({
+      id: "note",
+      label: `Note on the map: "${noteText}"`,
+      timeCost: NOTE_COST,
+      action: { type: "note", choiceId: "note", timeCost: NOTE_COST, params: { text: noteText } },
+    });
   }
 
   // Survival actions (T22): spend a scavenged item to buy a need back down / treat a wound. Offered
@@ -350,8 +446,85 @@ function applyMove(state: GameState, graph: RegionGraph, to: NodeId): GameState 
   const node = state.nodes[to];
   if (node === undefined) return state;
   const visited = { ...node, lastVisit: state.meta.day };
-  const nodes = discoverAround({ ...state.nodes, [to]: visited }, graph, to);
+  // Arriving still reveals one hop — the brief proposed removing that and the measurement refused it
+  // (travel already offers nothing on 52.7% of turns, and `move` requires `discovered`). What arriving
+  // does NOT do is tell you about the neighbours: only the node you are standing in is marked looked-at
+  // (T84), which is what leaves `scout` something to sell.
+  const revealed = discoverAround({ ...state.nodes, [to]: visited }, graph, to);
+  const nodes = markScoutedHere(revealed, to, state.meta.day);
   return { ...state, player: { ...state.player, location: to }, nodes };
+}
+
+/**
+ * The one phrase this place has earned, or null when the node already carries everything it could say
+ * (or is full). The map is a journal, not a form: what the player pins should be *about here*, which
+ * is why this reads the node rather than offering a menu.
+ *
+ * Ordered most-specific first, so a defensible node the player has just fought over reads as the
+ * warning it is rather than as an estate agent's note.
+ */
+function noteFor(state: GameState, graph: RegionGraph, node: GameState["nodes"][string]): string | null {
+  const notes = node.playerNotes ?? [];
+  if (notes.length >= NOTE_MAX_PER_NODE) return null;
+  const here = state.player.location;
+  const candidates: string[] = [];
+  // `walkers > 0` is deliberately NOT read here: `availableActions` hands that state to
+  // `encounterChoices` before the explore branch is reached, so a note is never offered at a contested
+  // node and a condition on it would be unreachable (an audit caught the first cut asserting it).
+  // Bodies on the floor are a different thing — they outlive the fight, which is the point of T84
+  // writing `corpses` at all.
+  if (node.corpses > 0) candidates.push(NOTE_PHRASES.dead);
+  if (graph.nodes[here]?.claimable === true && state.player.shelterId !== here) candidates.push(NOTE_PHRASES.safehouse);
+  if (node.searchPct >= 100) candidates.push(NOTE_PHRASES.empty);
+  // The fallback, and the only phrase that needs no condition. The first cut pushed it twice — once
+  // behind `0 < searchPct < 100`, once unconditionally — which was exactly redundant.
+  candidates.push(NOTE_PHRASES.again);
+  for (const text of candidates) if (!notes.includes(text)) return text;
+  return null;
+}
+
+/**
+ * How many nodes within {@link SCOUT_HOPS} of `from` the player has not yet looked at — the gate on
+ * offering `scout` at all, and the reason the verb quietly disappears once a neighbourhood is known.
+ */
+function unscoutedWithin(state: GameState, graph: RegionGraph, from: NodeId): number {
+  let n = 0;
+  for (const id of nodesWithin(graph, from, SCOUT_HOPS)) {
+    if (id === from) continue; // you are standing in it; looking again buys nothing
+    const node = state.nodes[id];
+    // A place never looked at, or one whose look has gone stale, is a place worth the hour.
+    if (node !== undefined && !scoutIsFresh(node, state.meta.day)) n += 1;
+  }
+  return n;
+}
+
+/**
+ * Apply a scout: everything within {@link SCOUT_HOPS} becomes discovered and scouted (T84). Costs an
+ * hour and deposits no noise (the action carries `params.noise: 0`, which stage 6 honours), so it is
+ * the one explore verb that leaves the block exactly as quiet as it found it.
+ */
+function applyScout(state: GameState, graph: RegionGraph): GameState {
+  const nodes = scoutFrom(state.nodes, graph, state.player.location, SCOUT_HOPS, state.meta.day);
+  return nodes === state.nodes ? state : { ...state, nodes };
+}
+
+/**
+ * Apply a note: pin the player's own words to this node (T84 · GDD Part VII rule 5). Trimmed, length-
+ * capped and de-duplicated; the oldest falls off once the node holds {@link NOTE_MAX_PER_NODE}. Total
+ * about its input because a hand-edited save reaches here — an empty or non-string `text` writes
+ * nothing rather than pinning `undefined` to the map.
+ */
+function applyNote(state: GameState, text: unknown): GameState {
+  if (typeof text !== "string") return state;
+  const trimmed = text.trim().slice(0, NOTE_MAX_LENGTH);
+  if (trimmed.length === 0) return state;
+  const here = state.player.location;
+  const node = state.nodes[here];
+  if (node === undefined) return state;
+  const existing = node.playerNotes ?? [];
+  if (existing.includes(trimmed)) return state;
+  const notes = [...existing, trimmed].slice(-NOTE_MAX_PER_NODE);
+  return { ...state, nodes: { ...state.nodes, [here]: { ...node, playerNotes: notes } } };
 }
 
 /** Apply a search: advance the current node's searchPct (node memory persists, FR-SIM-02). */
@@ -388,6 +561,10 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
       const to = action.params?.["to"];
       return typeof to === "string" ? applyMove(state, graph, to) : state;
     }
+    case "scout":
+      return applyScout(state, graph);
+    case "note":
+      return applyNote(state, action.params?.["text"]);
     case "search": {
       const searched = applySearch(state);
       const kind = graph.nodes[state.player.location]?.kind;
@@ -397,7 +574,18 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
       // T81: weapons are placed only when the weapon content set is registered (`graph.weapons`), and
       // then the table is drawn by WEIGHT rather than uniformly — one `drawInt` step either way, so a
       // pool-less run still draws bit-for-bit as before.
-      return resolveSearchLoot(searched, state.player.location, kind, radioPool(graph).length > 0, economyActive(graph), weaponsActive(graph));
+      // T84: the node's own authored depth, behind the active-system gate — a content set that authors
+      // no `richness` computes the identical pre-T84 cap, so every fixture stays byte-identical.
+      const richness = richnessAuthored(graph) ? richnessOf(graph, state.player.location) : undefined;
+      return resolveSearch(
+        searched,
+        state.player.location,
+        kind,
+        radioPool(graph).length > 0,
+        economyActive(graph),
+        weaponsActive(graph),
+        richness,
+      ).state;
     }
     case "drop": {
       // T81: an `itemId` drops one tracked artifact by instance; the `item` form is the untouched T18
@@ -639,7 +827,19 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
     node.searchPct >= 100 ? " It has been searched clean." : node.searchPct > 0 ? " You have searched here before." : "";
   // A full pack is world feedback (you can't take more) — surface it in prose; the precise pack
   // count is the client's to render (T18/T19). Only the qualitative "full" belongs in narration.
-  const pack = inventoryWeight(state.player.inventory) >= CARRY_CAPACITY ? " Your pack is full." : "";
+  //
+  // T84 added the middle band, and it is not decoration. A search now hands over a HAUL rather than a
+  // single token find, so the pack stops the search part-way far more often than it used to — measured,
+  // turns at or over PACK_HEAVY went from 0.7% to 11.3%. Without a word for "there is nearly no room
+  // left" the player would simply receive less from each search and never be told why. Still
+  // qualitative, still state-derived, still one clause.
+  const room = CARRY_CAPACITY - inventoryWeight(state.player.inventory);
+  const pack =
+    room <= 0
+      ? " Your pack is full."
+      : inventoryWeight(state.player.inventory) >= PACK_HEAVY
+        ? " Your pack has barely any room left in it."
+        : "";
   const setting = `${where}${searched}${pack} (Day ${day}, ${phase} ${pad2(hour)}:00 — at ${name}.)`;
   // Surface the reactive world (QA H1 / PL-M2-01): a fight or the sharpest world danger leads, then the
   // atmosphere line, then the place itself. Screen-reader-safe — everything critical is in words.

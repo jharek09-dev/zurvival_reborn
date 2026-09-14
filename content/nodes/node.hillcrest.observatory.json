@@ -5,6 +5,7 @@
   "name": "Observatory",
   "description": "The hilltop dome, its telescope still aimed at a sky no one watches now. From the gallery the entire city lays open — every district, every column of smoke.",
   "kind": "generic",
+  "richness": 40,
   "claimable": true,
   "adjacent": [
     "node.hillcrest.radio-mast",

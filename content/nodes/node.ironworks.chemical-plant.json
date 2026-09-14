@@ -5,6 +5,7 @@
   "name": "Chemical Plant",
   "description": "Tank farms and a maze of pipework, one line hissing where it shouldn't. Purification chemistry and reagents, past the part where the air burns your eyes.",
   "kind": "industrial",
+  "richness": 140,
   "adjacent": [
     "node.ironworks.fuel-depot",
     "node.ironworks.power-substation"

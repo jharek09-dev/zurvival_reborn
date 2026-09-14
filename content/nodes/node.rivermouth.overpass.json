@@ -5,6 +5,7 @@
   "name": "Collapsed Overpass",
   "description": "A section of raised highway sheared onto the street below. You can pick a path over the rubble, slowly, in the open — or turn back.",
   "kind": "generic",
+  "richness": 25,
   "adjacent": [
     "node.downtown.gridlock-bridge",
     "node.rivermouth.marina",

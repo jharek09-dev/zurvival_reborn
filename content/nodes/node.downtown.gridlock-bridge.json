@@ -5,6 +5,7 @@
   "name": "Gridlock Bridge",
   "description": "The span into Downtown, welded solid with a mile of abandoned cars. You cross on foot between cold hoods, exposed the whole way, or you don't cross at all.",
   "kind": "generic",
+  "richness": 30,
   "walkers": 2,
   "adjacent": [
     "node.downtown.news-plaza",

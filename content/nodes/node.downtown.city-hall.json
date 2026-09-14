@@ -5,6 +5,7 @@
   "name": "City Hall",
   "description": "The seat of a government that failed here. A small security armory, the evacuation records, and a lobby drifted with the paperwork of the last bad week.",
   "kind": "police",
+  "richness": 110,
   "adjacent": [
     "node.downtown.subway-entrance",
     "node.downtown.union-bank"

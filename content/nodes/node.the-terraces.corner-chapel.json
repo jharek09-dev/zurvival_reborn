@@ -5,6 +5,7 @@
   "name": "Corner Chapel",
   "description": "A little stone church, its doors chalked with a cross and a date. Pews shoved into a barricade, a dry cellar, and the quiet of a place people trusted.",
   "kind": "generic",
+  "richness": 70,
   "claimable": true,
   "adjacent": [
     "node.the-terraces.community-school",

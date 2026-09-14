@@ -5,6 +5,7 @@
   "name": "Pharmacy Wing",
   "description": "The hospital dispensary, three sets of doors deep. The drugs that actually cure things are here, behind every lock the staff had time to throw.",
   "kind": "medical",
+  "richness": 200,
   "adjacent": [
     "node.mercy-hospital.emergency-room",
     "node.mercy-hospital.icu-tower"

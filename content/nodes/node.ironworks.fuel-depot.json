@@ -5,6 +5,7 @@
   "name": "Fuel Depot",
   "description": "A tank farm of diesel and gasoline, the gauges still holding. Fuel to run everything you own, and one careless spark from a crater.",
   "kind": "industrial",
+  "richness": 160,
   "walkers": 2,
   "adjacent": [
     "node.ironworks.chemical-plant",

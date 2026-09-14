@@ -5,6 +5,7 @@
   "name": "Blood Bank",
   "description": "A refrigerated store of labeled bags gone to ruin, and a researcher's abandoned notebook that was asking the right questions.",
   "kind": "medical",
+  "richness": 85,
   "adjacent": [
     "node.hillcrest.science-labs",
     "node.mercy-hospital.chapel-of-rest",

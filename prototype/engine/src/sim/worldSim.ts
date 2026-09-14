@@ -34,7 +34,7 @@
 
 import type { GameState } from "../state/types.js";
 import type { RegionGraph } from "../map/types.js";
-import { decayAllNoise } from "./noise.js";
+import { decayAllNoise, decayAllBlood } from "./noise.js";
 import { updateRegionContest } from "./loot.js";
 import { driftRegions } from "./regionDrift.js";
 import { repopulateRegions } from "./repopulate.js";
@@ -181,7 +181,12 @@ export function tickWorld(state: GameState, ctx: SimContext): GameState {
 export function advanceWorld(state: GameState, hours: number, graph?: RegionGraph): GameState {
   const h = Math.max(0, Math.trunc(hours));
   if (h === 0) return state;
-  const nodes = decayAllNoise(state.nodes, h);
+  // T84: visible aftermath fades off-screen on the same clock it fades on-screen. `updateNodeNoise`
+  // (stage 6) runs both decays together; this is the fast-forward half, and missing it would mean a
+  // played hour and a fast-forwarded hour did not cost a node the same thing — the exact invariant T74
+  // exists to hold (`sim/jobs.ts`: "a played hour and a fast-forwarded hour do the same"). A map with
+  // no blood on it returns the same reference, so every pre-T84 off-screen advance is untouched.
+  const nodes = decayAllBlood(decayAllNoise(state.nodes, h), h);
   const decayed = nodes === state.nodes ? state : { ...state, nodes };
   const world = tickWorld(decayed, graph === undefined ? { hours: h } : { hours: h, graph });
   // Routes drift off-screen too — a storm blocks a road whether or not the player is there (T29).

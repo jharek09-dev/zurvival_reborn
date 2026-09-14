@@ -1,0 +1,50 @@
+{
+  "id": "encounter.common.the-killing-floor",
+  "category": "exploration",
+  "title": "The killing floor",
+  "premise": "You come back to a room you already made a mess of.",
+  "repeatable": true,
+  "cooldownHours": 72,
+  "tags": ["aftermath"],
+  "requirements": {
+    "minCorpses": 2,
+    "minBlood": 10,
+    "maxWalkers": 0
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "You know this floor. You made it. The bodies you put down are where you left them and the smell has thickened into something with weight to it — and the smell is the part that carries. Whatever finds this place next will find it because of what you did here.",
+      "choices": [
+        {
+          "id": "drag",
+          "label": "Drag them out of the room and out of the doorway",
+          "timeCost": 2,
+          "effects": [
+            { "kind": "setFlag", "flag": "cleared.killing-floor" },
+            { "kind": "adjustMind", "stress": 8, "morale": -2 }
+          ]
+        },
+        {
+          "id": "search",
+          "label": "Go through their pockets first",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "grantItem", "item": "item.scrap", "quantity": 1 },
+            { "kind": "adjustMind", "stress": 10 },
+            { "kind": "adjustHumanity", "delta": -3 }
+          ]
+        },
+        {
+          "id": "leave",
+          "label": "Take what you came for and don't look down",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "stress": 4 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "T84. The first authored use of minCorpses/minBlood — both fields were seeded and never written before T84 (design review signal ledger: 'corpses / blood — dead'), so this beat was unreachable content the day it would have been written. It fires only at a node the PLAYER has fought over (nothing else writes corpses), only while the room is quiet again (maxWalkers 0), and only while the blood has not yet faded (BLOOD_DECAY_PER_HOUR 2), which makes it a beat about consequence rather than scenery. Part-closes PL-M5-03 (minBlood/minCorpses unused by content)."
+}

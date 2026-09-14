@@ -5,6 +5,7 @@
   "name": "Machine Shop",
   "description": "Lathes, a mill, a workbench with the tools still racked. A craftsman's whole capability behind a roll-down door that makes it defensible.",
   "kind": "industrial",
+  "richness": 175,
   "claimable": true,
   "adjacent": [
     "node.ironworks.foreman-office",

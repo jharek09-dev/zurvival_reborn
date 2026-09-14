@@ -3,7 +3,9 @@ import {
   BASE_LOOT_WEIGHT,
   CARRY_CAPACITY,
   EQUIP_COST,
+  ITEM_LOOT_WEIGHT,
   ITEM_WEIGHTS,
+  itemLootWeight,
   LOOT_TABLES,
   WEAPONS,
   WEAPON_BARE,
@@ -243,10 +245,27 @@ describe("the weapon pool gates placement (T81 · the T50/T51 byte-identity disc
     // counted twice (once flat, once weighted), which would have made it commoner, not rarer.
     expect(entries.filter((e) => e.value === "item.pistol")).toHaveLength(1);
     expect(byId.get("item.pistol")).toBe(WEAPONS["item.pistol"]!.lootWeight);
-    expect(byId.get("item.ammo")).toBe(BASE_LOOT_WEIGHT);
+    // T84 tiers the ORDINARY rows against each other, so no single row is at BASE_LOOT_WEIGHT any
+    // more. The property T81's sweep actually depends on is that their TOTAL is unchanged — that is
+    // what keeps weapon-vs-ordinary odds exactly where T81 measured them.
+    const ordinary = entries.filter((e) => WEAPONS[e.value] === undefined);
+    expect(ordinary.reduce((n, e) => n + e.weight, 0)).toBe(ordinary.length * BASE_LOOT_WEIGHT);
+    expect(byId.get("item.ammo")!).toBeLessThan(byId.get("item.bandage")!);
     expect(byId.get("item.axe-fire")).toBe(WEAPONS["item.axe-fire"]!.lootWeight);
-    // a kind with no weapons authored is a uniform table again, just expressed in weights
-    expect(new Set(lootEntriesFor("medical").map((e) => e.weight))).toEqual(new Set([BASE_LOOT_WEIGHT]));
+    // A kind with no weapons authored (`medical`) was an exactly uniform table under T81. T84 tiers the
+    // ORDINARY items too, so it is no longer uniform — but every weight in it must still come from the
+    // ordinary table (`itemLootWeight`), never from a weapon row, which is the property this assertion
+    // is actually protecting: the weapon gate does not leak into a weapon-free kind.
+    const med = lootEntriesFor("medical");
+    for (const e of med) expect(WEAPONS[e.value], `${e.value} is not a weapon`).toBeUndefined();
+    expect(med.reduce((n, e) => n + e.weight, 0)).toBe(med.length * BASE_LOOT_WEIGHT);
+    // The tiering is a REORDERING of a fixed total, so the raw table's ordering survives it.
+    const sortedRaw = [...med].sort((a, b) => itemLootWeight(b.value) - itemLootWeight(a.value)).map((e) => e.value);
+    const sortedOut = [...med].sort((a, b) => b.weight - a.weight).map((e) => e.value);
+    expect(sortedOut).toEqual(sortedRaw);
+    // ...and it is genuinely tiered now: a course of antibiotics is rarer than a bandage.
+    const byWeight = new Map(med.map((e) => [e.value, e.weight]));
+    expect(byWeight.get("item.antibiotics")!).toBeLessThan(byWeight.get("item.bandage")!);
   });
 
   it("the weighted draw costs exactly one RNG step, the same as the uniform pick", () => {
@@ -292,7 +311,11 @@ describe("a found weapon becomes a tracked artifact in a hand (T81)", () => {
     const { state } = run(seed, true);
     let s = searchable(state, "node.x.b");
     for (let i = 0; i < 200; i += 1) {
-      s = resolveSearchLoot({ ...s, nodes: { ...s.nodes, "node.x.b": { ...s.nodes["node.x.b"]!, searchPct: 0 } } }, "node.x.b", "police", false, false, true);
+      // T84: a search returns a HAUL, so a probe that never empties the pack fills it in about seven
+      // searches and every search after that is refused by the T18 weight cap — the rule working, but
+      // it would stop this probe drawing before it ever saw a weapon. Keep only the tracked artifacts.
+      const stripped = { ...s, player: { ...s.player, inventory: s.player.inventory.filter((e) => e.itemId !== undefined) } };
+      s = resolveSearchLoot({ ...stripped, nodes: { ...stripped.nodes, "node.x.b": { ...stripped.nodes["node.x.b"]!, searchPct: 0 } } }, "node.x.b", "police", false, false, true);
       if (Object.keys(s.items).length > 0) return s;
     }
     throw new Error("no weapon found in 200 police searches — the placement is broken");
@@ -364,7 +387,10 @@ describe("a found weapon becomes a tracked artifact in a hand (T81)", () => {
     const held = armed.player.equipment[WEAPON_SLOT];
     let s = armed;
     for (let i = 0; i < 200 && Object.keys(s.items).length < 2; i += 1) {
-      s = resolveSearchLoot({ ...s, nodes: { ...s.nodes, "node.x.b": { ...s.nodes["node.x.b"]!, searchPct: 0 } } }, "node.x.b", "police", false, false, true);
+      // See the sibling test below: T84's haul fills the pack in ~7 searches, so the probe keeps only
+      // the tracked artifacts it is actually measuring.
+      const stripped = { ...s, player: { ...s.player, inventory: s.player.inventory.filter((e) => e.itemId !== undefined) } };
+      s = resolveSearchLoot({ ...stripped, nodes: { ...stripped.nodes, "node.x.b": { ...stripped.nodes["node.x.b"]!, searchPct: 0 } } }, "node.x.b", "police", false, false, true);
     }
     expect(Object.keys(s.items).length).toBeGreaterThan(1);
     expect(s.player.equipment[WEAPON_SLOT]).toBe(held);
@@ -377,8 +403,14 @@ describe("a found weapon becomes a tracked artifact in a hand (T81)", () => {
     expect(weaponFor(broken).id).toBe(WEAPON_BARE); // T80: a broken weapon fights as bare hands
     let s = broken;
     for (let i = 0; i < 200 && Object.keys(s.items).length < 2; i += 1) {
-      s = resolveSearchLoot({ ...s, nodes: { ...s.nodes, "node.x.b": { ...s.nodes["node.x.b"]!, searchPct: 0 } } }, "node.x.b", "police", false, false, true);
+      // T84: a search now hands over a HAUL, so a probe that never empties the pack fills it in about
+      // seven searches and every search after that is refused by the T18 weight cap — which is the rule
+      // working, not a bug, but it means the probe would stop drawing before it ever saw a weapon. Keep
+      // the pack clear of the ordinary finds so this test stays about the hands it is named for.
+      const stripped = { ...s, player: { ...s.player, inventory: s.player.inventory.filter((e) => e.itemId !== undefined) } };
+      s = resolveSearchLoot({ ...stripped, nodes: { ...stripped.nodes, "node.x.b": { ...stripped.nodes["node.x.b"]!, searchPct: 0 } } }, "node.x.b", "police", false, false, true);
     }
+    expect(Object.keys(s.items).length).toBeGreaterThan(1);
     expect(s.player.equipment[WEAPON_SLOT]).not.toBe(held);
   });
 

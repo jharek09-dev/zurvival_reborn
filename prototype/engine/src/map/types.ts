@@ -54,6 +54,35 @@ export interface NodeDef {
   readonly walkers?: number;
   /** Location kind — selects the loot plausibility table for searches here (FR-ECO-02, T17). */
   readonly kind?: string;
+  /**
+   * How deep this particular building's stock is, as a **percentage of the ordinary yield for its
+   * region** (M5 task T84 · FR-ECO-02 · GDD X). `100` is "an ordinary place of its kind"; below it a
+   * place already stripped or never worth much; above it the pharmacy at the end of the block nobody
+   * got to. Clamped to {@link RICHNESS_MIN}..{@link RICHNESS_MAX} on read.
+   *
+   * **This is the node's only contribution to its own loot beyond `searchPct`, and before T84 it did
+   * not exist.** Measured on the pre-T84 tree (`measure/t84.ts --cap`): the yield cap is
+   * `trunc(regionLoot / 8) - trunc(searchPct / 34)`, so it has exactly **6 values** across the shipped
+   * city — one per region — and a node's own progress moves it by at most **2**. Two nodes of the same
+   * kind in the same district were arithmetically identical, and `region.ironworks` holds **eight**
+   * interchangeable `industrial` nodes.
+   *
+   * Optional, and the whole multiply is gated on some node in the set authoring it
+   * (`richnessAuthored`, the T83 `claimable` precedent), so a content set that omits it — every
+   * fixture, every pre-T84 run — computes **exactly the prior cap**.
+   *
+   * That is a claim about the CAP, not about the run. T84 is **not byte-identical** and does not
+   * pretend to be: `resolveSearch` now takes one table draw per unit instead of one per search, so the
+   * `loot` stream advances differently for everyone, richness or no richness. An earlier draft of this
+   * comment claimed run-level byte-identity in four places and an audit disproved it with a nine-action
+   * probe. The gate buys a clean *arithmetic* baseline, which is what makes the before/after cap tables
+   * comparable — not a frozen RNG.
+   *
+   * **Read from the graph, never stored.** The brief asked for `NodeDef.richness -> NodeState`; nothing
+   * mutates it, so a mirrored copy would be dead save state and a schema rung bought for nothing (the
+   * T79 `lastVisit` precedent: derive from what content already says).
+   */
+  readonly richness?: number;
   /** Distinct zombie type content ids present at this node (FR-CBT-07, T25); default none. */
   readonly zombieTypes?: readonly import("../state/types.js").ContentId[];
 }

@@ -94,8 +94,18 @@ describe("initial scene answers the Four Questions (T12 · FR-CORE-05)", () => {
     expect(scene.location).toBe("node.x.a"); // where
     expect(scene.narration.length).toBeGreaterThan(0); // what's happening
     const ids = scene.choices.map((c) => c.id).sort(); // what can I do
-    expect(ids).toEqual(["move:node.x.b", "rest", "search"]);
-    for (const c of scene.choices) expect(c.timeCost).toBeGreaterThan(0);
+    // T84 added two verbs to the quiet explore branch: `scout` (look two blocks out) and `note` (write
+    // in the map-journal). Asserted exactly, not loosened to a `contains` — the point of this test is
+    // that the start node offers a KNOWN list, and a task that adds to it should have to say so here.
+    expect(ids).toEqual(["move:node.x.b", "note", "rest", "scout", "search"]);
+    // Every action that moves the world spends hours (FR-CORE-03). The exceptions are the kit-and-
+    // journal verbs, which have cost 0 by the T18 rule that managing what you already have is free —
+    // named individually so a future free action cannot slip in unnoticed.
+    const FREE = new Set(["note"]);
+    for (const c of scene.choices) {
+      if (FREE.has(c.id)) expect(c.timeCost).toBe(0);
+      else expect(c.timeCost).toBeGreaterThan(0);
+    }
   });
 
   it("does not offer travel to an undiscovered node", () => {

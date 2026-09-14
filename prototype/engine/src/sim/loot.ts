@@ -19,6 +19,7 @@
  */
 
 import type { ContentId, GameState, ItemInstance, NodeId, RegionState } from "../state/types.js";
+import type { RegionGraph } from "../map/types.js";
 import { drawInt, drawPick, drawWeighted, type Weighted } from "../rng/streams.js";
 import { addItemBounded, fits } from "./inventory.js";
 import { WEAPONS, BASE_LOOT_WEIGHT, weaponLootFor } from "../combat/weapons.js";
@@ -97,9 +98,11 @@ export function lootTableFor(kind: string | undefined, includeRadio = false, inc
  *      **24.6%** of searches (measured, `measure/t81.ts --loot`) — a gun was exactly as likely as a
  *      bandage. It is filtered out of the base list first, so a weapon already sitting in a hand-written
  *      table is not counted twice.
- *   2. **Ordinary items each carry {@link BASE_LOOT_WEIGHT}.** They stay equals with one another, so the
- *      only relative frequency this task changes is weapon-vs-not. A weapon-free kind (`medical`) is
- *      therefore an exactly uniform table again, just expressed in weights.
+ *   2. **Ordinary items carry {@link BASE_LOOT_WEIGHT} between them.** Under T81 each carried it
+ *      individually, so the only relative frequency T81 changed was weapon-vs-not. **T84 tiers them
+ *      against one another** ({@link tieredOrdinary}) while holding their total at exactly
+ *      `rows x BASE_LOOT_WEIGHT` — so weapon-vs-ordinary is still precisely T81's number, and a
+ *      weapon-free kind (`medical`) is no longer uniform but is still drawn only from ordinary rows.
  *
  * With the gate off the caller uses the untouched {@link lootTableFor} + `drawPick` path instead, so a
  * run without the pool draws bit-for-bit as before (the `floor(f·len)` hazard: see {@link lootTableFor}).
@@ -110,7 +113,10 @@ export function lootEntriesFor(
   includeEconomy = false,
 ): readonly Weighted<string>[] {
   const base = lootTableFor(kind, includeRadio, includeEconomy).filter((id) => WEAPONS[id] === undefined);
-  const entries: Weighted<string>[] = base.map((value) => ({ value, weight: BASE_LOOT_WEIGHT }));
+  // T84: ordinary items are no longer all equals — but their TOTAL is unchanged (`tieredOrdinary`), so
+  // the weapon-vs-ordinary odds T81 swept are preserved exactly and only the mix among ordinary finds
+  // moves. A kind whose whole table is untiered is still an exactly uniform draw at BASE_LOOT_WEIGHT.
+  const entries: Weighted<string>[] = [...tieredOrdinary(base)];
   for (const w of weaponLootFor(kind)) entries.push({ value: w.id, weight: w.weight });
   return entries;
 }
@@ -171,28 +177,270 @@ function pocketWeapon(state: GameState, nodeId: NodeId, type: ContentId, startDu
 }
 
 /**
+ * Rarity tiers for the **ordinary** items (M5 task T84 · GDD X "rough tiers from common junk to rare
+ * finds"), against {@link BASE_LOOT_WEIGHT} for anything not listed.
+ *
+ * T81 gave the *weapons* tiers and the T84 brief asked for them again, which the measurement says was
+ * already paid: on the police table a pistol comes out of **4.5%** of searches against a bandage's
+ * **27.4%** (`measure/t84.ts --tiers`, pre-T84 tree). What that same measurement shows is still flat is
+ * everything that is not a weapon — the medical table reads 20.9 / 20.4 / 20.0 / 19.6 / 19.1%, i.e. a
+ * course of antibiotics is exactly as likely as a bandage and a blueprint exactly as likely as a
+ * painkiller. These weights are that residue and nothing more: junk up, the things a survivor would
+ * actually go looking for down.
+ *
+ * Read **only** from {@link lootEntriesFor}, which is itself reached only when the weapon content set
+ * is registered — so a pool-less run still draws the untouched uniform table (the `floor(f·len)` pick
+ * hazard the radio and economy pools are gated for).
+ */
+export const ITEM_LOOT_WEIGHT: { readonly [id: string]: number } = {
+  // Rare finds — a real reason to search a clinic rather than a house.
+  "item.antibiotics": 5,
+  "item.blueprint.antibiotics": 4,
+  "item.blueprint.molotov": 4,
+  "item.ammo": 8,
+  "item.fuel": 9,
+  "item.tools": 9,
+  "item.radio": 7,
+  // Common junk — the bulk of any real sweep.
+  "item.scrap": 30,
+  "item.cloth": 28,
+  "item.charcoal": 28,
+  "item.water-dirty": 28,
+};
+
+/** The weight one ordinary item draws at BEFORE normalisation; {@link BASE_LOOT_WEIGHT} if untiered. */
+export function itemLootWeight(id: string): number {
+  const w = ITEM_LOOT_WEIGHT[id];
+  return w === undefined ? BASE_LOOT_WEIGHT : w;
+}
+
+/**
+ * The ordinary rows of one table, tiered against each other but summing to **exactly** what they
+ * summed to before T84 (`rows x BASE_LOOT_WEIGHT`).
+ *
+ * ### Why the normalisation is not optional
+ *
+ * Weights are relative, and the weapons share the table. The first cut of this tiering simply wrote
+ * the raw numbers in, which shrank each table's ordinary total — and therefore made **every weapon
+ * commoner**, silently undoing T81's measured sweep. Caught by an adversarial audit re-running T81's
+ * own instrument on both trees:
+ *
+ * ```
+ *   runs that found the firefighter's axe   PRE-T84 32.5%   ->   raw-weight cut 43.5%
+ *   item.pistol out of a police search      PRE-T84  4.2%   ->   raw-weight cut  7.8%
+ * ```
+ *
+ * T81 had explicitly *rejected* an axe rate of 41% ("as likely as a pistol") when it swept that dial,
+ * so the raw cut pushed a dial past a point another task had already refused — without touching it.
+ * Holding each table's ordinary total fixed makes the weapon-vs-ordinary odds **exactly** T81's, so
+ * this task changes only which ordinary item you get.
+ *
+ * Integer-only (ADR-0001): largest-remainder apportionment of the target total, ties broken by index
+ * so the result is stable across runs and platforms. Every row keeps a positive weight, so tiering can
+ * make a find rare but never removes it from the table.
+ */
+export function tieredOrdinary(ids: readonly string[]): readonly Weighted<string>[] {
+  const n = ids.length;
+  if (n === 0) return [];
+  const raw = ids.map(itemLootWeight);
+  const rawTotal = raw.reduce((a, b) => a + b, 0);
+  if (rawTotal <= 0) return ids.map((value) => ({ value, weight: BASE_LOOT_WEIGHT }));
+  const target = n * BASE_LOOT_WEIGHT;
+  const num = raw.map((w) => w * target);
+  const out = num.map((x) => Math.floor(x / rawTotal));
+  let deficit = target - out.reduce((a, b) => a + b, 0);
+  const byRemainder = num
+    .map((x, i) => ({ rem: x % rawTotal, i }))
+    .sort((a, b) => b.rem - a.rem || a.i - b.i);
+  for (let k = 0; k < byRemainder.length && deficit > 0; k += 1, deficit -= 1) {
+    out[byRemainder[k]!.i] = out[byRemainder[k]!.i]! + 1;
+  }
+  // A row must stay drawable. On the shipped tables no floor lands below 1 (proved in
+  // `exploration.test.ts`); this is the guard for a future table whose spread is wider than its size.
+  return ids.map((value, i) => ({ value, weight: Math.max(1, out[i]!) }));
+}
+
+/** A node with no authored {@link NodeDef.richness} is an ordinary place of its kind. */
+export const DEFAULT_RICHNESS = 100;
+/** Authored richness is clamped into this band on read — a floor of nothing, a ceiling of 2.5x. */
+export const RICHNESS_MIN = 0;
+export const RICHNESS_MAX = 250;
+
+/**
+ * Whether this content set authors {@link NodeDef.richness} anywhere — the **active-system gate** for
+ * the whole per-node loot axis (M5 task T84).
+ *
+ * Exactly the discipline T83 used for `NodeDef.claimable`: a set that says nothing about richness gets
+ * the arithmetic it always had, so every fixture and every pre-T84 run computes the **identical cap**.
+ * Not the identical RUN — the loot stream advances per unit now, which is a deliberate behaviour change
+ * and is declared as one. Cheap: a scan of the already-indexed node defs, called once per search.
+ */
+export function richnessAuthored(graph: RegionGraph | undefined): boolean {
+  if (graph === undefined) return false;
+  for (const def of Object.values(graph.nodes)) {
+    if (typeof def.richness === "number") return true;
+  }
+  return false;
+}
+
+/** A node def's richness, clamped; {@link DEFAULT_RICHNESS} when absent or not a number. */
+export function richnessOf(graph: RegionGraph | undefined, nodeId: NodeId): number {
+  const r = graph?.nodes[nodeId]?.richness;
+  if (typeof r !== "number" || Number.isNaN(r)) return DEFAULT_RICHNESS;
+  return Math.max(RICHNESS_MIN, Math.min(RICHNESS_MAX, Math.trunc(r)));
+}
+
+/**
  * The most loot (in region points) a single search can pull, given the region's remaining richness
  * and how picked-over the node already is. Diminishing on both axes; never more than what remains.
  * 0 ⇒ a thin region or an exhausted node yields nothing but time and noise (FR-ECO-03 partial).
+ *
+ * `richness` (T84) is the node's own multiplier, as a percentage — {@link DEFAULT_RICHNESS} is the
+ * exact pre-T84 arithmetic (`trunc(cap * 100 / 100) === cap` for every integer cap), which is why an
+ * unauthored set is byte-identical rather than approximately so.
+ *
+ * It scales the region's own term. Two earlier drafts of this comment were wrong about the
+ * consequence, in opposite directions, so it is stated exactly: a rich node **is** the last place in a
+ * thinning district to run dry (at `richness` 250 a region down to 4 points still gives 1, where an
+ * ordinary node gives 0), and it is still **bounded by what the region actually has left** by the
+ * `Math.min(regionLoot, …)` clamp. The finite stock is **redistributed across the places inside a
+ * region, never conjured**: nothing here can hand out a point the district does not hold.
  */
-export function searchYieldCap(regionLoot: number, searchPct: number): number {
-  const cap = Math.trunc(regionLoot / 8) - Math.trunc(searchPct / 34);
+export function searchYieldCap(regionLoot: number, searchPct: number, richness: number = DEFAULT_RICHNESS): number {
+  // Richness scales the REGION's term only, never the picked-over penalty. `trunc(loot * 100 / 800)`
+  // is `trunc(loot / 8)` for every integer, so the default is the pre-T84 formula exactly.
+  //
+  // The alternative — multiplying the whole expression, as the first cut did — was measured against
+  // this one rather than argued about, because an audit raised zero-cap searches against it:
+  //
+  //   variant             empty (node, searchPct) pairs of 180        mean cap   class spread
+  //                       stock x1   x0.75   x0.5   x0.35              at x1
+  //   pre-T84                    0       0      0      32               6.62          0
+  //   whole-expression           2      10     31      77               6.19       5.31
+  //   region-term (this)        11      21     38      63               6.67       5.54
+  //
+  // Neither reaches zero and the pre-T84 tree does not either — a thin district has always been able
+  // to offer a search worth nothing. What the region-term form buys is that authoring richness
+  // **redistributes** a district's yield rather than shrinking it (mean cap 6.67 against a pre-T84
+  // 6.62, where the whole-expression form loses 6.5% of the city), it separates two nodes of a kind
+  // slightly further, and it degrades more gracefully exactly where a real run lives — a thinned
+  // district. The early-game cost is paid in words instead: `availableActions` labels a search at a
+  // zero cap "it looks stripped", because a choice the player is not warned about is the dishonest
+  // half of a dead affordance.
+  const cap = Math.trunc((regionLoot * richness) / 800) - Math.trunc(searchPct / 34);
+  // The `Math.min(regionLoot, …)` is the pre-T84 clamp, kept — and it is worth being exact about what
+  // it does now, because a mutation run removed it and nothing failed. It is **unreachable at today's
+  // ceiling**: `cap <= trunc(loot * RICHNESS_MAX / 800) = trunc(0.3125 * loot) <= loot` for every
+  // non-negative loot, so the arithmetic already guarantees what the clamp asserts. It is a backstop
+  // tied to {@link RICHNESS_MAX}, and it starts binding the moment that ceiling passes 800.
   return Math.max(0, Math.min(regionLoot, cap));
 }
 
 /**
- * Resolve the loot half of a search at `nodeId` (called by stage 3 after searchPct advances). Draws
- * a yield against the region's remaining stock and the node's search progress, **debits** the region
- * by exactly what was taken (finite + depleting), and drops one plausible item into the inventory.
- * A depleted region or a picked-clean node yields nothing. Pure; consumes the `loot` RNG stream.
+ * Region points per item carried out (M5 task T84 · FR-ECO-01/02 · GDD X).
+ *
+ * ### The defect this constant exists to close
+ *
+ * Before T84 the search draw `drawInt(1, rawCap)` decided **how much of the region's finite stock you
+ * burned**, and the reward was always exactly one item. Measured (`measure/t84.ts --tax`, pre-T84):
+ * items per search flat at **1.00** across every cap, while the mean take ran **1.00 → 5.45**. So the
+ * roll was pure downside, and *the richer the district the more wasteful the search* — an inverted
+ * incentive sitting under the whole scavenging loop.
+ *
+ * The fix is not a new number, it is an identity: **what you take out of the region is what you carry
+ * away.** The draw is unchanged (same `drawInt`, same stream, same one step); it is now converted into
+ * a haul rather than a fee. `ceil(points / POINTS_PER_ITEM)` with a floor of one item means a thin
+ * region still pays out something when the cap allows a search at all, and a rich one pays out a
+ * mixed handful.
+ *
+ * **Swept, not chosen** — see `docs/qa/QA_REVIEW_T84.md`. The competing pressure is the pack: pre-T84
+ * peak load was **19 of 40** with PACK_HEAVY touched on **0.7%** of turns, so the GDD's "what do I leave
+ * behind?" was never asked; too generous a divisor turns the pack from a question into a wall.
  */
-export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string | undefined, includeRadio = false, includeEconomy = false, includeWeapons = false): GameState {
-  const node = state.nodes[nodeId];
-  if (node === undefined) return state;
-  const region = state.regions[node.regionId];
-  if (region === undefined || region.loot <= 0) return state;
+export const LOOT_POINTS_PER_ITEM = 3;
 
-  const rawCap = searchYieldCap(region.loot, node.searchPct);
+/** How many items `points` of regional stock become. At least one whenever a search yields at all. */
+export function unitsForPoints(points: number): number {
+  // `points <= 0` is the only way to get nothing; above it `ceil(p / P) >= 1` for any positive P, so
+  // there is no floor to apply and none is pretended (an audit flagged the first cut's `Math.max(1, …)`
+  // as a guard that can never engage).
+  //
+  // Total about junk, because a hand-edited `region.loot` reaches here through the draw. A mutation
+  // test caught the first guard (`!(points > 0)`) letting a STRING through — `"4" > 0` is true and
+  // `Math.ceil("4" / 3)` is 2. `Number.isFinite` does not coerce, so it rejects a string, `undefined`,
+  // `null`, NaN and both infinities on its own; a `typeof` check alongside it was a second mutant, and
+  // a proven-redundant guard is one more thing a reader has to believe.
+  if (!Number.isFinite(points) || points <= 0) return 0;
+  return Math.ceil(points / LOOT_POINTS_PER_ITEM);
+}
+
+/**
+ * What one search actually returned (T84).
+ *
+ * **Honest scope.** An earlier draft of this comment called it "the shape the action layer narrates
+ * from", and an audit correctly pointed out that nothing narrated from it: `applyPlayerAction` takes
+ * `.state` and drops the rest, which is the T83 "a value threaded nowhere never reaches the player"
+ * pattern. It is kept, and described for what it is — **the accurate return type of a search, and the
+ * API a client renders a find list from**. The text harness does not render one (its Scene is one
+ * decision and a pack screen); the player-facing consequence T84 actually owed them is the pack-room
+ * line in `sceneOf`, which reads state and is live. A per-search "you came away with…" line is
+ * PL-M5-55, a narration task, not a simulation one.
+ */
+export interface SearchHaul {
+  readonly state: GameState;
+  /** Item ids carried away, in draw order. Empty when the cap was 0 or the pack refused everything. */
+  readonly found: readonly ContentId[];
+  /** Region points the search would have taken had the pack been empty. */
+  readonly offered: number;
+  /** Region points actually debited — less than `offered` exactly when the pack ran out. */
+  readonly taken: number;
+  /** True when the pack refused at least one unit the node was willing to give (FR-PLR-03). */
+  readonly packFull: boolean;
+}
+
+/**
+ * Resolve the loot half of a search at `nodeId` (called by stage 3 after searchPct advances). Draws
+ * against the region's remaining stock, the node's search progress and — from T84 — the node's own
+ * authored {@link NodeDef.richness}; converts the points drawn into a **haul** of items; **debits** the
+ * region by exactly what was carried away (finite + depleting); and drops them into the pack. A
+ * depleted region or a picked-clean node yields nothing. Pure; consumes the `loot` RNG stream.
+ *
+ * ### What T84 changed, and what it deliberately did not
+ *
+ * The draw itself is untouched: one `drawInt(1, rawCap)` on the `loot` stream, exactly as before. What
+ * changed is what the number means — it was the **fee** and it is now the **haul** (see
+ * {@link LOOT_POINTS_PER_ITEM}). One `drawWeighted`/`drawPick` step follows **per unit** rather than
+ * once, so a rich sweep comes back with a mixed handful rather than a single token find, and a rare row
+ * gets as many chances as the haul is deep.
+ *
+ * The **full-pack rule is preserved exactly, generalized per unit**: the first unit that will not fit
+ * ends the haul, the rest stay in the world, and the region is debited only for what left it. A full
+ * pack still stops draining the well — the property that makes scavenging self-limiting rather than a
+ * vacuum.
+ *
+ * It also, for the first time, makes carrying capacity something a run notices: PACK_HEAVY is touched
+ * on **11.3%** of turns against a pre-T84 **0.7%** (`measure/t84.ts --haul`). Stated at that strength
+ * and no higher — an audit rightly objected to a first draft that called it "a decision", because the
+ * same instrument records **0.0 full-pack turns and 0.00 drops taken** across 40 bot runs. The pressure
+ * is real and measurable; the leave-behind *choice* is not yet forced, and forcing it is a balance
+ * question (T59/T60), not this task's.
+ */
+export function resolveSearch(
+  state: GameState,
+  nodeId: NodeId,
+  kind: string | undefined,
+  includeRadio = false,
+  includeEconomy = false,
+  includeWeapons = false,
+  richness: number = DEFAULT_RICHNESS,
+): SearchHaul {
+  const empty = (s: GameState): SearchHaul => ({ state: s, found: [], offered: 0, taken: 0, packFull: false });
+  const node = state.nodes[nodeId];
+  if (node === undefined) return empty(state);
+  const region = state.regions[node.regionId];
+  if (region === undefined || region.loot <= 0) return empty(state);
+
+  const rawCap = searchYieldCap(region.loot, node.searchPct, richness);
   // Scarcity FIND-RATE dial (T56): a harder mode's smaller yieldCap makes a THIN search come up empty — the
   // player finds less. Survivor / unset ⇒ lootYield 1 ⇒ yieldCap === rawCap and the guard is exactly the
   // prior `cap <= 0` (byte-identical). The finite-stock DEBIT below draws against the RAW cap, so the
@@ -200,45 +448,86 @@ export function resolveSearchLoot(state: GameState, nodeId: NodeId, kind: string
   // dial never touches the loot TABLE, so the floor(f·len) pick hazard (T50) never arises. drawInt is one
   // stream step regardless of range, so a Survivor search draws bit-identically.
   const yieldCap = scaleInt(rawCap, profileOf(state).lootYield);
-  if (yieldCap <= 0) return state;
+  if (yieldCap <= 0) return empty(state);
 
   const drawn = drawInt(state.rng, state.meta.seed, "loot", 1, rawCap);
-  const take = Math.min(region.loot, drawn.value);
-  // T81: with the weapon content set registered the table is drawn by WEIGHT, which costs the identical
-  // single `drawInt` step (see `drawWeighted`) — so the stream advances the same either way and only the
-  // value can differ. Without it, the untouched uniform `drawPick` path: byte-identical for every run
-  // that registers no pool, which is every pre-T81 run and every pool-less fixture.
-  const pick = includeWeapons
-    ? drawWeighted(drawn.rng, state.meta.seed, "loot", lootEntriesFor(kind, includeRadio, includeEconomy))
-    : drawPick(drawn.rng, state.meta.seed, "loot", lootTableFor(kind, includeRadio, includeEconomy));
+  const offered = Math.min(region.loot, drawn.value);
+  const units = unitsForPoints(offered);
 
-  const debit = (next: GameState): GameState => ({
-    ...next,
-    rng: pick.rng,
-    regions: { ...next.regions, [node.regionId]: { ...region, loot: clampPct(region.loot - take) } },
-  });
+  const entries = includeWeapons ? lootEntriesFor(kind, includeRadio, includeEconomy) : undefined;
+  const table = entries === undefined ? lootTableFor(kind, includeRadio, includeEconomy) : undefined;
 
-  // A weapon with a durability track is pocketed as a tracked ARTIFACT, not a stack (T81) — see
-  // `pocketWeapon`. A refusal there is the full-pack rule, handled identically below.
-  const def = WEAPONS[pick.value];
-  if (includeWeapons && def !== undefined && def.startDurability !== null) {
-    const pocketed = pocketWeapon(state, nodeId, def.id, def.startDurability);
-    return pocketed === null ? { ...state, rng: pick.rng } : debit(pocketed);
+  let rng = drawn.rng;
+  let carried: GameState = state;
+  const found: ContentId[] = [];
+  let packFull = false;
+
+  for (let i = 0; i < units; i += 1) {
+    // T81: with the weapon content set registered the table is drawn by WEIGHT, which costs the identical
+    // single `drawInt` step (see `drawWeighted`) — so the stream advances the same per unit either way and
+    // only the chosen value can differ. Without it, the untouched uniform `drawPick` path.
+    const pick = entries !== undefined
+      ? drawWeighted(rng, state.meta.seed, "loot", entries)
+      : drawPick(rng, state.meta.seed, "loot", table!);
+    rng = pick.rng;
+
+    // A weapon with a durability track is pocketed as a tracked ARTIFACT, not a stack (T81) — see
+    // `pocketWeapon`. A refusal there is the full-pack rule, handled identically to a stack refusal.
+    const def = WEAPONS[pick.value];
+    if (entries !== undefined && def !== undefined && def.startDurability !== null) {
+      const pocketed = pocketWeapon(carried, nodeId, def.id, def.startDurability);
+      if (pocketed === null) { packFull = true; break; }
+      carried = pocketed;
+      found.push(pick.value);
+      continue;
+    }
+
+    // Weight cap (T18 · FR-PLR-03): pocket the find only if it fits. What will not fit stays in the
+    // world and is NOT debited — carrying is finite, so a full pack stops draining the well.
+    const { inventory, carried: fitted } = addItemBounded(carried.player.inventory, pick.value);
+    if (!fitted) { packFull = true; break; }
+    carried = { ...carried, player: { ...carried.player, inventory } };
+    found.push(pick.value);
   }
 
-  // Weight cap (T18 · FR-PLR-03): pocket the find only if it fits. A full pack leaves it in the
-  // world and the region is NOT debited — carrying is finite, so a full pack stops draining the well.
-  const { inventory, carried } = addItemBounded(state.player.inventory, pick.value);
-  const regions = carried
-    ? { ...state.regions, [node.regionId]: { ...region, loot: clampPct(region.loot - take) } }
-    : state.regions;
+  // Debit what left the region, never what the pack refused. A full haul costs the whole draw; a
+  // partial one costs `LOOT_POINTS_PER_ITEM` for each unit that actually left — which is the *maximum*
+  // rate, where a complete haul pays somewhere between one and that. Leaving with a partial load is
+  // therefore slightly wasteful of the district's stock, which is the right pressure: the well is
+  // spent whether or not you had room for what came out of it.
+  //
+  // No clamp is needed and none is pretended: `units === ceil(offered / P)`, so a partial haul has
+  // `found.length <= units - 1` and `found.length * P <= P * (units - 1) < offered` always, and
+  // `found.length >= 1` on this branch. The first cut wrapped this in `Math.max(1, Math.min(offered,
+  // ...))`, two guards an exhaustive probe over `offered` 1..60 showed can never engage — a comment
+  // claiming protection that the arithmetic already gives is worse than no comment.
+  const taken = found.length === 0 ? 0 : found.length === units ? offered : found.length * LOOT_POINTS_PER_ITEM;
 
-  return {
-    ...state,
-    rng: pick.rng,
-    regions,
-    player: { ...state.player, inventory },
+  const next: GameState = {
+    ...carried,
+    rng,
+    ...(taken > 0
+      ? { regions: { ...carried.regions, [node.regionId]: { ...region, loot: clampPct(region.loot - taken) } } }
+      : {}),
   };
+  return { state: next, found, offered, taken, packFull };
+}
+
+/**
+ * The state-only face of {@link resolveSearch} — the shape every caller before T84 used. Kept because
+ * the haul detail is narration, not simulation: a caller that only needs the world moved on should not
+ * have to unpack a record to get it.
+ */
+export function resolveSearchLoot(
+  state: GameState,
+  nodeId: NodeId,
+  kind: string | undefined,
+  includeRadio = false,
+  includeEconomy = false,
+  includeWeapons = false,
+  richness: number = DEFAULT_RICHNESS,
+): GameState {
+  return resolveSearch(state, nodeId, kind, includeRadio, includeEconomy, includeWeapons, richness).state;
 }
 
 /**

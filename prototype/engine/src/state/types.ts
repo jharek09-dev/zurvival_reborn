@@ -484,6 +484,31 @@ export interface NodeState {
   readonly discoveries: readonly ContentId[];
   /** Player-authored notes (verbatim strings). */
   readonly playerNotes: readonly string[];
+  /**
+   * The player has **looked at** this place — from here, or from a neighbouring block with the `scout`
+   * verb (M5 task T84 · FR-MAP-02). Distinct from {@link discovered}, which walking hands out for free:
+   * a discovered node is a name and a direction, a scouted one is a name, a direction, *and what is
+   * standing in it*. Standing in a node scouts it, so `lastVisit !== null` implies this.
+   *
+   * Optional-tolerated-absent (the T74 idiom): absent reads as false, so a pre-T84 save loads with
+   * nothing scouted and needs no `SAVE_SCHEMA_VERSION` rung. See `map/fogOfWar.ts`.
+   *
+   * **An explicit mark, never derived.** The first cut read `scouted === true || lastVisit !== null`,
+   * which handed the whole return on the `scout` verb away for free: arriving at a node reveals its
+   * neighbours, so a player who had once stood anywhere got live intel on everything beside it forever.
+   * Standing somewhere does scout it — but `applyMove` now *writes* that, so the predicate is honest
+   * and the verb is the only way to learn about a place you have not been.
+   */
+  readonly scouted?: boolean;
+  /**
+   * The day the look was taken (M5 task T84). What you know about a place you are not standing in is a
+   * memory, and memories go stale: past {@link SCOUT_MEMORY_DAYS} the travel choice stops reporting a
+   * count it can no longer stand behind. Without this the mark was permanent and the label read the
+   * node's **live** walker count, which is a surveillance channel the game does not otherwise have.
+   *
+   * Optional and absent-reads-stale, so a pre-T84 save needs no rung.
+   */
+  readonly scoutedOn?: number;
   /** Day of last player visit; null if never visited. */
   readonly lastVisit: number | null;
   /** Noise deposited this turn (stage 6), consumed by hordes next turn (stage 9). */
