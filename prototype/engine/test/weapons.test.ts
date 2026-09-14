@@ -91,6 +91,28 @@ const choice = (state: GameState, graph: RegionGraph, id: string): SceneChoice =
   availableActions(state, graph).find((c) => c.id === id)!;
 const wounds = (s: GameState): number => s.player.condition.wounds.length;
 
+/**
+ * Strip T82's grab from a fight. These are the T80 SHOVE tests: `push` and `retreat` are deliberately
+ * not offered while something has hold of you, so on the seeds where the opening exchange happens to
+ * grab, the choice this suite is asking for is legitimately absent. Clearing it keeps each test
+ * pinned to the one verb it was written to pin rather than silently becoming a test of the grab.
+ */
+function ungrabbed(s: GameState): GameState {
+  if (s.combat === null) return s;
+  const { grabbed: _g, ...free } = s.combat;
+  return { ...s, combat: free };
+}
+
+/**
+ * Fight on with a body that never accumulates damage. Used only where the question is how many blows
+ * the ENEMY takes: since T82 a badly hurt player who gets grabbed loses the run mid-fight, which would
+ * otherwise turn "strikes to fell a Riot" into a test of the player's survival instead.
+ */
+const unhurt = (s: GameState): GameState => ({
+  ...s,
+  player: { ...s.player, condition: { ...s.player.condition, wounds: [] } },
+});
+
 // --- the table ------------------------------------------------------------------------------
 
 describe("weapon profiles (T80 · FR-CBT-04 · FR-PLR-04)", () => {
@@ -190,9 +212,9 @@ describe("equipment defines capability (T80 · FR-PLR-04)", () => {
   it("the same fight against the Riot is hours shorter with a piercing weapon than with fists", () => {
     const play = (weapon?: ContentId): number => {
       let { state, graph } = fixture("riot-1", { zombie: "zombie.riot", ...(weapon !== undefined ? { weapon } : {}) });
-      state = take(state, graph, "fight");
+      state = unhurt(take(state, graph, "fight"));
       let blows = 1;
-      while (state.combat !== null && blows < 40) { state = take(state, graph, "strike"); blows += 1; }
+      while (state.combat !== null && blows < 40) { state = unhurt(take(state, graph, "strike")); blows += 1; }
       return blows;
     };
     expect(play("item.tool-reinforced")).toBeLessThan(play());
@@ -379,7 +401,7 @@ describe("six verbs (T80 · FR-CBT-02)", () => {
       let hurt = 0;
       for (let i = 0; i < 120; i += 1) {
         const { state, graph } = fixture(`slip-guard-${i}`, { zombie: "zombie.riot", loud: true });
-        const shoved = take(take(state, graph, "fight"), graph, "push");
+        const shoved = take(ungrabbed(take(state, graph, "fight")), graph, "push");
         const out = resolveCombatAction(shoved, graph, { type: verb, timeCost: 2, params: { to: "node.x.b" } });
         if (out.player.condition.wounds.length > shoved.player.condition.wounds.length) hurt += 1;
       }
@@ -397,10 +419,10 @@ describe("six verbs (T80 · FR-CBT-02)", () => {
       let hurt = 0;
       for (let i = 0; i < 150; i += 1) {
         const { state, graph } = fixture(`out-${i}`, { loud: true });
-        let s = take(state, graph, "fight");
+        let s = ungrabbed(take(state, graph, "fight"));
         const before = wounds(s);
         if (shove) s = take(s, graph, "push");
-        s = take(s, graph, "retreat:node.x.b");
+        s = take(ungrabbed(s), graph, "retreat:node.x.b");
         if (wounds(s) > before) hurt += 1;
       }
       return hurt;
@@ -421,7 +443,7 @@ describe("total-ness and the signpost (T80)", () => {
 
   it("the narration says what the shove bought, and says nothing when nothing is shoved", () => {
     const { state, graph } = fixture("tell", { zombie: "zombie.riot" });
-    const fighting = take(state, graph, "fight");
+    const fighting = ungrabbed(take(state, graph, "fight"));
     expect(combatNarration(fighting)).not.toContain("back on its heels");
     const shoved = take(fighting, graph, "push");
     expect(combatNarration(shoved)).toContain("back on its heels");
@@ -433,7 +455,7 @@ describe("total-ness and the signpost (T80)", () => {
 describe("the shove crosses a save (T80 · no schema rung)", () => {
   it("a shoved fight round-trips, and a pre-T80 fight without the field reads as not shoved", () => {
     const { state, graph } = fixture("save");
-    const shoved = take(take(state, graph, "fight"), graph, "push");
+    const shoved = take(ungrabbed(take(state, graph, "fight")), graph, "push");
     expect(loadGame(saveGame(shoved)).combat!.offBalance).toBe(true);
     const legacy = JSON.parse(saveGame(shoved)) as { state: { combat: Record<string, unknown> } };
     delete legacy.state.combat["offBalance"];

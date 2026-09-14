@@ -503,6 +503,11 @@ describe("the per-node roster fixes the type/population divorce (T75)", () => {
       const c = availableActions(s, graph).find((x) => x.id === id);
       if (c === undefined) throw new Error(`no choice ${id}`);
       s = applyAction(s, c.action, graph).state;
+      // T82: a bare-handed Riot fight taken to the end now kills the player part-way through (held,
+      // hurt past LAST_STAND_AT, no retreat on offer), and a finished run offers no actions at all.
+      // The question here is what `killEnemy` does to the ROSTER, so the player's damage is cleared
+      // between blows to keep the fixture fighting.
+      s = { ...s, player: { ...s.player, condition: { ...s.player.condition, wounds: [] } } };
     };
     take("fight");
     for (let i = 0; i < 40 && s.combat !== null; i += 1) take("strike");

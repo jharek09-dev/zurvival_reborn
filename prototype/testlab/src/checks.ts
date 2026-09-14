@@ -18,6 +18,7 @@ import {
   loadGame,
   isRunOver,
   runEndReason,
+  RUN_END_REASONS,
   auditTurn,
   type Action,
   type GameState,
@@ -204,7 +205,14 @@ export function checkLeak(statusLines: readonly string[]): string | null {
   return null;
 }
 
-const END_REASONS: ReadonlySet<string> = new Set(["starved", "dehydrated", "infection"]);
+/**
+ * Derived from the engine, never re-typed here. This was a hand-written
+ * `new Set(["starved", "dehydrated", "infection"])` until T82 added a fourth reason and the Lab
+ * failed 11 of 24 soak runs on perfectly correct behaviour — the check was testing the Lab's memory
+ * of the engine rather than the engine. Reading `RUN_END_REASONS` makes that class of failure
+ * impossible; the engine's own exhaustiveness guard keeps the list honest at its end.
+ */
+const END_REASONS: ReadonlySet<string> = new Set<string>(RUN_END_REASONS);
 
 /** CHK-END — an ended run ended for a known reason and offers nothing further. */
 export function checkEnd(state: GameState, graph: RegionGraph): string | null {

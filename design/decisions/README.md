@@ -40,6 +40,10 @@ What becomes easier or harder as a result.
 - **0006 — Licensing.** Accepted 2026-07-16 (M4) — the beta ships **all-rights-reserved**; the final
   license selection (open source / source-available / proprietary) is deferred to the coupled T58
   monetization decision with a named trigger, to be logged as **ADR-0006a**.
+- **0007 — The player has no health stat; wounds are the health model.** Accepted 2026-09-13 —
+  `woundBurden` is the health model and is never shown as a number; death in combat is the
+  *situation* `lastStand` (in a fight, grabbed, and past `LAST_STAND_AT`), not a threshold.
+  Supersedes the GDD Part V "Health — 0 = death" line. Settles PL-M5-01; gates T82.
 
 ## Still open (PRD → Open Questions — not yet ADRs)
 
