@@ -33,7 +33,7 @@ import { STORY_ARCS } from "../../engine/src/index.js";
 import { parseCommand, renderScene, saveState } from "./play.js";
 import { renderDepthScreen } from "./screens.js";
 import { isRunOver } from "../../engine/src/index.js";
-import type { EncounterDef, SignalDef, RecipeDef, JobDef, FactionDef, WeaponDef, ProjectDef } from "../../engine/src/index.js";
+import type { EncounterDef, SignalDef, RecipeDef, JobDef, FactionDef, WeaponDef, ProjectDef, EndingDef } from "../../engine/src/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const contentDir = join(here, "..", "..", "..", "content");
@@ -75,11 +75,15 @@ function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; 
   // above, golden transcript generators don't register it, so they stay byte-stable — a run without it
   // has the four losing run-end reasons it always had and no commit/stage verbs at all.
   const projects = load<ProjectDef>("projects");
+  // The ending pool (T61): registered so the playable client closes a run on an ASSEMBLED ending rather
+  // than on the reason's one fixed line. Like the pools above, golden transcript generators don't
+  // register it, so they stay byte-stable — a run without it closes on exactly the pre-T61 sentence.
+  const endings = load<EndingDef>("endings");
   const resumeIdx = argv.indexOf("--resume");
   if (resumeIdx !== -1 && argv[resumeIdx + 1]) {
     const savePath = argv[resumeIdx + 1]!;
     const state = loadGame(readFileSync(savePath, "utf8"));
-    return { state, graph: buildRegionGraph(regions, nodes, encounters, signals, recipes, jobs, factions, npcs, weapons, projects), savePath };
+    return { state, graph: buildRegionGraph(regions, nodes, encounters, signals, recipes, jobs, factions, npcs, weapons, projects, endings), savePath };
   }
   const seed = argv[2] && !argv[2].startsWith("--") ? argv[2] : "rivermouth-demo";
   // Difficulty floor (T56 · GDD XVI): `--difficulty <story|survivor|hardcore|nightmare>` and `--ironman`.
@@ -102,6 +106,7 @@ function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; 
     factions,
     weapons,
     projects,
+    endings,
   );
   return { state, graph, savePath: DEFAULT_SAVE };
 }

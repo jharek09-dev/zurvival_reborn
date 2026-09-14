@@ -71,6 +71,7 @@ const CONTENT = {
   factions: loadPool("factions"),
   weapons: loadPool("weapons"),
   projects: loadPool("projects"),
+  endings: loadPool("endings"),
 };
 
 const css = fs.readFileSync(path.join(here, "testlab.css"), "utf8");
