@@ -17,6 +17,7 @@ import type { SignalDef } from "../sim/radio.js";
 import type { RecipeDef } from "../sim/economy.js";
 import type { JobDef } from "../sim/jobs.js";
 import type { WeaponDef } from "../combat/weapons.js";
+import type { ProjectDef } from "../sim/project.js";
 import type { FactionDef } from "../sim/social.js";
 import type { NPCDef } from "../sim/npcs.js";
 
@@ -154,6 +155,14 @@ export interface RegionGraph {
    * is drift-guarded against `combat/weapons.ts`, it does not supply the numbers. Never serialized.
    */
   readonly weapons?: readonly WeaponDef[];
+  /**
+   * The run's registered terminal-project pool (M5 task T87) — transient content the client loaded from
+   * `content/projects/`, carried here exactly as the recipe, job and weapon pools are. Optional and
+   * defaulting to empty: a graph built without it leaves the whole win-condition layer inert (no commit
+   * or stage verbs, no `ending.*` flag, no project escalation, and `runEndReason` keeps its four losing
+   * reasons), so every prior run stays byte-identical. Never serialized.
+   */
+  readonly projects?: readonly ProjectDef[];
   /**
    * The run's registered faction pool (M4 task T53) — transient content the client loaded from
    * `content/factions/`, carried here so the social interpreter reaches it the same way the job pool does.

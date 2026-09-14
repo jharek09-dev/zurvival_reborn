@@ -29,5 +29,6 @@ export function loadContent(dir: string = CONTENT_DIR): Content {
     jobs: pool("jobs"),
     factions: pool("factions"),
     weapons: pool("weapons"),
+    projects: pool("projects"),
   };
 }

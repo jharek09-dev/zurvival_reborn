@@ -95,6 +95,7 @@ import { radioChoices, isRadioAction, resolveRadioAction, radioLine, radioPool }
 import { economyChoices, isEconomyAction, resolveEconomyAction, economyLine, economyActive } from "../sim/economy.js";
 import { jobChoices, isJobAction, resolveJobAction, jobLine, jobIdOf, jobOf } from "../sim/jobs.js";
 import { socialChoices, isSocialAction, resolveSocialAction, socialLine, socialActive, attitudeRead, companionUnease, shelterMoodRead } from "../sim/social.js";
+import { projectChoices, isProjectAction, resolveProjectAction, projectLine, winNarration } from "../sim/project.js";
 
 // The core action time costs moved to the leaf module `actions/costs.ts` (T77) so the combat layer —
 // which `coreActions` imports, and which must define `SLIP_COST` as `MOVE_COST + 1` — can read them
@@ -200,7 +201,7 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   const node = state.nodes[here];
   if (node === undefined) return [];
 
-  if (isRunOver(state)) return []; // the run has ended — no actions follow a death (T22)
+  if (isRunOver(state)) return []; // the run has ended — nothing follows it (a death T22, or a T87 win)
   // A horde standing on you (T76) pre-empts EVERYTHING below, including a fight already in progress:
   // FR-CBT-08 says a mass is routed or fled, never out-traded, so there is no fight choice while one
   // is on your node — run, or go to ground. The branch sits above combat deliberately (a mass walking
@@ -399,6 +400,12 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   // prior run; offered only in this quiet explore branch, after the base-management verbs.
   for (const choice of socialChoices(state, graph)) choices.push(choice);
 
+  // The terminal project (T87 · FR-STY-06 groundwork · GDD XVI "Legacy"). Appended near the end because
+  // it is the one thing on the list that is not about getting through today: the survival verbs lead, and
+  // the way out sits under them. Empty unless the content set authors projects AND the player is standing
+  // in their own base. See `sim/project.ts`.
+  for (const choice of projectChoices(state, graph)) choices.push(choice);
+
   // Drop a carried item to reclaim weight (T18 · FR-PLR-03) — the leave-behind lever. Surfaced only
   // when the pack is heavy (>= PACK_HEAVY): below that there's ample room, so drops would just clutter
   // the single-decision screen (FR-UI). One choice per non-unique stack, stable-ordered by type; free.
@@ -560,6 +567,7 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
   if (isRadioAction(action)) return resolveRadioAction(state, graph, action);
   if (isEconomyAction(action)) return resolveEconomyAction(state, graph, action);
   if (isJobAction(action)) return resolveJobAction(state, graph, action);
+  if (isProjectAction(action)) return resolveProjectAction(state, graph, action);
   switch (action.type) {
     case "move": {
       const to = action.params?.["to"];
@@ -829,10 +837,14 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
     return { turn, day, hour, phase, narration: "", choices: [] };
   }
 
-  // The run has ended (T22): narrate the death, offer nothing further.
+  // The run has ended (T22): narrate how — a death, or since T87 a way out taken, offer nothing further.
   const end = runEndReason(state);
   if (end !== null) {
-    return { turn, day, hour, phase, location: here, narration: endingNarration(end), choices: [] };
+    // A won run closes on the words the project it finished carries; a lost one on `endingNarration`.
+    // `winNarration` falls back to the same line `endingNarration` would give, so a run that ended well
+    // is never rendered as an empty string even if the pool is gone (T87).
+    const closing = end === "escaped" || end === "held" ? winNarration(state, graph, end) : endingNarration(end);
+    return { turn, day, hour, phase, location: here, narration: closing, choices: [] };
   }
 
   const name = graph.nodes[here]?.name ?? here;
@@ -889,10 +901,14 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   const social = socialLine(state, graph);
   const people = peopleLine(state, graph);
   const shelter = shelterLine(state, graph);
+  // The terminal project (T87): what the base is for, or what the next stage is waiting on. Empty on
+  // every turn there is nothing to say — and, per T86's audit finding 4, NOT empty on the turn a stage
+  // is priced out of reach, because a verb that silently stops being offered tells the player nothing.
+  const project = projectLine(state, graph);
   const story = storyLine(state);
   const moral = humanityBand(state);
   const atmosphere = atmosphereLine(state);
-  const narration = [event, lead, halluc, cure, radio, economy, jobs, social, people, shelter, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
+  const narration = [event, lead, halluc, cure, radio, economy, jobs, social, people, shelter, project, story, moral, atmosphere, setting].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
 
   return { turn, day, hour, phase, location: here, narration, choices: availableActions(state, graph) };
 }

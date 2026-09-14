@@ -24,6 +24,7 @@ import type { GameState, Needs } from "../state/types.js";
 import type { Action } from "../pipeline/contract.js";
 import { isWounded, treatWound, woundBurden, woundRemainder, worstWound } from "./wounds.js";
 import { advanceInfection, hasSuccumbed, stageFatigue } from "./infection.js";
+import { wonEnding } from "./project.js";
 import { profileOf, scaleInt } from "./difficulty.js";
 
 // Infection is now a staged identity (T49 · `sim/infection.ts`). survival.ts keeps owning the needs +
@@ -255,7 +256,7 @@ export function treat(state: GameState): GameState {
 
 // --- run-end (derived; no new state) --------------------------------------------------------
 
-export type RunEndReason = "starved" | "dehydrated" | "infection" | "lastStand";
+export type RunEndReason = "starved" | "dehydrated" | "infection" | "lastStand" | "escaped" | "held";
 
 /**
  * Every reason a run can end, as a value — so a consumer can *enumerate* them instead of keeping its
@@ -268,7 +269,13 @@ export type RunEndReason = "starved" | "dehydrated" | "infection" | "lastStand";
  * the guard: it is typed over the union, so TypeScript refuses to compile the day someone adds a
  * fifth reason and forgets this line. Same shape as the T81 content drift guards.
  */
-const ALL_END_REASONS: Record<RunEndReason, true> = { starved: true, dehydrated: true, infection: true, lastStand: true };
+const ALL_END_REASONS: Record<RunEndReason, true> = {
+  starved: true, dehydrated: true, infection: true, lastStand: true,
+  // T87: the first two that are not deaths. `isRunOver` is true for a won run exactly as for a lost one
+  // — the run is over either way, and every consumer that asks "is this finished" gets the right answer
+  // without being taught a new question.
+  escaped: true, held: true,
+};
 export const RUN_END_REASONS: readonly RunEndReason[] = Object.keys(ALL_END_REASONS) as RunEndReason[];
 
 /**
@@ -345,6 +352,14 @@ export function runEndReason(state: GameState): RunEndReason | null {
   // scene the player is owed is the one they are standing in. Still derived: `combat.grabbed` and the
   // wound list are both already in `GameState`, so there is no stored death flag and no save rung.
   if (inLastStand(state)) return "lastStand";
+  // T87: the terminal project. Checked AFTER the Last Stand and BEFORE the slow deaths, and the order is
+  // a judgement, not an accident: hands on you in the dark beat a finished boat, because the grapple is
+  // the thing happening *now*; a finished boat beats a fever or a dry canteen, because those are clocks
+  // you were already outrunning and the last stage is what you did about them. A run that wins while
+  // dying reports the win — the shade of it is in the Living History, which is what T61 assembles an
+  // ending FROM (PL-M5-67). Read off `story.endingFlags` and nothing else, so this stays graph-free.
+  const won = wonEnding(state);
+  if (won !== null) return won;
   // Infection no longer ends the run at terminal onset (T49 · FR-INJ-08) — terminal is the playable cure
   // race. The run ends by infection ONLY at the delayed `succumb` collapse, reached by neglecting the race.
   if (hasSuccumbed(infection)) return "infection";
@@ -355,7 +370,11 @@ export function runEndReason(state: GameState): RunEndReason | null {
 
 export const isRunOver = (state: GameState): boolean => runEndReason(state) !== null;
 
-/** The narration for an ended run — a plain-text death, no choices follow. */
+/**
+ * The narration for an ended run — plain text, no choices follow. Since T87 an ended run is not always
+ * a death: two of the six reasons are wins, and `sceneOf` prefers the finished project's OWN ending over
+ * the fallback here (`sim/project.ts#winNarration`).
+ */
 export function endingNarration(reason: RunEndReason): string {
   switch (reason) {
     case "starved":
@@ -371,5 +390,12 @@ export function endingNarration(reason: RunEndReason): string {
     // `endingNarration` that will be replaced rather than kept.
     case "lastStand":
       return "It had you, and you had nothing left to give it. You went down swinging, in the dark, and the city closed over the place where you had been.";
+    // T87 — the two that are not deaths. Still scenes, not scoreboards: the *authored* ending belongs to
+    // the project that was finished (`winNarration`), and these are the fallbacks for a won run whose
+    // content is no longer in hand.
+    case "escaped":
+      return "You went out past the last of it and did not look back. Whatever the city is now, it is behind you.";
+    case "held":
+      return "The night came apart against what you had built, and when it was over the walls were still standing, and so were you.";
   }
 }

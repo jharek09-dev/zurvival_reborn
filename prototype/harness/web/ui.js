@@ -32,13 +32,13 @@
     var r = Z.startRun(metaFor(seed, difficulty, ironman),
       C.regions, C.nodes, C.npcs,
       Z.STORY_ARCS.map(function (a) { return a.id; }),
-      C.encounters, C.signals, C.recipes, C.jobs, C.factions);
+      C.encounters, C.signals, C.recipes, C.jobs, C.factions, C.weapons, C.projects);
     G.state = r.state; G.graph = r.graph; G.seed = (seed && seed.trim()) || "rivermouth-demo"; G.over = false;
     render();
   }
   // Resume path — rebuild the transient region graph from content (arg order per playCli).
   function rebuildGraph() {
-    return Z.buildRegionGraph(C.regions, C.nodes, C.encounters, C.signals, C.recipes, C.jobs, C.factions, C.npcs);
+    return Z.buildRegionGraph(C.regions, C.nodes, C.encounters, C.signals, C.recipes, C.jobs, C.factions, C.npcs, C.weapons, C.projects);
   }
 
   // Presentation-only reflow of the scene prose, delegated to the harness's shared layoutStory so the

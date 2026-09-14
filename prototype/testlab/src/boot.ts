@@ -30,6 +30,7 @@ import {
   type JobDef,
   type FactionDef,
   type WeaponDef,
+  type ProjectDef,
   type DifficultyMode,
   type InventoryEntry,
 } from "../../engine/src/index.js";
@@ -46,9 +47,11 @@ export interface Content {
   readonly factions: readonly FactionDef[];
   /** The T81 weapon content set — the gate for weapon loot placement. */
   readonly weapons: readonly WeaponDef[];
+  /** The T87 terminal-project pool — the gate for the win condition. */
+  readonly projects: readonly ProjectDef[];
 }
 
-export const CONTENT_POOLS = ["regions", "nodes", "npcs", "encounters", "signals", "recipes", "jobs", "factions", "weapons"] as const;
+export const CONTENT_POOLS = ["regions", "nodes", "npcs", "encounters", "signals", "recipes", "jobs", "factions", "weapons", "projects"] as const;
 
 /** Pinned run-creation timestamp: the core never reads a clock, and replay needs boots to be byte-identical. */
 export const FIXED_CREATED_AT = "2026-09-12T00:00:00.000Z";
@@ -105,6 +108,7 @@ export function bootCity(
     content.jobs,
     content.factions,
     content.weapons,
+    content.projects,
   );
   return { state: opts.stocked ? stock(state) : state, graph };
 }
@@ -124,5 +128,6 @@ export function graphFor(content: Content): RegionGraph {
     content.factions,
     content.npcs,
     content.weapons,
+    content.projects,
   );
 }

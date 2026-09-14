@@ -33,7 +33,7 @@ import { STORY_ARCS } from "../../engine/src/index.js";
 import { parseCommand, renderScene, saveState } from "./play.js";
 import { renderDepthScreen } from "./screens.js";
 import { isRunOver } from "../../engine/src/index.js";
-import type { EncounterDef, SignalDef, RecipeDef, JobDef, FactionDef, WeaponDef } from "../../engine/src/index.js";
+import type { EncounterDef, SignalDef, RecipeDef, JobDef, FactionDef, WeaponDef, ProjectDef } from "../../engine/src/index.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const contentDir = join(here, "..", "..", "..", "content");
@@ -71,11 +71,15 @@ function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; 
   // Like the pools above, golden transcript generators don't register it, so they stay byte-stable — a
   // run without it places no weapons in loot and draws the identical uniform table.
   const weapons = load<WeaponDef>("weapons");
+  // The terminal-project pool (T87): registered so the playable client can actually WIN. Like the pools
+  // above, golden transcript generators don't register it, so they stay byte-stable — a run without it
+  // has the four losing run-end reasons it always had and no commit/stage verbs at all.
+  const projects = load<ProjectDef>("projects");
   const resumeIdx = argv.indexOf("--resume");
   if (resumeIdx !== -1 && argv[resumeIdx + 1]) {
     const savePath = argv[resumeIdx + 1]!;
     const state = loadGame(readFileSync(savePath, "utf8"));
-    return { state, graph: buildRegionGraph(regions, nodes, encounters, signals, recipes, jobs, factions, npcs, weapons), savePath };
+    return { state, graph: buildRegionGraph(regions, nodes, encounters, signals, recipes, jobs, factions, npcs, weapons, projects), savePath };
   }
   const seed = argv[2] && !argv[2].startsWith("--") ? argv[2] : "rivermouth-demo";
   // Difficulty floor (T56 · GDD XVI): `--difficulty <story|survivor|hardcore|nightmare>` and `--ironman`.
@@ -97,6 +101,7 @@ function boot(argv: readonly string[]): { state: GameState; graph: RegionGraph; 
     jobs,
     factions,
     weapons,
+    projects,
   );
   return { state, graph, savePath: DEFAULT_SAVE };
 }

@@ -17,7 +17,7 @@ format-patch / status.json roadmap unless the owner decides to commit it.
     node prototype/harness/web/build-web.mjs  /tmp/zurvival-bundle.js --minify
     node prototype/harness/web/build-html.mjs /tmp/zurvival-bundle.js content /tmp/zurvival-playable.html
 
-The boot mirrors `playCli.ts` (registers `STORY_ARCS` + the encounter/radio/recipe/job/faction pools),
+The boot mirrors `playCli.ts` (registers `STORY_ARCS` + the encounter/radio/recipe/job/faction/weapon/project pools),
 so a browser run is the full-city beta, not the slice. Determinism holds: same seed → same run —
 verified against the Node engine build and the canonical `playSession` fold, and via a headless-Chromium
 DOM smoke (see the build session notes).

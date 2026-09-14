@@ -97,6 +97,7 @@ import type { RegionDef, RegionGraph } from "../map/types.js";
 import { drawInt } from "../rng/streams.js";
 import { relax } from "./clocks.js";
 import { directorBias } from "./director.js";
+import { projectAlarm, PROJECT_ALARM_CAP } from "./project.js";
 
 /** Clamp to a 0–100 integer — the discipline every sim quantity keeps. */
 const clampPct = (n: number): number => Math.max(0, Math.min(100, Math.trunc(n)));
@@ -221,18 +222,24 @@ export interface DriftAnchor {
 
 /**
  * Build a region's drift anchor from its content baseline at a given day, leaned by the director's
- * `bias` for that region (T78; a clamped whole number in ±`DIRECTOR_BIAS_MAX`, default 0) and raised
+ * `bias` for that region (T78; a clamped whole number in ±`DIRECTOR_BIAS_MAX`, default 0), raised
  * by `neglect` points of festering (T79; 0–`NEGLECT_CAP`, default 0 — an anchor asked for without one
- * is the anchor of a region tended today). Mirrors
+ * is the anchor of a region tended today) and by `alarm`, the noise the run's own terminal project has
+ * made (T87; 0–`PROJECT_ALARM_CAP`, default 0). Mirrors
  * `seedRegionState`'s fallbacks (an unspecified dial anchors at 0, exactly where the seed put it).
  * Pure and total: every term is scrubbed, so the anchor is always three whole 0–100 numbers.
  */
-export function driftAnchor(baseline: RegionDef["baseline"], day: number, bias = 0, neglect = 0): DriftAnchor {
+export function driftAnchor(baseline: RegionDef["baseline"], day: number, bias = 0, neglect = 0, alarm = 0): DriftAnchor {
   const b = baseline ?? {};
   // The neglect term is bounded HERE as well as at its source, so no caller can smuggle an unbounded
   // lift onto the anchor through this argument (the ramp and the bias are bounded the same way).
   const fester = Number.isFinite(neglect) ? Math.max(0, Math.min(NEGLECT_CAP, Math.trunc(neglect))) : 0;
-  const lift = dayRamp(day) + fester + (Number.isFinite(bias) ? Math.trunc(bias) : 0);
+  // T87: the standing half of "every completed stage raises something". Bounded HERE as well as at its
+  // source for the same reason the other two terms are — no caller can smuggle an unbounded lift onto
+  // the anchor through this argument. An anchor asked for without one (every pre-T87 caller, and every
+  // run that has finished no stage) supplies 0 and is byte-identical to T79's.
+  const alarmed = Number.isFinite(alarm) ? Math.max(0, Math.min(PROJECT_ALARM_CAP, Math.trunc(alarm))) : 0;
+  const lift = dayRamp(day) + fester + alarmed + (Number.isFinite(bias) ? Math.trunc(bias) : 0);
   return {
     threat: clampPct(dial(b.threat) + lift),
     zombieDensity: clampPct(dial(b.zombieDensity) + lift),
@@ -308,6 +315,10 @@ export function driftRegions(state: GameState, hours: number, graph?: RegionGrap
   let rng = state.rng;
   let changed = false;
   const neglect = regionNeglectDays(state);
+  // T87: derived once per tick for the whole map, like neglect — it is a property of the RUN, not of a
+  // region, so every region's anchor gets the same lift and the per-region cost is nothing. Read off
+  // `story.endingFlags`, so it is correct on a state ticked without a graph.
+  const alarm = projectAlarm(state);
   const regions: Record<string, RegionState> = {};
   for (const [id, region] of Object.entries(state.regions)) {
     const draw = drawInt(rng, state.meta.seed, "region", -DRIFT_JITTER, DRIFT_JITTER);
@@ -319,7 +330,7 @@ export function driftRegions(state: GameState, hours: number, graph?: RegionGrap
       draw.value,
       def === undefined
         ? undefined
-        : driftAnchor(def.baseline, state.meta.day, directorBias(region), neglectLift(neglect[id] ?? 0)),
+        : driftAnchor(def.baseline, state.meta.day, directorBias(region), neglectLift(neglect[id] ?? 0), alarm),
     );
     if (next !== region) changed = true;
     regions[id] = next;
