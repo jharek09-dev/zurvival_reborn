@@ -20,6 +20,7 @@ import type { JobDef } from "../sim/jobs.js";
 import type { FactionDef } from "../sim/social.js";
 import type { NPCDef } from "../sim/npcs.js";
 import type { WeaponDef } from "../combat/weapons.js";
+import type { ProjectDef } from "../sim/project.js";
 import { MapError, type NodeDef, type RegionDef, type RegionGraph } from "./types.js";
 
 /** Index an array of defs by id, rejecting duplicates. */
@@ -51,6 +52,7 @@ export function buildRegionGraph(
   factionDefs: readonly FactionDef[] = [],
   peopleDefs: readonly NPCDef[] = [],
   weaponDefs: readonly WeaponDef[] = [],
+  projectDefs: readonly ProjectDef[] = [],
 ): RegionGraph {
   if (nodeDefs.length === 0) throw new MapError("no nodes: a region graph needs at least one node");
 
@@ -92,6 +94,22 @@ export function buildRegionGraph(
   }
   const startNodeId = starts[0]!.id;
 
+  // T87 content guard: a project's id and every one of its stage ids must be unique, because BOTH are
+  // save data — a stage flag is `project.stage.<projectId>.<stageId>`. Two stages sharing an id share a
+  // flag, so paying for one silently completes the other (the audit built a three-stage project that a
+  // single scrap finished two thirds of). The schema cannot express uniqueness across an array of
+  // objects, so it is expressed here, where `indexById` already refuses duplicate node and region ids.
+  const seenProjects = new Set<string>();
+  for (const p of projectDefs) {
+    if (seenProjects.has(p.id)) throw new MapError(`duplicate project id "${p.id}"`);
+    seenProjects.add(p.id);
+    const seenStages = new Set<string>();
+    for (const st of p.stages) {
+      if (seenStages.has(st.id)) throw new MapError(`project "${p.id}" repeats stage id "${st.id}" — stage ids are save data and must be unique within a project`);
+      seenStages.add(st.id);
+    }
+  }
+
   // Connectivity: every node reachable from start over the (now symmetric) edges.
   const reached = reachableFrom(nodes, startNodeId);
   if (reached.size !== nodeDefs.length) {
@@ -119,6 +137,9 @@ export function buildRegionGraph(
     // The weapon content set (T81) gates weapon placement in loot; without it a search draws the exact
     // pre-T81 uniform table, which is what keeps every prior run byte-identical.
     ...(weaponDefs.length > 0 ? { weapons: weaponDefs } : {}),
+    // The terminal-project pool (T87) is the win condition's master gate — attached only when the client
+    // registers one, so a graph without it has no way to end a run well, exactly as before.
+    ...(projectDefs.length > 0 ? { projects: projectDefs } : {}),
   };
 }
 

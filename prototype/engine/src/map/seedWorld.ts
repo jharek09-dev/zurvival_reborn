@@ -25,6 +25,7 @@ import type { SignalDef } from "../sim/radio.js";
 import type { RecipeDef } from "../sim/economy.js";
 import type { JobDef } from "../sim/jobs.js";
 import type { WeaponDef } from "../combat/weapons.js";
+import type { ProjectDef } from "../sim/project.js";
 import type { NodeDef, RegionDef, RegionGraph } from "./types.js";
 import { seedRoster, distinctTypes } from "../sim/roster.js";
 import type { ContentId } from "../state/types.js";
@@ -131,6 +132,7 @@ export function startRun(
   jobDefs: readonly JobDef[] = [],
   factionDefs: readonly FactionDef[] = [],
   weaponDefs: readonly WeaponDef[] = [],
+  projectDefs: readonly ProjectDef[] = [],
 ): RunStart {
   const graph = buildRegionGraph(
     regionDefs,
@@ -145,6 +147,9 @@ export function startRun(
     factionDefs.length > 0 ? npcDefs : [],
     // The weapon content set (T81) — the gate for weapon loot placement; absent ⇒ no weapons in loot.
     weaponDefs,
+    // The terminal-project pool (T87) — the gate for the win condition; absent ⇒ four ways to lose and
+    // none to win, exactly as every run before it.
+    projectDefs,
   );
   const base = createInitialState({ ...opts, startLocation: graph.startNodeId });
 

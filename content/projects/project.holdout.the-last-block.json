@@ -1,0 +1,103 @@
+{
+  "$schema": "../schemas/project.schema.json",
+  "id": "project.holdout.the-last-block",
+  "kind": "holdout",
+  "label": "The Last Block",
+  "premise": "Nobody is coming. But these walls could be made to hold, and what is inside them could be made to last the winter.",
+  "stages": [
+    {
+      "id": "seal",
+      "label": "Seal the approaches",
+      "worldEffect": "Every way in but one goes under boards and wire. The one that is left, you can see down.",
+      "accepts": [
+        {
+          "item": "item.scrap",
+          "qty": 2
+        },
+        {
+          "item": "item.blanket",
+          "qty": 1
+        },
+        {
+          "item": "item.cloth",
+          "qty": 2
+        }
+      ],
+      "timeCost": 3,
+      "noise": 15,
+      "escalation": {
+        "threat": 3,
+        "zombieDensity": 5,
+        "scope": "region"
+      }
+    },
+    {
+      "id": "cache",
+      "label": "Sink the cache",
+      "worldEffect": "A dry hole under the floor, lined and lidded. What goes in it is yours whatever comes through the door.",
+      "accepts": [
+        {
+          "item": "item.scrap",
+          "qty": 2
+        },
+        {
+          "item": "item.charcoal",
+          "qty": 1
+        },
+        {
+          "item": "item.cloth",
+          "qty": 2
+        },
+        {
+          "item": "item.water-dirty",
+          "qty": 2
+        }
+      ],
+      "timeCost": 4,
+      "escalation": {
+        "survivorActivity": 6,
+        "zombieDensity": 4,
+        "scope": "region"
+      }
+    },
+    {
+      "id": "vigil",
+      "label": "Hold the line",
+      "worldEffect": "You do not put the work down until it is finished — not for the dark, and not for what the noise of it has been calling all week.",
+      "accepts": [
+        {
+          "item": "item.scrap",
+          "qty": 1
+        },
+        {
+          "item": "item.charcoal",
+          "qty": 1
+        },
+        {
+          "item": "item.cloth",
+          "qty": 1
+        },
+        {
+          "item": "item.batteries",
+          "qty": 1
+        },
+        {
+          "item": "item.lighter",
+          "qty": 1
+        },
+        {
+          "item": "item.ammo",
+          "qty": 1
+        }
+      ],
+      "timeCost": 8,
+      "noise": 35,
+      "escalation": {
+        "threat": 8,
+        "zombieDensity": 8,
+        "scope": "region"
+      }
+    }
+  ],
+  "ending": "They came against the boards for most of the night and the boards did not give. By the grey hour there was nothing left outside but what the night had left, and the block was still a block, and the people in it were still people, and the door you had sealed you opened yourself, from the inside, because you had decided to."
+}

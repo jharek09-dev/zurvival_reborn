@@ -600,6 +600,11 @@ export function renderShelter(state: GameState, graph?: RegionGraph): readonly s
     "social.confided",
     "companion.died",
     "npc.died",
+    // T87: the project is a BASE undertaking, so a stage landing is exactly what this list is for.
+    // `project.committed` is here too — the turn the base acquires a purpose is base news.
+    "project.committed",
+    "project.stage",
+    "project.complete",
   ]);
   const baseNews = state.history.filter((e) => REPORTABLE.has(e.type)).slice(-4).reverse();
   section(body, "Recent at the base", baseNews.map(historyLine));
@@ -730,6 +735,25 @@ export function historyLine(ev: HistoryEvent): string {
     }
     case "shelter.abandoned":
       what = "you closed the door behind you for the last time";
+      break;
+    // T87 — the terminal project. `project.complete` is the single most important line a won run ever
+    // writes into the log, and it is the beat T61 assembles an ending FROM, so none of the three may
+    // fall through to the `default:` below and render as two contextless words ("project stage.").
+    case "project.committed": {
+      const kind = data["kind"];
+      what = kind === "escape"
+        ? "you decided this place was a way out, and started work"
+        : "you decided this place was worth holding, and started work";
+      break;
+    }
+    case "project.stage": {
+      const stage = typeof data["stage"] === "string" ? humanId(data["stage"]) : "the work";
+      const paid = typeof data["paid"] === "string" ? humanId(data["paid"]) : null;
+      what = paid === null ? `${stage} is done` : `${stage} is done, and it cost you what you were carrying`;
+      break;
+    }
+    case "project.complete":
+      what = data["kind"] === "escape" ? "the way out was finished, and you took it" : "the walls were finished, and they held";
       break;
     case "story.arc":
     case "story.beat":

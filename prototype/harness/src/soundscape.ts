@@ -31,7 +31,7 @@
 import {
   neighborsOf,
   isDiscovered,
-  isRunOver,
+  isRunOver, runEndReason,
   isWounded,
   worstWound,
   ZOMBIE_WALKER,
@@ -492,7 +492,13 @@ function buildTone(state: GameState, cues: readonly Cue[]): string | null {
   let tone: Tone;
   let level: number;
   if (isRunOver(state)) {
-    tone = "loss";
+    // T87: `isRunOver` is no longer a synonym for "died". Two of the six run-end reasons are wins, and
+    // playing the loss one-shot over the holdout ending was the integration audit's second finding —
+    // the audio saying the opposite of the prose, on every surface at once. `hopeTheme` has been
+    // authored in the tone table since T56 and unreachable ever since for want of exactly this event
+    // (see `cueMatrix.ts`); the way out taken is what finally selects it.
+    const end = runEndReason(state);
+    tone = end === "escaped" || end === "held" ? "hope" : "loss";
     level = 2;
   } else if (state.combat !== null || acute || (anyThreatHeard && fear >= 0.5)) {
     tone = "danger";

@@ -1,0 +1,104 @@
+{
+  "$schema": "../schemas/project.schema.json",
+  "id": "project.departure.the-long-road",
+  "kind": "escape",
+  "label": "The Long Road",
+  "premise": "There is a truck in the yard with three flat tyres and a dry tank. Make it run and this city stops being the only place there is.",
+  "stages": [
+    {
+      "id": "tyres",
+      "label": "Get it standing",
+      "worldEffect": "Three wheels come off other wrecks and go on hers. It sits level for the first time since the roads closed.",
+      "accepts": [
+        {
+          "item": "item.scrap",
+          "qty": 2
+        },
+        {
+          "item": "item.tools",
+          "qty": 1
+        },
+        {
+          "item": "item.cloth",
+          "qty": 2
+        }
+      ],
+      "timeCost": 3,
+      "noise": 20,
+      "escalation": {
+        "threat": 4,
+        "survivorActivity": 3,
+        "scope": "region"
+      }
+    },
+    {
+      "id": "wiring",
+      "label": "Wire the starter",
+      "worldEffect": "You strip the column and splice it straight. It turns over. It keeps turning over.",
+      "accepts": [
+        {
+          "item": "item.batteries",
+          "qty": 1
+        },
+        {
+          "item": "item.scrap",
+          "qty": 2
+        },
+        {
+          "item": "item.lighter",
+          "qty": 1
+        },
+        {
+          "item": "item.radio",
+          "qty": 1
+        }
+      ],
+      "timeCost": 4,
+      "noise": 30,
+      "escalation": {
+        "threat": 4,
+        "survivorActivity": 3,
+        "scope": "city"
+      }
+    },
+    {
+      "id": "cast-off",
+      "label": "Take the road out",
+      "worldEffect": "Enough in the tank to clear the last of it. You do not plan to stop inside the city limits.",
+      "accepts": [
+        {
+          "item": "item.fuel",
+          "qty": 1
+        },
+        {
+          "item": "item.scrap",
+          "qty": 2
+        },
+        {
+          "item": "item.charcoal",
+          "qty": 1
+        },
+        {
+          "item": "item.water-dirty",
+          "qty": 2
+        },
+        {
+          "item": "item.cloth",
+          "qty": 1
+        },
+        {
+          "item": "item.lighter",
+          "qty": 1
+        }
+      ],
+      "timeCost": 4,
+      "noise": 45,
+      "escalation": {
+        "threat": 7,
+        "survivorActivity": 4,
+        "scope": "city"
+      }
+    }
+  ],
+  "ending": "The engine caught on the third turn and you did not give it a fourth. Behind you the block you had made liveable went dark in the mirror, and then the district, and then the shape of the skyline, and the road kept going. Whatever the city is now, it is behind you, and you are the part of it that got out."
+}

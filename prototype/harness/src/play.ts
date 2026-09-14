@@ -420,7 +420,7 @@ export function resumeSession(
 }
 
 
-/** True once the run has ended (death) — the client shows the final scene and stops (T22). */
+/** True once the run has ended — a death, or since T87 a way out taken — the client shows the final scene and stops (T22). */
 export function runEnded(session: SessionResult): boolean {
   return isRunOver(session.final);
 }
