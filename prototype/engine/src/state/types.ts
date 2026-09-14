@@ -656,6 +656,20 @@ export interface CombatState {
    * simply has no shoved enemy in it, so there is no `SAVE_SCHEMA_VERSION` rung to climb.
    */
   readonly offBalance?: boolean;
+  /**
+   * The dead have **hold of you** (T82's GRABBED outcome). Set by a retaliation that does more than
+   * wound; cleared by breaking free, by putting the enemy down, or by the fight ending.
+   *
+   * This is the single piece of state that makes a fight losable. While it is true the retreat
+   * options are not offered at all, so `escapeTargets` stops being the player's guaranteed way out of
+   * a fight they are already in — and `runEndReason` can therefore reach `lastStand`. Everything else
+   * about the fight is unchanged.
+   *
+   * Optional and absent-reads-as-false, exactly like {@link CombatState.offBalance} (T80) and
+   * `Horde.stepHours` (T74): a pre-T82 save simply has nothing holding the player in it, so there is
+   * no `SAVE_SCHEMA_VERSION` rung to climb and v10 holds.
+   */
+  readonly grabbed?: boolean;
 }
 
 // ---------------------------------------------------------------------------

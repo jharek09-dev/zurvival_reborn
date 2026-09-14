@@ -27,13 +27,16 @@
  * table lands in M2; the wound *prose* already lives in `content/wounds/` (T16).
  */
 
-import type { CombatState, ContentId, GameState, NodeId, Player } from "../state/types.js";
+import type { ActorId, CombatState, ContentId, GameState, NodeId, Player, Survivor } from "../state/types.js";
 import type { Action, SceneChoice } from "../pipeline/contract.js";
 import type { RegionGraph } from "../map/types.js";
 import { neighborsOf } from "../map/regionGraph.js";
 import { discoverAround } from "../map/fogOfWar.js";
 import { drawFloat, drawInt, drawPick } from "../rng/streams.js";
-import { inflictNamedWound } from "../sim/wounds.js";
+import { inflictNamedWound, woundBurden } from "../sim/wounds.js";
+// T82: the party is an input to a fight at last. `sim/companions.ts` imports `sim/survival.ts` and
+// `sim/clocks.ts` and nothing else, and neither reaches back here, so this edge adds no cycle.
+import { COMPANION_FATAL_BURDEN, companionName, fightingCompanions, killCompanion } from "../sim/companions.js";
 import { wearWeaponOnStrike } from "../sim/economy.js";
 import { weatherDetectionDelta } from "../sim/weather.js";
 import { phaseConcealment } from "../sim/timeOfDay.js";
@@ -242,6 +245,156 @@ const RETALIATE_BASE = { melee: MELEE_RETALIATE_CHANCE, firearm: FIRE_RETALIATE_
  */
 export const PUSH_ESCAPE_BONUS = 0.3;
 
+// --- GRABBED: the outcome that makes a fight losable (T82 · FR-CBT-02 · GDD IX) -----------------
+
+/**
+ * The share of a **landing** retaliation that does more than wound: it gets hold of you.
+ *
+ * This costs **no new RNG draw**, which is the whole reason it is written as a share rather than a
+ * second roll. {@link enemyRetaliate} already draws one float and compares it to the retaliation
+ * chance; a grab is simply the bottom {@link GRAB_CHANCE} of that same interval. So the `combat`
+ * stream advances exactly as it did before T82 — the same number of draws in the same order, against
+ * the same numbers — and every T15–T81 measurement of what a fight *costs* stays comparable. Only the
+ * consequence of a blow that was already landing has changed. (The same trick as T81's
+ * `drawWeighted`, which buys rarity for the identical single `drawInt` a uniform pick spent.)
+ *
+ * A third is a deliberate minority of a minority: melee retaliation lands half the time, so a plain
+ * exchange with a walker grabs about one time in six. Measured on the shipped city over 120 bot runs,
+ * that lands on **12.8%** of a brawler's combat turns and 19.9% of a more careful player's — the
+ * careful player's is higher because they spend fewer turns in fights they are winning easily.
+ *
+ * It is a **texture** dial, not a lethality dial, and the sweep is what showed that: swept by rebuild
+ * against `LAST_STAND_AT`, halving it from 1/3 to 1/4 moved the share of runs ending in a Last Stand
+ * by 1–2 points at every threshold, while the threshold itself moved it by 20. What this number sets
+ * is how often you lose your way out, not how often that kills you.
+ */
+export const GRAB_CHANCE = 1 / 3;
+
+/**
+ * **While something has hold of you, your MELEE is bare hands** — whatever you are carrying.
+ *
+ * Melee, and only melee. {@link resolveFire} does not consult this and is not meant to: a shot fired
+ * with the muzzle against something holding you is exactly as accurate and exactly as damaging as any
+ * other shot, and `combatChoices` still offers it (relabelled "Fire point blank"). So the grab prices
+ * the melee player and leaves the armed one untouched, which **widens PL-M5-38** — firing is already
+ * the safest verb in the game — rather than narrowing it. Stated here rather than quietly implied by
+ * a sentence about "whatever you are carrying"; the fix belongs with T59/T60's balance pass or with
+ * the explosives verb, not smuggled into this one.
+ *
+ * This is the second cut, and the first one was broken in a way only the test suite found. The brief
+ * says "strikes deal less", so the obvious implementation was a multiplier: half the rolled damage,
+ * floored at 1. On **bare hands** — the 1–2 band, and the case that matters, because it is what most
+ * players hold for most of a run — halving lands on 1 every single time, and 1 is exactly the Riot's
+ * `armor`. The result was that a grabbed, bare-handed player dealt **literally zero damage to a Riot,
+ * on every swing, forever**: `strike` stayed on the menu, cost an hour, drew a retaliation, and could
+ * never end the fight. (The wider bands escape it — the axe's 3–5 halves to 1 or 2 — which is what
+ * made the defect invisible until a bare-handed Riot fixture ran into it.) A dead affordance that reads like a live one is the precise defect the
+ * design review exists to kill, and the multiplier created one.
+ *
+ * Dropping to the bare-hands profile is better on every axis. It reuses the fallback a *broken* weapon
+ * already takes (`weaponFor`), so there is no new arithmetic and no new zero. It costs the armed
+ * player exactly what it should — you cannot bring an axe to bear on something that is already inside
+ * your reach — which puts the sharpest price of the grab on the player best equipped to pay it. It
+ * costs the bare-handed player nothing *extra*, because losing the retreat is already the whole
+ * penalty. And against the Riot it leaves T80's arithmetic exactly as T80 shipped it, rather than
+ * inventing a new impossibility. The weapon takes no wear while it is not being swung, and the blow
+ * deposits **bare hands' noise** rather than the weapon's — which falls out of the same substitution,
+ * and is worth stating plainly because it is not always quieter: thrashing at grappling range banks
+ * `BARE_NOISE` 15, more than a machete's clean 12 and less than the axe's 30. Being held makes the
+ * well-armed quieter and the lightly-armed slightly louder. Declared, not dialled away.
+ */
+/**
+ * What the player actually swings *right now*: what they are holding, or bare hands if the dead have
+ * hold of them. The single definition, so the choice label's noise, the damage roll and the wear all
+ * agree — a label that quotes the axe's noise for a punch would be a lie the player can measure.
+ */
+export function weaponInFight(state: GameState): WeaponDef {
+  return isGrabbed(state) ? BARE_HANDS : weaponFor(state);
+}
+
+/** Breaking free is one beat, the same as a strike — it is a turn you spend not hurting anything. */
+export const BREAK_COST = STRIKE_COST;
+
+/**
+ * Base chance a break-free attempt gets you loose, plus what each companion fighting beside you adds.
+ *
+ * 0.55 is a little better than a coin flip, so the expected cost of getting loose is under two turns
+ * and the grab reads as a setback rather than a sentence. The companion term is the party's sharpest
+ * moment of value in the whole game — *the reason you brought them* — and a full party (+0.15 × 3)
+ * gets you out almost every time.
+ *
+ * Swept by rebuild at 0.35 / 0.45 / 0.55 / 0.70 over 120 bot runs a policy, as the share of runs
+ * ending in a Last Stand (a bot that fights everything · a bot that disengages once hurt):
+ * **68%/16% · 66%/14% · 64%/8% · 62%/6%.** Note which column it moves: the base barely touches the
+ * brawler, who is dying with a grab he never tried to escape, and halves the careful player's risk.
+ * It is the dial for *how much a good decision is worth*, which is why it sits above a coin flip.
+ */
+export const BREAK_BASE = 0.55;
+export const BREAK_PER_COMPANION = 0.15;
+export const BREAK_MAX = 0.95;
+
+/** Noise a scuffle to get loose deposits — between a swing and a shove. */
+export const BREAK_NOISE = 12;
+
+/** Whether the dead currently have hold of the player. Total; absent-reads-as-false. */
+export const isGrabbed = (state: GameState): boolean => state.combat?.grabbed === true;
+
+/**
+ * The chance a break-free attempt succeeds, given who is fighting beside you. Exported so the harness
+ * and the measurement runner can quote the same number the resolver rolls against.
+ */
+export function breakFreeChance(state: GameState): number {
+  const helpers = fightingCompanions(state, state.player.location).length;
+  return Math.min(BREAK_MAX, BREAK_BASE + BREAK_PER_COMPANION * helpers);
+}
+
+// --- the party in the fight (T82 · FR-NPC-03 remainder · PL-M4-07) ------------------------------
+
+/**
+ * A companion's swing: the damage band and the chance it lands at all.
+ *
+ * Deliberately **weaker than the player's bare hands**: 1–2 damage at a **40%** chance to connect,
+ * against the player's guaranteed 1–2. A companion is help, not a second player, and three of them
+ * must not turn every fight into a formality. What they mainly buy is not damage — it is
+ * {@link COMPANION_SOAK}, and the break-free bonus above.
+ */
+export const COMPANION_DMG_MIN = 1;
+export const COMPANION_DMG_MAX = 2;
+export const COMPANION_HIT_CHANCE = 0.4;
+
+/**
+ * The chance a landing retaliation lands on **a companion instead of the player**, per companion in
+ * the fight — the soak, and the risk term recruiting has never had.
+ *
+ * This is the trade the task exists to create. Before T82 a companion contributed no damage, soaked
+ * nothing and could not be hurt, so recruiting was unambiguously always correct and `PARTY_CAP` was a
+ * ceiling rather than a decision. Now the same body that takes the bite for you is the body you can
+ * lose, permanently and by name (`fallen.<id>`, the `companion.died` Living-History beat) — and it is
+ * *your* fight that killed them.
+ *
+ * **{@link COMPANION_SOAK_MAX} is the correction the measurement forced, and it matters more than the
+ * per-companion rate.** Written the obvious way — 0.3 each, summed, uncapped — a full party absorbed
+ * 90% of everything and recruiting became the free win this task exists to remove. Both columns below
+ * are 400 duels a cell from `measure/t82.ts --party`; the rejected row is re-derivable by rebuilding
+ * with `COMPANION_SOAK = 0.3` and `COMPANION_SOAK_MAX = 0.9`:
+ *
+ * |                        | solo          | party of 3, 0.3 uncapped | party of 3, **0.2 capped at 0.5** |
+ * | ---------------------- | ------------- | ------------------------ | --------------------------------- |
+ * | walker, P(hurt)        | 59.8%         | 1.5%                     | **8.8%**                          |
+ * | Riot, P(hurt)          | 99.5%         | 19.5%                    | **66.3%**                         |
+ * | Riot, P(win)           | 26.0%         | **100.0%**               | **92.3%**                         |
+ *
+ * A wall of bodies that turns the hardest enemy in the game into a certainty is a power tier, which
+ * the GDD forbids for weapons and should equally forbid for people. So the total is capped at half: a
+ * companion can take the blow that was coming to you, and a crowd of them cannot take them all. The
+ * other half still lands on you, which is what keeps a fight a fight.
+ */
+export const COMPANION_SOAK = 0.2;
+export const COMPANION_SOAK_MAX = 0.5;
+
+/** All party draws go on their own named stream, so a run without a fighting party is unshifted. */
+export const PARTY_STREAM = "party";
+
 /**
  * The named wounds a melee retaliation inflicts (ids match content/wounds/, T16). Deliberately NOT
  * shared with T76's horde overrun, which draws from its own `OVERRUN_WOUNDS`: this table bites one
@@ -449,30 +602,51 @@ export function encounterChoices(state: GameState, graph: RegionGraph): readonly
  * the honest count of what T80 adds is **two**: {@link resolveHeavy} and {@link resolvePush}.
  */
 export function combatChoices(state: GameState, graph: RegionGraph): readonly SceneChoice[] {
-  const w = weaponFor(state);
+  const w = weaponInFight(state);
   const shoved = state.combat?.offBalance === true;
+  const grabbed = isGrabbed(state);
   const choices: SceneChoice[] = [
-    { id: "strike", label: `Strike${weaponSuffix(state)}`, timeCost: STRIKE_COST,
+    // A grabbed player is named as bare-handed rather than quoting a weapon that is doing nothing —
+    // the T80/T81 rule that capability belongs at the point of decision, applied to LOSING it. The
+    // second clause is only true of a player who is actually carrying something: telling an
+    // empty-handed survivor they cannot bring their weapon to bear would be inventing a weapon.
+    { id: "strike",
+      label: grabbed
+        ? (weaponFor(state).id === BARE_HANDS.id ? "Strike at close quarters" : "Strike at close quarters — you cannot bring the weapon to bear")
+        : `Strike${weaponSuffix(state)}`,
+      timeCost: STRIKE_COST,
       action: { type: "strike", choiceId: "strike", timeCost: STRIKE_COST, params: { noise: w.noise } } },
     { id: "heavy", label: "Swing hard (committed, louder)", timeCost: HEAVY_COST,
       action: { type: "heavy", choiceId: "heavy", timeCost: HEAVY_COST, params: { noise: w.noise * HEAVY_NOISE_MULT } } },
   ];
-  // The shove is only worth offering while there is still something to shove: once it is already off
-  // balance, a second push would spend an hour to re-buy an effect the player already holds.
-  if (!shoved) {
+  // T82: you cannot shove away what already has hold of you — that is what BREAK FREE is for, and
+  // offering both would be two verbs for one situation with no way to tell them apart.
+  if (grabbed) {
+    choices.push({ id: "break", label: "Tear yourself loose", timeCost: BREAK_COST,
+      action: { type: "break", choiceId: "break", timeCost: BREAK_COST, params: { noise: BREAK_NOISE } } });
+  } else if (!shoved) {
+    // The shove is only worth offering while there is still something to shove: once it is already off
+    // balance, a second push would spend an hour to re-buy an effect the player already holds.
     choices.push({ id: "push", label: "Shove it back and make room", timeCost: PUSH_COST,
       action: { type: "push", choiceId: "push", timeCost: PUSH_COST, params: { noise: PUSH_NOISE } } });
   }
   if (hasLoadedFirearm(state.player)) {
     const gun = firearmFor(state.player);
-    choices.push({ id: "fire", label: "Fire (loud)", timeCost: FIRE_COST,
+    choices.push({ id: "fire", label: grabbed ? "Fire point blank (loud)" : "Fire (loud)", timeCost: FIRE_COST,
       action: { type: "fire", choiceId: "fire", timeCost: FIRE_COST, params: { noise: gun.noise } } });
   }
-  for (const to of escapeTargets(state, graph)) {
-    const name = graph.nodes[to]?.name ?? to;
-    const cost = RETREAT_COST + escapeExtraCost(state, to);
-    choices.push({ id: `retreat:${to}`, label: `Retreat toward ${name}${escapeRoadSuffix(state, to)}`, timeCost: cost,
-      action: { type: "retreat", choiceId: `retreat:${to}`, timeCost: cost, params: { to, noise: SLIP_NOISE } } });
+  // **The retreat offers are withheld while the dead have hold of you, and that is the single change
+  // in this module that makes a run losable in a fight.** FR-CBT-05's "you always get out" is a
+  // promise about the *stealth path* — `slip`, offered at a contested node before any fight exists,
+  // and untouched here — not about walking out of a fight mid-grapple. A player who never chooses to
+  // fight can still cross the whole city without one of these ever being withheld from them.
+  if (!grabbed) {
+    for (const to of escapeTargets(state, graph)) {
+      const name = graph.nodes[to]?.name ?? to;
+      const cost = RETREAT_COST + escapeExtraCost(state, to);
+      choices.push({ id: `retreat:${to}`, label: `Retreat toward ${name}${escapeRoadSuffix(state, to)}`, timeCost: cost,
+        action: { type: "retreat", choiceId: `retreat:${to}`, timeCost: cost, params: { to, noise: SLIP_NOISE } } });
+    }
   }
   return choices;
 }
@@ -550,9 +724,44 @@ function killEnemy(state: GameState, def: EnemyDef): GameState {
 }
 
 /**
+ * Wound a companion and, if that body has now taken all it can, kill them — permanently, by name.
+ *
+ * The fatal read is {@link COMPANION_FATAL_BURDEN} against their *untreated* burden, which is the same
+ * number the player's own systems read, so "she is hurt badly" means the same thing about a companion
+ * as it does about you. Death routes through {@link killCompanion}, so the `fallen.<id>` flag and the
+ * `companion.died` Living-History beat that module has always promised finally have a trigger.
+ */
+function woundCompanion(state: GameState, id: ActorId, type: ContentId, severity: number, site: string): GameState {
+  const c = state.actors[id];
+  if (c === undefined) return state;
+  const condition = inflictNamedWound(c.condition, type, severity, site, state.meta.day, state.meta.hour);
+  const hurt: GameState = { ...state, actors: { ...state.actors, [id]: { ...c, condition } } };
+  return woundBurden(condition) >= COMPANION_FATAL_BURDEN ? killCompanion(hurt, id) : hurt;
+}
+
+/**
  * An alerted dead answers an exchange — a coin-ish flip, every time if it has initiative, always after
  * a committed swing, and a quarter of the time when it is answering a shot ({@link retaliateChance}).
  * The draw is taken either way, so a miss costs the same RNG as a hit and the stream stays predictable.
+ *
+ * **T82 adds two consequences to a blow that was already landing, and spends no extra `combat` draw on
+ * either.** The single float this function has always drawn is now read as three outcomes rather than
+ * two, by partitioning the interval it was already being compared against:
+ *
+ * ```
+ *  0                       chance*GRAB_CHANCE            chance                         1
+ *  |---------- lands, AND GETS HOLD ----|------ lands ------|--------- misses ----------|
+ * ```
+ *
+ * So the `combat` stream advances exactly as it did before this task — same draws, same order, same
+ * numbers — and the retaliation *rate* is untouched; only what a third of the landing blows now mean
+ * has changed. That is what keeps every T15–T81 combat measurement comparable across the change.
+ *
+ * The second consequence is **who it lands on**. With companions in the fight the blow may find one of
+ * them instead ({@link COMPANION_SOAK} each) — the soak that is the party's whole payload, and the
+ * risk term recruiting has never carried. That choice *does* cost a draw, but it is taken on the
+ * {@link PARTY_STREAM}, which no pre-T82 run ever touches: a player fighting alone is byte-identical
+ * here, and that is tested.
  */
 function enemyRetaliate(state: GameState, def: EnemyDef, w: WeaponDef, heavy = false): GameState {
   const chance = retaliateChance(RETALIATE_BASE, w, { initiative: def.initiative, heavy });
@@ -561,8 +770,62 @@ function enemyRetaliate(state: GameState, def: EnemyDef, w: WeaponDef, heavy = f
     return { ...state, rng: hit.rng }; // a miss — but the draw was still consumed (deterministic)
   }
   const pick = drawPick(hit.rng, state.meta.seed, "combat", WALKER_WOUNDS);
-  const condition = inflictNamedWound(state.player.condition, pick.value.type, pick.value.severity, "arm", state.meta.day, state.meta.hour);
-  return { ...state, rng: pick.rng, player: { ...state.player, condition } };
+  let next: GameState = { ...state, rng: pick.rng };
+
+  // Who is standing in the way. Nobody ⇒ the pre-T82 path exactly, with no party draw taken.
+  const helpers = fightingCompanions(next, next.player.location);
+  let shielded: Survivor | null = null;
+  if (helpers.length > 0) {
+    const roll = drawFloat(next.rng, next.meta.seed, PARTY_STREAM);
+    next = { ...next, rng: roll.rng };
+    const soak = Math.min(COMPANION_SOAK_MAX, COMPANION_SOAK * helpers.length);
+    if (roll.value < soak) {
+      // Which one takes it — index off the same roll, rescaled, so stepping in costs one draw, not two.
+      const idx = Math.min(helpers.length - 1, Math.floor((roll.value / Math.max(soak, Number.EPSILON)) * helpers.length));
+      shielded = helpers[idx] ?? null;
+    }
+  }
+  if (shielded !== null) {
+    return woundCompanion(next, shielded.id, pick.value.type, pick.value.severity, "arm");
+  }
+
+  const condition = inflictNamedWound(next.player.condition, pick.value.type, pick.value.severity, "arm", next.meta.day, next.meta.hour);
+  // The grab: the bottom GRAB_CHANCE of the interval this blow already landed in. A blow that kills the
+  // fight outright cannot grab — `killEnemy` clears `combat` before this runs on the heavy path, and a
+  // null fight has nothing to hold you.
+  const grabbed = next.combat !== null && hit.value < chance * GRAB_CHANCE;
+  const combat = next.combat === null ? null : { ...next.combat, ...(grabbed ? { grabbed: true } : {}) };
+  return { ...next, combat, player: { ...next.player, condition } };
+}
+
+/**
+ * The party's own swings, resolved after the player's, one draw each on the {@link PARTY_STREAM}.
+ *
+ * Taken **only while the fight is still live** — a companion does not swing at a body that is already
+ * down — and only by companions {@link fightingCompanions} says are in it. With no such companion this
+ * is a total no-op that takes no draw, which is the property that keeps a solo run byte-identical.
+ */
+function companionsStrike(state: GameState, def: EnemyDef): GameState {
+  const combat = state.combat;
+  if (combat === null) return state;
+  const helpers = fightingCompanions(state, state.player.location);
+  if (helpers.length === 0) return state;
+  let next = state;
+  let hp = combat.hp;
+  for (const c of helpers) {
+    if (hp <= 0) break;
+    const swing = drawFloat(next.rng, next.meta.seed, PARTY_STREAM);
+    next = { ...next, rng: swing.rng };
+    if (swing.value >= COMPANION_HIT_CHANCE) continue;
+    const dmg = drawInt(next.rng, next.meta.seed, PARTY_STREAM, COMPANION_DMG_MIN, COMPANION_DMG_MAX);
+    next = { ...next, rng: dmg.rng };
+    // A companion swings with whatever they have; they never pierce the Riot's plate, which is what
+    // keeps the armored dead a weapon-selection problem (T80) rather than a party-size problem.
+    hp -= effectiveDamage(dmg.value, def.armor, 0);
+  }
+  if (hp === combat.hp) return next;
+  if (hp <= 0) return killEnemy(next, def);
+  return { ...next, combat: { ...combat, hp, alerted: true } };
 }
 
 /**
@@ -601,7 +864,10 @@ function resolveStrike(state: GameState, heavy = false): GameState {
   const combat = state.combat;
   if (combat === null) return state;
   const def = ENEMIES[combat.enemy] ?? ENEMIES[WALKER_ENEMY]!;
-  const w = weaponFor(state);
+  // T82: {@link weaponInFight}, not `weaponFor` — something holding you fights you bare-handed,
+  // whatever is in your pack. Note this also picks the retaliation rate and the wear below, which is
+  // the point: none of the weapon is working for you right now.
+  const w = weaponInFight(state);
   const rolled = rollDamage(state, w);
   const swing = heavy ? rolled.value * HEAVY_DMG_MULT : rolled.value;
   const dealt = effectiveDamage(swing, def.armor, w.armorPierce);
@@ -617,7 +883,18 @@ function resolveStrike(state: GameState, heavy = false): GameState {
     return heavy ? enemyRetaliate(down, def, w, true) : down;
   }
   const bruised: GameState = { ...withRng, combat: { ...combat, hp, alerted: true, offBalance: false } };
-  return enemyRetaliate(bruised, def, w, heavy);
+  // The party swings before the answer comes — they are in the exchange, not after it, so a companion
+  // can be the one who finishes it.
+  const afterParty = companionsStrike(bruised, def);
+  // …and if they DID finish it, nothing answers. The audit caught the first cut retaliating
+  // unconditionally here: a companion's killing blow cleared `combat` and removed the body from the
+  // roster, and the corpse then took a `combat` draw and landed a wound anyway — on 15% of party kill
+  // turns, and it was the only path in the module by which a `wound.bite` and its infection clock
+  // could come from something already dead. The heavy path's "answered even when it dies" rule below
+  // is deliberate and stays, because that one is about YOUR committed swing putting you inside its
+  // reach; it was never a licence for a de-rostered enemy to answer somebody else's kill.
+  if (afterParty.combat === null) return afterParty;
+  return enemyRetaliate(afterParty, def, w, heavy);
 }
 
 /**
@@ -670,6 +947,46 @@ function resolvePush(state: GameState): GameState {
   const combat = state.combat;
   if (combat === null) return state;
   return { ...state, combat: { ...combat, alerted: false, offBalance: true } };
+}
+
+/**
+ * Resolve a break-free attempt: one beat spent on nothing but getting loose, at
+ * {@link breakFreeChance} — better the more of your people are in it with you.
+ *
+ * **A failed attempt is answered; a successful one is not.** That asymmetry is the verb's entire
+ * price, and the first cut of this function did not have it — it took its roll and returned, which
+ * made BREAK a *free* action: measured over 400 seeded Riot fights, a break turn wounded the player
+ * **0 times** where a strike taken in the same position wounded them **212 times**. A verb that costs
+ * an hour and carries no risk at all is strictly better than every other verb on the menu for any
+ * player not trying to land the kill, so the grab — the one mechanic in this task that is supposed to
+ * corner you — came with a free exit. That is the *same* defect T80 found in its own first cut of
+ * HEAVY, from the other direction, and the same rule closes it: an option that escapes its own cost
+ * by succeeding is not a cost.
+ *
+ * So: you thrash, and if you do not get clear it gets a better hold on you than it had. Getting clear
+ * costs nothing extra, because you are out of its reach by the time it answers. The result is a real
+ * gamble against {@link breakFreeChance} rather than a dominant button, and it is the path by which a
+ * grabbed player's burden climbs toward {@link LAST_STAND_AT} while they are trying to escape it.
+ *
+ * Unreachable outside a live grab ({@link combatChoices} offers it nowhere else); called on a state
+ * that is not grabbed it is a total no-op that still spends its hour, the same shape every other
+ * misrouted action has.
+ */
+function resolveBreak(state: GameState): GameState {
+  const combat = state.combat;
+  if (combat === null || combat.grabbed !== true) return state;
+  const roll = drawFloat(state.rng, state.meta.seed, "combat");
+  const next: GameState = { ...state, rng: roll.rng };
+  if (roll.value >= breakFreeChance(next)) {
+    // Still held. Answered at the bare-hands rate, because a player wrestling is not using a weapon —
+    // the same substitution {@link weaponInFight} makes for the strike, for the same reason.
+    const def = ENEMIES[combat.enemy] ?? ENEMIES[WALKER_ENEMY]!;
+    return enemyRetaliate(next, def, BARE_HANDS);
+  }
+  // Loose. `grabbed` is dropped from the record rather than set false, so a fight that was never
+  // grabbed and one the player has escaped serialize identically — the absent-reads-as-false shape.
+  const { grabbed: _dropped, ...free } = combat;
+  return { ...next, combat: free };
 }
 
 /**
@@ -767,6 +1084,8 @@ export function resolveCombatAction(state: GameState, graph: RegionGraph, action
       return resolveStrike(state.combat === null ? beginCombat(state) : state, true);
     case "push":
       return resolvePush(state);
+    case "break":
+      return resolveBreak(state);
     case "fire":
       return resolveFire(state);
     case "slip":
@@ -781,7 +1100,7 @@ export function resolveCombatAction(state: GameState, graph: RegionGraph, action
 /** Whether an action is one this module owns (used by validation + dispatch). */
 export function isCombatAction(action: Action): boolean {
   return action.type === "fight" || action.type === "strike" || action.type === "heavy" ||
-    action.type === "push" || action.type === "fire" ||
+    action.type === "push" || action.type === "break" || action.type === "fire" ||
     action.type === "slip" || action.type === "retreat";
 }
 
@@ -818,6 +1137,23 @@ function shovedTell(state: GameState): string {
 }
 
 /**
+ * The T82 signpost: being grabbed takes the player's escape options away, and a choice list that
+ * quietly loses three entries is a bug from the player's side unless something says why.
+ *
+ * Same "signpost, don't retune" rule T77 and T80 followed. Empty whenever nothing has hold of you,
+ * which is every fight in the game that never grabs — so no existing transcript changes.
+ */
+function grabbedTell(state: GameState): string {
+  if (!isGrabbed(state)) return "";
+  const helpers = fightingCompanions(state, state.player.location);
+  const hands =
+    helpers.length === 0 ? ""
+    : helpers.length === 1 ? ` ${companionName(helpers[0]!)} has hold of your jacket.`
+    : ` ${companionName(helpers[0]!)} and the others are trying to haul you out.`;
+  return ` It has you — there is no backing out of this one until you are loose.${hands}`;
+}
+
+/**
  * Narration for the current situation, or null when there is neither a fight nor a threat here. Names
  * the type you face and gives its non-audio signature (FR-AUD-06) so the read never depends on sound.
  * A plain walker node keeps its exact pre-T46 wording (the accessibility transcript relies on it).
@@ -828,10 +1164,11 @@ export function combatNarration(state: GameState): string | null {
     const def = ENEMIES[state.combat.enemy] ?? ENEMIES[WALKER_ENEMY]!;
     const hurt = state.combat.hp < state.combat.maxHp ? " It is wounded but still coming." : " It hasn't seen you flinch yet.";
     const shoved = shovedTell(state);
+    const held = grabbedTell(state);
     if (def.id === WALKER_ENEMY) {
-      return `You are in it now — a walker, ${state.combat.hp}/${state.combat.maxHp} still standing.${hurt}${shoved}${tell}`;
+      return `You are in it now — a walker, ${state.combat.hp}/${state.combat.maxHp} still standing.${hurt}${shoved}${held}${tell}`;
     }
-    return `You are in it now — a ${def.name}, ${def.signature}; ${state.combat.hp}/${state.combat.maxHp} still standing.${hurt}${shoved}${tell}`;
+    return `You are in it now — a ${def.name}, ${def.signature}; ${state.combat.hp}/${state.combat.maxHp} still standing.${hurt}${shoved}${held}${tell}`;
   }
   const node = state.nodes[state.player.location];
   if (node !== undefined && node.walkers > 0) {

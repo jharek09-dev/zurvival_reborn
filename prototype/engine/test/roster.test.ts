@@ -77,11 +77,18 @@ describe("enemyForNode picks the most dangerous combat-distinct type present (T4
 
 describe("Riot dead — armor blunts melee, a firearm pierces (T46 · FR-CBT-07)", () => {
   it("takes strictly more melee strikes to fell than a plain walker", () => {
+    // T82: a body that keeps its wounds gets grabbed and loses the run part-way through a Riot fight,
+    // which would make this a test of the player's survival rather than of the Riot's armor. The
+    // question here is how many blows the ENEMY takes, so the player's damage is cleared each turn.
+    const unhurt = (s: GameState): GameState => ({
+      ...s,
+      player: { ...s.player, condition: { ...s.player.condition, wounds: [] } },
+    });
     const strikesToKill = (types: readonly string[]): number => {
       let { state, graph } = run(types, 1);
-      state = take(state, graph, "fight");
+      state = unhurt(take(state, graph, "fight"));
       let n = 1;
-      while (state.combat !== null && n < 80) { state = take(state, graph, "strike"); n++; }
+      while (state.combat !== null && n < 80) { state = unhurt(take(state, graph, "strike")); n++; }
       expect(state.combat).toBeNull();
       return n;
     };

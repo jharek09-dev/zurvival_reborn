@@ -20,8 +20,15 @@
  *   - **Permanent, remembered death (T36, unchanged).** A companion whose needs saturate dies: removed
  *     from `actors` forever, remembered by a `fallen.<id>` flag and a `companion.died` Living-History beat.
  *
- * Still deferred to later M-work: combat participation and full autonomy (FR-NPC-03 remainder), off-screen
- * upkeep (PL-M3-02/05), desertion/betrayal & inter-NPC bonds (T53). Pure, integer-only, no clock, no RNG.
+ * **T82 adds the missing half: the party is in the fight.** A trusted companion on `follow` at the
+ * contested node swings beside you, can take the blow that was coming to you, and can die doing it —
+ * which is what finally gives {@link PARTY_CAP} something to bound and {@link killCompanion} a caller.
+ * See {@link fightingCompanions} and `combat/combat.ts`.
+ *
+ * Still deferred to later M-work: full autonomy and the fear/panic model (FR-CBT-09 · PL-M4-07's
+ * remainder), off-screen upkeep (PL-M3-02/05), desertion/betrayal & inter-NPC bonds (T53). Pure,
+ * integer-only, no clock, no RNG *here* — the party's combat draws are taken in `combat/combat.ts`
+ * off its own named stream.
  */
 
 import type { ActorId, GameState, InventoryEntry, NodeId, NPCDisposition, NPCState, Survivor } from "../state/types.js";
@@ -327,10 +334,68 @@ export function tickCompanions(state: GameState, hours: number): GameState {
   return { ...state, actors, player, nodes };
 }
 
+// --- the party in a fight (T82 · FR-NPC-03 remainder · PL-M4-07) ------------------------------
+
+/**
+ * Untreated wound burden at which a companion's body gives out, and they die *in the fight*.
+ *
+ * The player has no such line and deliberately never gets one (ADR-0007): the player's death in
+ * combat is a **situation** — held, hurt, out of options — not a number. A companion is different
+ * because the player is not inside their head: what the player needs is a legible, watchable decline
+ * ("she is hurt badly") and a moment they could have prevented, which a threshold gives and a
+ * situation does not.
+ *
+ * **60 is the measured number and the first draft's 100 was wrong.** The walker wound table deals 40
+ * (a bite) or 30 (a laceration), so 60 is precisely the line at which a companion survives any ONE
+ * wound and dies on the second — which is the shape that makes them a decision rather than a dial:
+ * you can see they are hurt, and `order:hold` is right there to pull them out of the next fight.
+ *
+ * Swept by rebuild at 40 / 60 / 70 / 100, measured over 120 escort runs (a seeded party of three) and
+ * 400 Riot duels a cell:
+ *
+ * | fatal | companions lost / 360 | deaths per Riot duel | what it means in the fiction        |
+ * | ----- | --------------------- | -------------------- | ----------------------------------- |
+ * | 40    | 40 (11%)              | 0.55                 | one bite kills — no warning at all  |
+ * | **60**| **5 (1.4%)**          | **0.13**             | **survive one wound, die on the 2nd** |
+ * | 70    | 2 (0.6%)              | 0.09                 | survive one, usually survive two    |
+ * | 100   | 0 (0%)                | 0.01                 | **no risk term at all**             |
+ *
+ * 100 — the first cut — lost **zero of 360 companions across 120 runs**, which is the defect this
+ * task exists to remove wearing a different hat: a party you cannot lose makes recruiting free again.
+ * 40 kills on a single bite, which is a death with no decision in front of it.
+ */
+export const COMPANION_FATAL_BURDEN = 60;
+
+/**
+ * The companions who are actually *in* the fight at `node`: alive, standing here, holding the default
+ * **follow** order, and trusted at least {@link ORDER_TRUST_MIN}.
+ *
+ * The trust gate is the point, not a detail. Before T82 the ladder only ever unlocked a menu entry
+ * (scavenge/guard), so "earning" a companion bought an errand. Now it buys someone who will stand in
+ * front of a walker for you — and a companion recruited at 70 and never fed will follow you, watch,
+ * and do nothing, which is a legible consequence rather than a hidden multiplier.
+ *
+ * **`follow` is the only order that fights**, and that is the whole filter — not just `hold`. A
+ * companion told to *stay here*, to *range out and scavenge*, or to *hold the base* is doing that
+ * instead, even on the turn the player happens to be standing next to them, so all three contribute
+ * and risk nothing. `hold` is the one a player reaches for deliberately to keep someone out of a
+ * fight; the other two exclude themselves by being somewhere else in spirit if not in coordinates.
+ */
+export function fightingCompanions(state: GameState, node: NodeId): readonly Survivor[] {
+  return companionsHere(state, node).filter((c) => orderOf(c) === "follow" && (c.trust ?? 0) >= ORDER_TRUST_MIN);
+}
+
 /**
  * Permanently remove a companion (a combat death or scripted loss) — the FR-NPC-04 transition exposed for
  * later callers. Removed from `actors` for good and remembered by a `fallen.<id>` flag on the player; the
  * Living History records `companion.died` by diffing `actors`. Inert if the id is not a companion. Pure.
+ *
+ * **T82 finally calls it.** It has been exported since T36 and called by nothing in the entire engine
+ * (measured: `measure/t82.ts` counts 0 call sites on the pre-T82 tree), so the "permanent, remembered
+ * death" this module has advertised for two milestones could only be reached by deliberately starving
+ * someone — and even that path never routed through here, it inlines the removal in
+ * {@link tickCompanions}. A companion who fights beside you and falls is now the trigger it was
+ * written for.
  */
 export function killCompanion(state: GameState, id: ActorId): GameState {
   const actor = state.actors[id];

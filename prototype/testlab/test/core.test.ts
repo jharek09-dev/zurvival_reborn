@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isDeepStrictEqual } from "node:util";
-import { applyAction, availableActions, saveGame, loadGame, isRunOver, inventoryWeight, CARRY_CAPACITY } from "../../engine/src/index.js";
+import { applyAction, availableActions, saveGame, loadGame, isRunOver, RUN_END_REASONS, inventoryWeight, CARRY_CAPACITY } from "../../engine/src/index.js";
 import { loadContent } from "../src/loadContent.js";
 import { bootCity, graphFor, STOCK_KIT } from "../src/boot.js";
 import { POLICY_NAMES, policyRng, kindOf, ZERO_COST_KINDS } from "../src/policies.js";
@@ -67,7 +67,10 @@ describe("the checker on the current build", () => {
   }
   it("an unstocked run ends cleanly for a known reason and reports it", () => {
     const r = runToEnd(content, spec({ seed: "tl-die", policy: "greedy", turns: 400, stocked: false }));
-    expect(["starved", "dehydrated", "infection", "alive"]).toContain(r.end);
+    // Derived, not re-typed — the third copy of this list, and the reason the other two were fixed in
+    // T82. Written out by hand it passed only because this one policy/seed never reaches a fight; the
+    // day it did, a correct `lastStand` would have failed the suite.
+    expect([...RUN_END_REASONS, "alive"]).toContain(r.end);
     expect(r.ok).toBe(true);
     if (r.end !== "alive") expect(r.choiceIds.length).toBeLessThan(400);
   });

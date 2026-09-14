@@ -16,6 +16,7 @@ import {
   sceneOf,
   isRunOver,
   runEndReason,
+  type RunEndReason,
   saveGame,
   samplePacing,
   summarizePacing,
@@ -100,7 +101,17 @@ export interface TimelinePoint {
   readonly failures: number;
 }
 
-export type EndKind = "starved" | "dehydrated" | "infection" | "alive" | "crashed" | "soft-locked";
+/**
+ * How a Lab run finished: one of the engine's own run-end reasons, or one of the Lab's three outcomes
+ * that are not deaths.
+ *
+ * **Derived from `RunEndReason`, never re-typed.** This was a hand-written union listing three of the
+ * engine's reasons, laundered past the compiler by the `as EndKind` casts below — so when T82 added a
+ * fourth (`lastStand`), `tsc` stayed green while half the `fighter` runs reported a value outside the
+ * declared type. The sibling copy in `checks.ts` failed loudly on the same change; this one failed
+ * silently, which is worse. Widening `RunEndReason` now widens this automatically.
+ */
+export type EndKind = RunEndReason | "alive" | "crashed" | "soft-locked";
 
 export interface PerfStats {
   readonly samples: number;
@@ -223,7 +234,7 @@ export class RunSession {
     this.noteVisit(this.state);
     this.deepest = stageRank(this.state.player.condition.infection.stage);
     this.companionsMax = Object.keys(this.state.actors).length;
-    if (isRunOver(this.state)) this.endKind = (runEndReason(this.state) ?? "alive") as EndKind;
+    if (isRunOver(this.state)) this.endKind = runEndReason(this.state) ?? "alive";
   }
 
   get done(): boolean {
@@ -332,7 +343,7 @@ export class RunSession {
     if (ms > this.spec.budgetMs) add("CHK-PERF", `${ms.toFixed(1)} ms > budget ${this.spec.budgetMs} ms`);
     if (isRunOver(after)) {
       add("CHK-END", safely(() => checkEnd(after, this.graph)));
-      this.endKind = (runEndReason(after) ?? "alive") as EndKind;
+      this.endKind = runEndReason(after) ?? "alive";
     }
 
     // --- coverage ---

@@ -22,7 +22,7 @@
 
 import type { GameState, Needs } from "../state/types.js";
 import type { Action } from "../pipeline/contract.js";
-import { isWounded, treatWound, woundRemainder, worstWound } from "./wounds.js";
+import { isWounded, treatWound, woundBurden, woundRemainder, worstWound } from "./wounds.js";
 import { advanceInfection, hasSuccumbed, stageFatigue } from "./infection.js";
 import { profileOf, scaleInt } from "./difficulty.js";
 
@@ -255,11 +255,96 @@ export function treat(state: GameState): GameState {
 
 // --- run-end (derived; no new state) --------------------------------------------------------
 
-export type RunEndReason = "starved" | "dehydrated" | "infection";
+export type RunEndReason = "starved" | "dehydrated" | "infection" | "lastStand";
+
+/**
+ * Every reason a run can end, as a value — so a consumer can *enumerate* them instead of keeping its
+ * own copy of the list.
+ *
+ * It exists because T82 found the duplicate the hard way: `prototype/testlab/src/checks.ts` held a
+ * hand-written `new Set(["starved", "dehydrated", "infection"])`, and the moment a fourth reason
+ * existed the Lab failed 11 of 24 soak runs with "run is over but runEndReason is lastStand" — a
+ * *correct* run reported as a defect by a list nobody had remembered to update. The `Record` below is
+ * the guard: it is typed over the union, so TypeScript refuses to compile the day someone adds a
+ * fifth reason and forgets this line. Same shape as the T81 content drift guards.
+ */
+const ALL_END_REASONS: Record<RunEndReason, true> = { starved: true, dehydrated: true, infection: true, lastStand: true };
+export const RUN_END_REASONS: readonly RunEndReason[] = Object.keys(ALL_END_REASONS) as RunEndReason[];
+
+/**
+ * The untreated wound burden past which a body being *held* cannot take another exchange — the Last
+ * Stand line (T82 · GDD IX "Canonical: the Last Stand" · ADR-0007).
+ *
+ * **This is not a health bar, and the distinction is the whole of ADR-0007.** It is never shown, never
+ * counted down, and on its own it does nothing at all: a player can walk the city at burden 400 for
+ * days and the only thing it costs them is what an untreated wound has always cost — scent, drift,
+ * a worse stealth roll. It becomes lethal only in combination with a *situation*: in a fight, with
+ * something holding you, out of the retreats the fight would otherwise offer. Damage still never reads
+ * as −10 HP; what reads is "you are carrying too much to win this one, and it will not let go".
+ *
+ * **80 is the measured number, not the obvious one.** The brief's own threshold sketch would have made
+ * a fight lethal on a clock: measured on the pre-T82 tree over 40 bot runs, burden ≥ 80 is true on
+ * 59.3% of all combat turns and 33 of 40 runs reach it, because wounds accumulate monotonically and
+ * nothing but treatment removes them. On its own that is a second infection timer. It is the
+ * `grabbed` conjunct that turns it back into a moment.
+ *
+ * Swept by rebuild at 60 / 80 / 120 / 160 over 120 bot runs a policy, as the share of runs ending in
+ * a Last Stand — a bot that fights everything and never retreats, and one that disengages once it is
+ * carrying real damage:
+ *
+ * | LAST_STAND_AT | fights everything | disengages when hurt |
+ * | ------------- | ----------------- | -------------------- |
+ * | 60            | 68%               | 20%                  |
+ * | **80**        | **64%**           | **8%**               |
+ * | 120           | 55%               | 3%                   |
+ * | 160           | 48%               | **0%**               |
+ *
+ * The right-hand column chose it. At 160 a careful player is **absolutely immune** — 0 of 120 runs,
+ * across 475 combat turns and 111 grabs — and a canonical death scene nobody can reach is worse than
+ * not having one. At 60 the careful player dies one run in five, which stops being a punishment for
+ * carelessness and becomes a punishment for playing. 80 is where the gradient is steepest with both
+ * ends non-zero. Re-derive with `measure/t82.ts --play`.
+ *
+ * **It is currently an ENDING, not yet a STAND, and that is declared rather than papered over.**
+ * `runEndReason` is read before any choice is offered, so the blow that completes the condition ends
+ * the run on the same frame: there is no final turn and nothing the player can spend. `treat` is not
+ * on the menu inside a fight either, so no bandage can be reached once the condition is met — the
+ * bandage's job is to stop you ever meeting it. GDD IX's "final, heightened sequence where the player
+ * spends whatever they have left" is **T62's to author**, and this is the trigger it hangs on
+ * (PL-M5-44).
+ *
+ * **Not balanced against difficulty modes** (`sim/difficulty.ts`): it is a flat number on Story and
+ * Ironman alike, which is almost certainly wrong, and is T59/T60's to settle (PL-M5-45).
+ */
+export const LAST_STAND_AT = 80;
+
+/**
+ * Whether the player is in the Last Stand: held, hurt past {@link LAST_STAND_AT}, and therefore out of
+ * the options a fight normally leaves open.
+ *
+ * Exported for **T62**, which authors the scene this predicate opens, and for tests — not because
+ * anything reads it today. An earlier draft of this comment claimed it was "exported so the harness
+ * can warn before it is fatal", which is both uncalled and impossible: see {@link LAST_STAND_AT} on
+ * why there is no turn between reaching this state and the run ending. Naming an export's real
+ * audience matters here, because this task's own headline finding is that `killCompanion` sat
+ * exported and uncalled for two milestones while its module advertised what it did.
+ *
+ * Reads `combat.grabbed` directly rather than importing `combat/combat.ts`, which would close a cycle
+ * (`combat` → `sim/companions` → `sim/survival`). The predicate is one field and a sum; the module
+ * that owns the grab owns setting it, and this one owns what it costs.
+ */
+export function inLastStand(state: GameState): boolean {
+  return state.combat?.grabbed === true && woundBurden(state.player.condition) >= LAST_STAND_AT;
+}
 
 /** Why the run has ended, or null if the survivor lives. Derived from condition — no stored flag. */
 export function runEndReason(state: GameState): RunEndReason | null {
   const { needs, infection } = state.player.condition;
+  // T82: a fight can finally be the answer. Checked FIRST because it is the most proximate cause — a
+  // player who is held, badly hurt and also out of water died in the grapple, not of thirst, and the
+  // scene the player is owed is the one they are standing in. Still derived: `combat.grabbed` and the
+  // wound list are both already in `GameState`, so there is no stored death flag and no save rung.
+  if (inLastStand(state)) return "lastStand";
   // Infection no longer ends the run at terminal onset (T49 · FR-INJ-08) — terminal is the playable cure
   // race. The run ends by infection ONLY at the delayed `succumb` collapse, reached by neglecting the race.
   if (hasSuccumbed(infection)) return "infection";
@@ -279,5 +364,12 @@ export function endingNarration(reason: RunEndReason): string {
       return "Thirst won before the dead ever did. You stopped moving somewhere quiet.";
     case "infection":
       return "The fever crested and did not break. What the bite promised, it delivered.";
+    // Deliberately a *scene*, not a scoreboard (GDD IX rule 5: "death in combat is a scene, not a
+    // screen"). It names what killed you — the hands, the weight you were already carrying — and
+    // nothing else. T62 authors the heightened sequence this trigger exists to open; this is the
+    // placeholder ending that makes the trigger real in the meantime, and it is the only line in
+    // `endingNarration` that will be replaced rather than kept.
+    case "lastStand":
+      return "It had you, and you had nothing left to give it. You went down swinging, in the dark, and the city closed over the place where you had been.";
   }
 }
