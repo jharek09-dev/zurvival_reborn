@@ -1,0 +1,88 @@
+{
+  "$schema": "../schemas/ending.schema.json",
+  "id": "ending.sacrifice",
+  "shape": "sacrifice",
+  "opening": "You went down at your own door, on the side of it where the work had been done.",
+  "clauses": [
+    {
+      "id": "held-before",
+      "weight": 92,
+      "when": {
+        "minNightsHeld": 1
+      },
+      "text": "The walls had turned it away before — more than once, on nights nobody was awake to count. They did not owe you another one."
+    },
+    {
+      "id": "already-breached",
+      "weight": 70,
+      "when": {
+        "minBreached": 1
+      },
+      "text": "They had been through those walls once before, and you had gone on living there anyway, which is the part of it worth remembering."
+    },
+    {
+      "id": "the-rooms",
+      "weight": 74,
+      "when": {
+        "minRooms": 1
+      },
+      "text": "Inside there were rooms you had made mean something — a place to cook, a place to keep water, a place that was not just out of the rain."
+    },
+    {
+      "id": "unfinished-work",
+      "weight": 72,
+      "when": {
+        "minStages": 1
+      },
+      "text": "The work you had started was still standing half-done behind you, close enough that anyone coming after could see what it was going to be."
+    },
+    {
+      "id": "the-long-hold",
+      "weight": 68,
+      "when": {
+        "minDays": 3
+      },
+      "text": "You had held that address for days by then, which in what is left of this city is a long tenancy."
+    },
+    {
+      "id": "cost-them",
+      "weight": 60,
+      "when": {
+        "minFights": 5
+      },
+      "text": "You did not go quietly and it was not cheap for them."
+    },
+    {
+      "id": "kept-your-hands",
+      "weight": 54,
+      "when": {
+        "minHumanityShift": 8
+      },
+      "text": "Nothing you did to keep that door shut was anything you would have needed to lie about afterwards."
+    },
+    {
+      "id": "what-it-cost",
+      "weight": 54,
+      "when": {
+        "maxHumanityShift": -8
+      },
+      "text": "You had done harder things than this to keep that door shut, and at the end it was the door that mattered to you, not the things."
+    },
+    {
+      "id": "for-someone",
+      "weight": 94,
+      "when": {
+        "minCompanions": 1
+      },
+      "text": "There was somebody behind you when it took you, and the door held long enough to be worth standing in."
+    },
+    {
+      "id": "for-nobody",
+      "weight": 40,
+      "when": {
+        "requiresAlone": true
+      },
+      "text": "There was nobody behind you. You stood in it anyway."
+    }
+  ]
+}

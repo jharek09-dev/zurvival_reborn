@@ -21,6 +21,7 @@ import type { FactionDef } from "../sim/social.js";
 import type { NPCDef } from "../sim/npcs.js";
 import type { WeaponDef } from "../combat/weapons.js";
 import type { ProjectDef } from "../sim/project.js";
+import { ENDING_SHAPES, ENDING_REQUIREMENT_KEYS, type EndingDef } from "../sim/ending.js";
 import { MapError, type NodeDef, type RegionDef, type RegionGraph } from "./types.js";
 
 /** Index an array of defs by id, rejecting duplicates. */
@@ -53,6 +54,7 @@ export function buildRegionGraph(
   peopleDefs: readonly NPCDef[] = [],
   weaponDefs: readonly WeaponDef[] = [],
   projectDefs: readonly ProjectDef[] = [],
+  endingDefs: readonly EndingDef[] = [],
 ): RegionGraph {
   if (nodeDefs.length === 0) throw new MapError("no nodes: a region graph needs at least one node");
 
@@ -110,6 +112,37 @@ export function buildRegionGraph(
     }
   }
 
+  // T61 content guard. Four things a JSON Schema structurally cannot check from here — it validates one
+  // file at a time, and neither shipping client runs it at boot (`playCli.ts` and `web/build-html.mjs`
+  // are bare `JSON.parse`), so the schema is a CI gate and THIS is the runtime one. Every failure below
+  // was silent before the audit: a bad shape simply deleted an ending, a typo'd requirement key turned a
+  // gated clause unconditional, and a missing `clauses` array threw a TypeError on the frame the player
+  // died.
+  const seenEndings = new Set<string>();
+  const seenShapes = new Set<string>();
+  for (const e of endingDefs) {
+    if (seenEndings.has(e.id)) throw new MapError(`duplicate ending id "${e.id}"`);
+    seenEndings.add(e.id);
+    if (!ENDING_SHAPES.includes(e.shape)) {
+      throw new MapError(`ending "${e.id}" claims unknown shape "${String(e.shape)}" — one of ${ENDING_SHAPES.join(", ")}`);
+    }
+    if (seenShapes.has(e.shape)) {
+      throw new MapError(`two endings claim shape "${e.shape}" — a run resolves into one shape and must find one def`);
+    }
+    seenShapes.add(e.shape);
+    if (!Array.isArray(e.clauses)) throw new MapError(`ending "${e.id}" has no clauses array`);
+    const seenClauses = new Set<string>();
+    for (const c of e.clauses) {
+      if (seenClauses.has(c.id)) throw new MapError(`ending "${e.id}" repeats clause id "${c.id}"`);
+      seenClauses.add(c.id);
+      for (const key of Object.keys(c.when ?? {})) {
+        if (!ENDING_REQUIREMENT_KEYS.includes(key)) {
+          throw new MapError(`ending "${e.id}" clause "${c.id}" tests unknown requirement "${key}" — an unread key would make the clause unconditional`);
+        }
+      }
+    }
+  }
+
   // Connectivity: every node reachable from start over the (now symmetric) edges.
   const reached = reachableFrom(nodes, startNodeId);
   if (reached.size !== nodeDefs.length) {
@@ -140,6 +173,9 @@ export function buildRegionGraph(
     // The terminal-project pool (T87) is the win condition's master gate — attached only when the client
     // registers one, so a graph without it has no way to end a run well, exactly as before.
     ...(projectDefs.length > 0 ? { projects: projectDefs } : {}),
+    // The ending pool (T61) gates assembled endings; without it every run closes on the plain reason
+    // scene, which is exactly what it closed on before T61.
+    ...(endingDefs.length > 0 ? { endings: endingDefs } : {}),
   };
 }
 

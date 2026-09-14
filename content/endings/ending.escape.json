@@ -1,0 +1,115 @@
+{
+  "$schema": "../schemas/ending.schema.json",
+  "id": "ending.escape",
+  "shape": "escape",
+  "opening": "The road out was a thing you built, piece by piece, out of a city that was not going to offer you one.",
+  "clauses": [
+    {
+      "id": "went-out-broken",
+      "weight": 90,
+      "when": {
+        "requiresBattered": true
+      },
+      "text": "You did not leave in one piece. You left carrying what the last week had put in you, and you left, which was the only part that was ever negotiable."
+    },
+    {
+      "id": "went-out-whole",
+      "weight": 88,
+      "when": {
+        "forbidsBattered": true
+      },
+      "text": "You went out whole — no fever, no wound worth naming, nothing owed to the road ahead. Almost nobody gets that."
+    },
+    {
+      "id": "the-fever-came-too",
+      "weight": 94,
+      "when": {
+        "requiresFeverish": true
+      },
+      "text": "Whatever is in your blood came with you past the last checkpoint, and it does not care that the city is behind you."
+    },
+    {
+      "id": "from-a-base",
+      "weight": 72,
+      "when": {
+        "requiresClaimed": true,
+        "minRooms": 1
+      },
+      "text": "You left a house behind you with the door shut and the rooms still in it, and somebody will find it and think they were lucky."
+    },
+    {
+      "id": "held-the-nights",
+      "weight": 70,
+      "when": {
+        "minNightsHeld": 1
+      },
+      "text": "The nights you spent holding those walls were what bought the time the work took."
+    },
+    {
+      "id": "fought-out",
+      "weight": 62,
+      "when": {
+        "minFights": 6
+      },
+      "text": "You did not talk your way out of anything. Every hour of it was paid for the same way."
+    },
+    {
+      "id": "the-long-haul",
+      "weight": 60,
+      "when": {
+        "minDays": 8
+      },
+      "text": "It took long enough that there were days you stopped believing in the road at all and kept working on it anyway."
+    },
+    {
+      "id": "fast-out",
+      "weight": 58,
+      "when": {
+        "maxDays": 4
+      },
+      "text": "You were gone before the city had finished deciding what to do about you."
+    },
+    {
+      "id": "the-ones-who-stayed",
+      "weight": 50,
+      "when": {
+        "minSurvivorsLost": 8
+      },
+      "text": "Behind you the map went on emptying out. Not one of the people it emptied of had anywhere to go."
+    },
+    {
+      "id": "clean-hands",
+      "weight": 46,
+      "when": {
+        "minHumanityShift": 8,
+        "minMoralActs": 2
+      },
+      "text": "You are taking nothing out of there that you would have to explain, and that will matter later, on the nights it comes back."
+    },
+    {
+      "id": "the-price",
+      "weight": 46,
+      "when": {
+        "maxHumanityShift": -8,
+        "minMoralActs": 2
+      },
+      "text": "You are taking some things out of there with you that are not in the pack, and those will keep."
+    },
+    {
+      "id": "took-someone",
+      "weight": 98,
+      "when": {
+        "minCompanions": 1
+      },
+      "text": "You did not go alone. Whatever is out there, there is somebody to see it with."
+    },
+    {
+      "id": "went-alone",
+      "weight": 40,
+      "when": {
+        "requiresAlone": true
+      },
+      "text": "You went alone. There was nobody left to ask, by then."
+    }
+  ]
+}

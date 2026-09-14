@@ -1,0 +1,161 @@
+{
+  "$schema": "../schemas/ending.schema.json",
+  "id": "ending.entrenchment",
+  "shape": "entrenchment",
+  "opening": "Whatever else this run was, it had an address. For a while there was a door in this city that was yours, and you were the one who decided what came through it.",
+  "clauses": [
+    {
+      "id": "the-nights",
+      "weight": 92,
+      "when": {
+        "minNightsHeld": 2
+      },
+      "text": "Night after night it came up against the boards and night after night the boards were still there in the morning, and so were you."
+    },
+    {
+      "id": "one-night",
+      "weight": 86,
+      "when": {
+        "minNightsHeld": 1
+      },
+      "text": "At least one night it came, and at least one night the walls were the reason it did not matter."
+    },
+    {
+      "id": "the-work-finished",
+      "weight": 84,
+      "when": {
+        "reasons": [
+          "held"
+        ],
+        "minStages": 3
+      },
+      "text": "Every stage of it went in with your own hands, in the order you chose, paid for out of what this city grudgingly gave up."
+    },
+    {
+      "id": "the-rooms",
+      "weight": 76,
+      "when": {
+        "minRooms": 2
+      },
+      "text": "By the end it had more than one room that did a job, which is to say it had stopped being shelter and started being a house."
+    },
+    {
+      "id": "one-room",
+      "weight": 70,
+      "when": {
+        "minRooms": 1
+      },
+      "text": "There was a room in it you had built for a purpose, and it worked, and that is not a small thing to be able to say."
+    },
+    {
+      "id": "broke-through-once",
+      "weight": 74,
+      "when": {
+        "minBreached": 1
+      },
+      "text": "They came through the boards one night and took the place off you, and you were still in this city the next morning."
+    },
+    {
+      "id": "lost-it",
+      "weight": 80,
+      "when": {
+        "requiresBaseLost": true,
+        "maxBreached": 0
+      },
+      "text": "In the end the address was not yours any more, and you went on without it."
+    },
+    {
+      "id": "barely-standing",
+      "weight": 58,
+      "when": {
+        "reasons": [
+          "held"
+        ],
+        "requiresBattered": true
+      },
+      "text": "You were in no condition to be doing any of it by then. You did it anyway, and the walls did not know the difference."
+    },
+    {
+      "id": "clean-hold",
+      "weight": 64,
+      "when": {
+        "reasons": [
+          "held"
+        ],
+        "forbidsBattered": true
+      },
+      "text": "You came out the other side of it whole, which almost nobody did."
+    },
+    {
+      "id": "a-long-run",
+      "weight": 56,
+      "when": {
+        "minDays": 4
+      },
+      "text": "You were there long enough to have a routine, and long enough to notice when the street outside changed its habits too."
+    },
+    {
+      "id": "provisioned",
+      "weight": 48,
+      "when": {
+        "minNodesCleaned": 4
+      },
+      "text": "Everything in it came out of somewhere else, carried back a bag at a time from rooms that are empty now."
+    },
+    {
+      "id": "kept-your-hands",
+      "weight": 44,
+      "when": {
+        "minHumanityShift": 8,
+        "minMoralActs": 2
+      },
+      "text": "Nothing that came through that door was taken off anyone who needed it more, and you would have been able to say so out loud."
+    },
+    {
+      "id": "hard-house",
+      "weight": 44,
+      "when": {
+        "maxHumanityShift": -8,
+        "minMoralActs": 2
+      },
+      "text": "It was built out of decisions you would not care to itemise, and it stood on them the same as on the boards."
+    },
+    {
+      "id": "the-dead-outside",
+      "weight": 40,
+      "when": {
+        "minSurvivorsLost": 8
+      },
+      "text": "Outside it, the people who had been in this city when you arrived went out one after another, and the walls were the difference."
+    },
+    {
+      "id": "a-house-with-people",
+      "weight": 96,
+      "when": {
+        "minCompanions": 1
+      },
+      "text": "There was someone else in it at the end, which is the only measure of a house that has ever counted."
+    },
+    {
+      "id": "held-alone",
+      "weight": 24,
+      "when": {
+        "requiresAlone": true
+      },
+      "text": "You held it by yourself, start to finish, and nobody ever knew."
+    },
+    {
+      "id": "died-at-home",
+      "weight": 78,
+      "when": {
+        "requiresAtBase": true,
+        "reasons": [
+          "starved",
+          "dehydrated",
+          "infection"
+        ]
+      },
+      "text": "It did not come through the door for you in the end. You were at home when it happened, in the place you had made, which is not the worst way this city lets a person go."
+    }
+  ]
+}

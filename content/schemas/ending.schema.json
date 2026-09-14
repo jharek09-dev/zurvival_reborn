@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zurvival.example/schemas/ending.schema.json",
+  "title": "Ending",
+  "description": "One SHAPE a run can resolve into, and the clauses that can be assembled behind it (M5 task T61 · FR-STY-06 · GDD Part XIII \"Endings philosophy\" — there is no single true ending; an ending is assembled from components). Exactly one file per shape: the engine (sim/ending.ts) derives the shape from what the run WAS — not from how it stopped, which is the whole point — then prints the pre-T61 reason scene, this file's `opening`, and the strongest ENDING_CLAUSE_LIMIT clauses whose `when` the run satisfies. Clauses are a MENU, not a template (T87's `accepts` decision applied to prose): the components of a run are thin-and-wide, present in anywhere from 0% to 100% of runs, so a fixed set of sentences would print holes or boilerplate for the ordinary run, while a menu lets a component that is currently unreachable (a companion at your side) be a clause that never fires rather than a gap — and light up with no code change the day it becomes reachable. Price `when` off the measured run, not off the fiction: `measure/t61.ts --components` reports every axis's range and how many runs carry signal on it, and a clause keyed to something measured at 0% is authored for a future the game does not have yet.",
+  "type": "object",
+  "required": [
+    "id",
+    "shape",
+    "opening",
+    "clauses"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "A clause's admission test. Every set field must hold; absent fields are ignored (the EncounterRequirement idiom from T47). The vocabulary is closed and engine-side on purpose — content supplies prose and thresholds, the engine supplies the facts.",
+      "properties": {
+        "reasons": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "starved",
+              "dehydrated",
+              "infection",
+              "lastStand",
+              "escaped",
+              "held"
+            ]
+          },
+          "description": "Run-end reasons this clause is admissible for. Absent means any — and a clause in a shape file is already constrained by the shape, so set this only when the clause names the manner of the ending."
+        },
+        "minDays": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Measured: 1-5 mortal (mean 2.9), 31-44 immortal. A threshold above 5 will not fire in ordinary play today."
+        },
+        "maxDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minHumanity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Absolute standing, 0-100 (baseline 50). Measured range across 200 runs: 31-73 — the authored <=28 and >=85 bands are NOT reachable in play today (PL-M5-69), so prefer the shift fields below for a clause that must actually fire."
+        },
+        "maxHumanity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "minHumanityShift": {
+          "type": "integer",
+          "minimum": -100,
+          "maximum": 100,
+          "description": "Signed distance from the baseline — the direction of travel. THIS is the axis that moves: 97.5-100% of runs end somewhere other than 50."
+        },
+        "maxHumanityShift": {
+          "type": "integer",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "minMoralActs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "`moral` history beats — choices that cost or kept something. Measured 2.35/run, 97.5% of runs."
+        },
+        "minMet": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Survivors met. MEASURED 0.00 IN EVERY POLICY AND BOTH MORTALITY MODES — a clause set on this is authored for later."
+        },
+        "minSurvivorsLost": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "`npc.died` beats. Measured 11.9/run mortal; all 18 authored survivors are dead in 100% of immortal runs."
+        },
+        "minCompanions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Companions standing at the end. MEASURED 0 in 320 runs (T86's PL-M5-63)."
+        },
+        "minCompanionsLost": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Measured 0 — nothing is ever recruited to lose."
+        },
+        "minDeparted": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "`social.deserted` + `social.betrayed`. Measured 0, same cause."
+        },
+        "minRooms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Rooms standing in the base at the end. Measured 0-2 (T85)."
+        },
+        "minNightsHeld": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "`siege.held` + `siege.repelled` (T83). 10% / 45% of runs."
+        },
+        "minBreached": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "`siege.breached`. 7.5% of runs."
+        },
+        "minFights": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "`combat.cleared`. Measured 5.08/run, 97.5% of runs — one of the liveliest axes there is."
+        },
+        "minOverruns": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "`horde.overrun` (T76). 2.08/run, 65% of runs."
+        },
+        "minNodesSeen": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Nodes entered. Measured 3-7 mortal, 7-31 immortal, of 60."
+        },
+        "minNodesCleaned": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Nodes searched to 100%. Measured 0-4 mortal, 3-21 immortal."
+        },
+        "minEncounters": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "`encounter.begin`. 10.6/run, 100% of runs."
+        },
+        "minStages": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Terminal-project stages finished (T87)."
+        },
+        "requiresClaimed": {
+          "type": "boolean",
+          "description": "The run claimed a base at some point — read from the LOG, so a base claimed and later lost still satisfies it."
+        },
+        "requiresBaseLost": {
+          "type": "boolean",
+          "description": "Claimed, and gone by the end (T83's releaseShelter, or an abandon)."
+        },
+        "requiresBattered": {
+          "type": "boolean",
+          "description": "Ended carrying wounds, fever, real hunger or real thirst — the pyrrhic read (PL-M5-67). Measured TRUE for 100% of wins, so on a win shape this is the ordinary case and its complement is the rare one."
+        },
+        "forbidsBattered": {
+          "type": "boolean",
+          "description": "Ended clean. The complement of the above, so the rare good end can be authored without a second vocabulary."
+        },
+        "requiresAlone": {
+          "type": "boolean",
+          "description": "No companion at the end. Measured true for 100% of runs today."
+        },
+        "requiresFeverish": {
+          "type": "boolean",
+          "description": "Ended with the infection past `none`. Narrower than requiresBattered on purpose — \"you got out and it came with you\" is a different ending from \"you got out hurt\". Measured: infection.staged fires in 95% of runs."
+        },
+        "maxBreached": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Upper bound on `siege.breached` beats. The only max on a count in this vocabulary: losing a base to a breach and losing one any other way are different stories, and a clause about the general case should not print beside the specific one that caused it."
+        },
+        "requiresAtBase": {
+          "type": "boolean",
+          "description": "The survivor was standing in a base they STILL HELD when the run stopped. Distinct from requiresClaimed, which is historical — owning a fortified base is not the same as dying in its doorway."
+        },
+        "forbidsClaimed": {
+          "type": "boolean",
+          "description": "The run never claimed a base at all. The vocabulary is otherwise monotone, so this is how a clause about being rootless is kept off a survivor who settled on day 2."
+        }
+      }
+    },
+    "clause": {
+      "type": "object",
+      "required": [
+        "id",
+        "weight",
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[-_][a-z0-9]+)*$",
+          "description": "Stable slug, unique within this ending. Not save data (nothing about an ending is stored) but it IS the trail tests and telemetry read, so treat it as stable."
+        },
+        "weight": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Selection order — higher wins a contested slot, ties break on id so selection is total and machine-independent. Supply usually exceeds ENDING_CLAUSE_LIMIT, so this is the dial that decides which truths about a run get said."
+        },
+        "when": {
+          "$ref": "#/$defs/requirement"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Second-person past-tense prose, one or two sentences, no numbers and no scoreboard (GDD XIII: every ending gets a real close, not a card). It is read AFTER the reason scene and the opening, so it should add a fact about the run rather than re-narrate the death."
+        }
+      }
+    }
+  },
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional editor hint pointing at this schema."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^ending(\\.[a-z0-9]+(?:[-_][a-z0-9]+)*)+$",
+      "description": "Content id, e.g. \"ending.entrenchment\"."
+    },
+    "shape": {
+      "type": "string",
+      "enum": [
+        "escape",
+        "entrenchment",
+        "sacrifice",
+        "fade"
+      ],
+      "description": "GDD XIII's four shapes. UNIQUE ACROSS THE POOL — buildRegionGraph refuses two defs claiming the same shape, because a run resolves into one shape and must find one def (a JSON Schema validates one file at a time and cannot see the collision)."
+    },
+    "opening": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The line that names what this run WAS. Printed whenever the pool is live, immediately after the reason scene, before any clause."
+    },
+    "clauses": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 24,
+      "items": {
+        "$ref": "#/$defs/clause"
+      },
+      "description": "The candidate sentences. Author MORE than ENDING_CLAUSE_LIMIT — the cap binding is what makes two runs of the same shape differ instead of converging on everything that was true of you. A clause with no `when` is unconditional and will crowd the list at equal weight, so give those a low weight and use them as the floor."
+    }
+  }
+}

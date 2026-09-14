@@ -26,6 +26,7 @@ import type { RecipeDef } from "../sim/economy.js";
 import type { JobDef } from "../sim/jobs.js";
 import type { WeaponDef } from "../combat/weapons.js";
 import type { ProjectDef } from "../sim/project.js";
+import type { EndingDef } from "../sim/ending.js";
 import type { NodeDef, RegionDef, RegionGraph } from "./types.js";
 import { seedRoster, distinctTypes } from "../sim/roster.js";
 import type { ContentId } from "../state/types.js";
@@ -133,6 +134,7 @@ export function startRun(
   factionDefs: readonly FactionDef[] = [],
   weaponDefs: readonly WeaponDef[] = [],
   projectDefs: readonly ProjectDef[] = [],
+  endingDefs: readonly EndingDef[] = [],
 ): RunStart {
   const graph = buildRegionGraph(
     regionDefs,
@@ -150,6 +152,9 @@ export function startRun(
     // The terminal-project pool (T87) — the gate for the win condition; absent ⇒ four ways to lose and
     // none to win, exactly as every run before it.
     projectDefs,
+    // The ending pool (T61) — the gate for assembled endings; absent ⇒ a run closes on the plain reason
+    // scene, exactly as every run before it.
+    endingDefs,
   );
   const base = createInitialState({ ...opts, startLocation: graph.startNodeId });
 

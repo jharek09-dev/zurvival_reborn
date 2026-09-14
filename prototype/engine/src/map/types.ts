@@ -18,6 +18,7 @@ import type { RecipeDef } from "../sim/economy.js";
 import type { JobDef } from "../sim/jobs.js";
 import type { WeaponDef } from "../combat/weapons.js";
 import type { ProjectDef } from "../sim/project.js";
+import type { EndingDef } from "../sim/ending.js";
 import type { FactionDef } from "../sim/social.js";
 import type { NPCDef } from "../sim/npcs.js";
 
@@ -163,6 +164,14 @@ export interface RegionGraph {
    * reasons), so every prior run stays byte-identical. Never serialized.
    */
   readonly projects?: readonly ProjectDef[];
+  /**
+   * The run's registered ending pool (M5 task T61) — transient content the client loaded from
+   * `content/endings/`, carried here exactly as the project and weapon pools are. Optional and
+   * defaulting to empty: a graph built without it closes every run on the plain reason scene
+   * (`endingNarration` / `winNarration`), which is precisely what every run did before T61, so the
+   * narration, the choice ids and the save all stay byte-identical. Never serialized.
+   */
+  readonly endings?: readonly EndingDef[];
   /**
    * The run's registered faction pool (M4 task T53) — transient content the client loaded from
    * `content/factions/`, carried here so the social interpreter reaches it the same way the job pool does.

@@ -1,0 +1,112 @@
+{
+  "$schema": "../schemas/ending.schema.json",
+  "id": "ending.fade",
+  "shape": "fade",
+  "opening": "Nothing you leave behind has your name on it. The city went on being the city, and you stopped being in it.",
+  "clauses": [
+    {
+      "id": "never-settled",
+      "weight": 84,
+      "when": {
+        "minNodesSeen": 4,
+        "forbidsClaimed": true
+      },
+      "text": "You kept moving the whole way through — block after block, none of them yours, none of them for long."
+    },
+    {
+      "id": "barely-moved",
+      "weight": 82,
+      "when": {
+        "maxDays": 2,
+        "forbidsClaimed": true
+      },
+      "text": "It was over before you had learned the shape of more than a street or two of it."
+    },
+    {
+      "id": "picked-clean",
+      "weight": 70,
+      "when": {
+        "minNodesCleaned": 3
+      },
+      "text": "Behind you were rooms emptied down to the linings of drawers, and it had not been enough."
+    },
+    {
+      "id": "fought-the-whole-way",
+      "weight": 66,
+      "when": {
+        "minFights": 6
+      },
+      "text": "You had put down more of them than you could have named, and none of it bought you a day."
+    },
+    {
+      "id": "the-crowd-found-you",
+      "weight": 62,
+      "when": {
+        "minOverruns": 2
+      },
+      "text": "Twice and more the street had filled around you, and twice and more you had walked out of it — until the arithmetic of that stopped working."
+    },
+    {
+      "id": "the-fever",
+      "weight": 60,
+      "when": {
+        "reasons": [
+          "infection"
+        ]
+      },
+      "text": "You had known for days what was in you. Knowing it changed nothing except how the days felt."
+    },
+    {
+      "id": "dry",
+      "weight": 60,
+      "when": {
+        "reasons": [
+          "dehydrated"
+        ]
+      },
+      "text": "There was water in that city. There is always water in a city. You simply ran out of the hours to find it in."
+    },
+    {
+      "id": "kept-your-hands",
+      "weight": 52,
+      "when": {
+        "minHumanityShift": 8,
+        "minMoralActs": 2
+      },
+      "text": "For whatever it is worth now, you did not take what was not yours to take, and you did not leave anyone where leaving them would have been easier."
+    },
+    {
+      "id": "spent-yourself",
+      "weight": 52,
+      "when": {
+        "maxHumanityShift": -8,
+        "minMoralActs": 2
+      },
+      "text": "There were things you did on the way here that you had stopped arguing with yourself about, and they did not save you either."
+    },
+    {
+      "id": "the-city-emptied",
+      "weight": 44,
+      "when": {
+        "minSurvivorsLost": 8
+      },
+      "text": "You were not the first that week and you were nowhere near the last. Names you never learned had gone out ahead of you, all over the map."
+    },
+    {
+      "id": "alone",
+      "weight": 20,
+      "when": {
+        "requiresAlone": true
+      },
+      "text": "There was nobody with you at the end, and nobody looking."
+    },
+    {
+      "id": "someone-was-there",
+      "weight": 88,
+      "when": {
+        "minCompanions": 1
+      },
+      "text": "Someone was still with you when it happened, which is more than most of this city managed."
+    }
+  ]
+}

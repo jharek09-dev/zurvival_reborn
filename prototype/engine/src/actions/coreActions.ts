@@ -36,7 +36,6 @@ import {
   canTreat,
   isRunOver,
   runEndReason,
-  endingNarration,
   EAT_COST,
   DRINK_COST,
   TREAT_COST,
@@ -95,7 +94,8 @@ import { radioChoices, isRadioAction, resolveRadioAction, radioLine, radioPool }
 import { economyChoices, isEconomyAction, resolveEconomyAction, economyLine, economyActive } from "../sim/economy.js";
 import { jobChoices, isJobAction, resolveJobAction, jobLine, jobIdOf, jobOf } from "../sim/jobs.js";
 import { socialChoices, isSocialAction, resolveSocialAction, socialLine, socialActive, attitudeRead, companionUnease, shelterMoodRead } from "../sim/social.js";
-import { projectChoices, isProjectAction, resolveProjectAction, projectLine, winNarration } from "../sim/project.js";
+import { projectChoices, isProjectAction, resolveProjectAction, projectLine } from "../sim/project.js";
+import { closingNarration } from "../sim/ending.js";
 
 // The core action time costs moved to the leaf module `actions/costs.ts` (T77) so the combat layer —
 // which `coreActions` imports, and which must define `SLIP_COST` as `MOVE_COST + 1` — can read them
@@ -840,10 +840,13 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   // The run has ended (T22): narrate how — a death, or since T87 a way out taken, offer nothing further.
   const end = runEndReason(state);
   if (end !== null) {
-    // A won run closes on the words the project it finished carries; a lost one on `endingNarration`.
-    // `winNarration` falls back to the same line `endingNarration` would give, so a run that ended well
-    // is never rendered as an empty string even if the pool is gone (T87).
-    const closing = end === "escaped" || end === "held" ? winNarration(state, graph, end) : endingNarration(end);
+    // T61: the run closes on an ending ASSEMBLED from what it actually was — the shape it resolved into
+    // plus the strongest clauses the run earns — when the client registered an `content/endings/` pool.
+    // Without one, `closingNarration` is the identical pre-T61 expression: the finished project's own
+    // words for a win (falling back so a won run is never an empty string), the authored death scene
+    // otherwise. The whole gate lives in that one function, and its first line is byte-for-byte the line
+    // this branch printed before, so the authored scenes are extended rather than replaced.
+    const closing = closingNarration(state, graph, end);
     return { turn, day, hour, phase, location: here, narration: closing, choices: [] };
   }
 

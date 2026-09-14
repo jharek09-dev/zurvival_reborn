@@ -1061,3 +1061,27 @@ export {
   type ProjectEscalation,
   type ProjectIO,
 } from "./sim/project.js";
+
+// --- endings assembled from run components (M5 task T61 · FR-STY-06) ----------------------------
+export {
+  endingsActive,
+  endingPool,
+  assembleEnding,
+  endingText,
+  closingNarration,
+  reasonScene,
+  summarizeRun,
+  endingShape,
+  shapeOfSummary,
+  ENDING_REQUIREMENT_KEYS,
+  matchesEnding,
+  ENDING_SHAPES,
+  ENDING_CLAUSE_LIMIT,
+  ENDING_NEED_PRESSURE,
+  type Ending,
+  type EndingDef,
+  type EndingClauseDef,
+  type EndingRequirement,
+  type EndingShape,
+  type RunSummary,
+} from "./sim/ending.js";
