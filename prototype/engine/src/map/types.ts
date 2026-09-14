@@ -83,6 +83,23 @@ export interface NodeDef {
    * T79 `lastVisit` precedent: derive from what content already says).
    */
   readonly richness?: number;
+  /**
+   * How many rooms this building can hold (M5 task T85 · FR-SHL-04 · GDD Part XI). Clamped to
+   * {@link ROOM_SLOTS_MIN}..{@link ROOM_SLOTS_MAX} on read; {@link ROOM_SLOTS_DEFAULT} when absent.
+   *
+   * A marina office holds fewer than a warehouse. Seven rooms exist and the roomiest building in the
+   * city holds five, so a base is a **set of choices, not a checklist** — garden-or-cistern and
+   * workshop-or-medical become real, and *which building you claimed* acquires a tail that lasts the
+   * rest of the run.
+   *
+   * Optional, and the whole layer is gated on some node in the set authoring it
+   * (`roomSlotsAuthored`, the T83 `claimable` / T84 `richness` precedent), so a content set that omits
+   * it keeps the unbounded `NodeState.rooms` array every prior run had.
+   *
+   * **Read from the graph, never stored** — nothing mutates it, so a `NodeState` mirror would be dead
+   * save state (the T79 derive-don't-store precedent).
+   */
+  readonly roomSlots?: number;
   /** Distinct zombie type content ids present at this node (FR-CBT-07, T25); default none. */
   readonly zombieTypes?: readonly import("../state/types.js").ContentId[];
 }

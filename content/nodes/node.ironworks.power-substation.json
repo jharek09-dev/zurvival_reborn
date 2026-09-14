@@ -6,6 +6,7 @@
   "description": "The grid's local heart — transformers, a control room, breakers as tall as you. Throw the right ones and the block wakes up; throw the wrong ones and so does something else.",
   "kind": "industrial",
   "richness": 60,
+  "roomSlots": 2,
   "adjacent": [
     "node.downtown.parking-structure",
     "node.ironworks.chemical-plant",

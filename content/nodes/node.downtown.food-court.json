@@ -6,6 +6,7 @@
   "description": "A mall food court turned to rot and rats. Sealed dry goods and a first-aid box wait behind the counters, under a smell you won't forget.",
   "kind": "store",
   "richness": 140,
+  "roomSlots": 3,
   "adjacent": [
     "node.downtown.department-store",
     "node.downtown.parking-structure"

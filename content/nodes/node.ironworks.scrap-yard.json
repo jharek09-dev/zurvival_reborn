@@ -6,6 +6,7 @@
   "description": "A maze of crushed cars behind a chained gate someone already cut. Materials for the taking — and something that learned to hunt the blind aisles, patient and unseen.",
   "kind": "industrial",
   "richness": 150,
+  "roomSlots": 2,
   "walkers": 3,
   "adjacent": [
     "node.ironworks.foreman-office",

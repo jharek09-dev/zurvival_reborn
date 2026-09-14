@@ -1,0 +1,13 @@
+{
+  "$schema": "../schemas/job.schema.json",
+  "id": "job.water",
+  "label": "Work the catchment",
+  "worldEffect": "Drums are rolled, filters are rinsed, and the tank comes up an inch.",
+  "room": "room.cistern",
+  "produces": {
+    "item": "item.water-dirty",
+    "qty": 2
+  },
+  "hoursPerCycle": 6,
+  "description": "M5 task T85. The first job in the game that produces water. Deliberately produces item.water-dirty, not item.water: the catchment collects, and somebody still has to boil or filter it. That is what turns the purify recipes from a free one-shot conversion into the base's recurring fuel/charcoal cost, and it is what makes a companion affordable at all — a resident drinks 1.20/day and one worked cycle banks 2."
+}

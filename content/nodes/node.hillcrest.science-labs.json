@@ -6,6 +6,7 @@
   "description": "Biology and chemistry benches under a taped-up QUARANTINE sign. The reagents and the answers are both in here — and so is whatever the sign was about.",
   "kind": "medical",
   "richness": 170,
+  "roomSlots": 4,
   "adjacent": [
     "node.hillcrest.lecture-hall",
     "node.hillcrest.library-stacks",

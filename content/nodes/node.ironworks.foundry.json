@@ -6,6 +6,7 @@
   "description": "The great casting shed, crucibles cold, ingots and bar stock everywhere you look. Sound carries forever under that roof.",
   "kind": "industrial",
   "richness": 130,
+  "roomSlots": 4,
   "walkers": 3,
   "adjacent": [
     "node.ironworks.power-substation",

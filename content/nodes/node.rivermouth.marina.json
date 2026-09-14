@@ -6,6 +6,7 @@
   "description": "A small-craft harbor of listing boats and a locked dockmaster's office. Defensible, with water on three sides and one gangway in.",
   "kind": "generic",
   "richness": 75,
+  "roomSlots": 3,
   "claimable": true,
   "adjacent": [
     "node.rivermouth.fish-market",

@@ -359,3 +359,89 @@ describe("shipped content — the weapon roster (T81 · FR-CBT-04 · GDD IX)", (
     expect(station.kind).toBe("police");
   });
 });
+
+describe("shipped content — the base tradeoff layer (T85 · FR-SHL-04 · GDD XI)", () => {
+  interface RecipeJson {
+    id: string; category: string; inputs: { item: string; qty: number }[];
+    installsRoom?: string; room?: string; timeCost: number;
+    purifyFrom?: string; purifyTo?: string; purifyUnitsPerCraft?: number;
+  }
+  interface JobJson { id: string; room: string; produces?: { item: string; qty: number }; consumes?: { item: string; qty: number }; hoursPerCycle?: number }
+  const nodes = loadDefs<NodeDef>("nodes");
+  const recipes = loadDefs<RecipeJson>("recipes");
+  const jobs = loadDefs<JobJson>("jobs");
+
+  it("EVERY node authors roomSlots, so the T85 layer is live across the whole city", () => {
+    const missing = nodes.filter((n) => typeof n.roomSlots !== "number").map((n) => n.id);
+    expect(missing, "nodes with no authored roomSlots").toEqual([]);
+    expect(nodes.length).toBe(60);
+  });
+
+  it("slots are in band, and the SAFEHOUSES are spread rather than uniform", () => {
+    for (const n of nodes) {
+      expect(n.roomSlots! >= 1 && n.roomSlots! <= 6, `${n.id} roomSlots ${n.roomSlots}`).toBe(true);
+    }
+    const safe = nodes.filter((n) => n.claimable === true);
+    expect(safe.length).toBe(14);
+    const distinct = new Set(safe.map((n) => n.roomSlots));
+    expect(distinct.size, "every safehouse holding the same number would make the claim a non-choice").toBeGreaterThanOrEqual(4);
+  });
+
+  it("NO SAFEHOUSE HOLDS THE WHOLE TREE — a base is a set of choices, not a checklist", () => {
+    const roomRecipes = recipes.filter((r) => r.installsRoom !== undefined).length;
+    const roomiest = Math.max(...nodes.filter((n) => n.claimable === true).map((n) => n.roomSlots!));
+    expect(roomRecipes).toBeGreaterThan(roomiest);
+  });
+
+  it("ships a water source, and it produces DIRTY water so purification is the recurring sink", () => {
+    const cistern = recipes.find((r) => r.installsRoom === "room.cistern");
+    expect(cistern, "room.cistern").toBeDefined();
+    const water = jobs.find((j) => j.room === "room.cistern");
+    expect(water, "job.water").toBeDefined();
+    expect(water!.produces?.item).toBe("item.water-dirty");
+    // Before T85 nothing in the game produced water of either kind.
+    expect(jobs.filter((j) => j.produces?.item.startsWith("item.water")).length).toBe(1);
+  });
+
+  it("the cistern is payable out of a claim's own salvage — the defect its first cut re-created", () => {
+    const cistern = recipes.find((r) => r.installsRoom === "room.cistern")!;
+    // Scrap only: cloth drops in store/residential, which a settler reaches in 12.5% of runs, so a
+    // cloth cost would make the room that fixes water unreachable for the same reason water is.
+    expect(cistern.inputs.every((i) => i.item === "item.scrap")).toBe(true);
+    expect(cistern.inputs.reduce((a, i) => a + i.qty, 0)).toBeLessThanOrEqual(4);
+  });
+
+  it("a resident's day is covered by less than one worked cistern cycle", () => {
+    const water = jobs.find((j) => j.room === "room.cistern")!;
+    const perDay = (24 / (water.hoursPerCycle ?? 6)) * water.produces!.qty;
+    expect(perDay, "a resident drinks 1.20/day; a base that cannot cover one is not a base").toBeGreaterThan(1.2);
+  });
+
+  it("EVERY purify recipe authors a batch size — none converts the whole stack any more", () => {
+    const purifies = recipes.filter((r) => r.category === "purify");
+    expect(purifies.length).toBeGreaterThan(0);
+    for (const r of purifies) {
+      expect(typeof r.purifyUnitsPerCraft, r.id).toBe("number");
+      expect(r.purifyUnitsPerCraft! >= 1, r.id).toBe(true);
+    }
+  });
+
+  it("the two purify paths are a real choice: neither strictly dominates the other", () => {
+    const boil = recipes.find((r) => r.id === "recipe.purify.boil")!;
+    const filter = recipes.find((r) => r.id === "recipe.purify.filter")!;
+    // The filter yields more per craft but spends two components against the boil's one.
+    expect(filter.purifyUnitsPerCraft!).toBeGreaterThan(boil.purifyUnitsPerCraft!);
+    expect(filter.inputs.length).toBeGreaterThan(boil.inputs.length);
+  });
+
+  it("every room recipe's inputs can actually be found somewhere in the city", () => {
+    const findable = new Set<string>();
+    for (const kind of Object.keys(LOOT_TABLES)) for (const id of LOOT_TABLES[kind]!) findable.add(id);
+    // economy-pool items are appended by `lootTableFor`; assert against the base tables plus the
+    // economy additions the shipped run registers.
+    for (const id of ["item.food-fresh", "item.water-dirty", "item.charcoal", "item.cloth", "item.blueprint.antibiotics", "item.blueprint.molotov"]) findable.add(id);
+    for (const r of recipes.filter((x) => x.installsRoom !== undefined)) {
+      for (const i of r.inputs) expect(findable.has(i.item), `${r.id} needs ${i.item}, which no loot table holds`).toBe(true);
+    }
+  });
+});

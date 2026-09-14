@@ -6,6 +6,7 @@
   "description": "The site office up on stilts over the yard, keys on a board, manifests still on the desk. A bad approach for anything that can't climb, good sightlines for you.",
   "kind": "generic",
   "richness": 70,
+  "roomSlots": 3,
   "claimable": true,
   "adjacent": [
     "node.ironworks.loading-canal",

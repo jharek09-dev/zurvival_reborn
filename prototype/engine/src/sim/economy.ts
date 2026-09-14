@@ -31,6 +31,7 @@
 import type { ContentId, GameState, HistoryEvent, InventoryEntry, ItemInstance, JsonValue } from "../state/types.js";
 import type { Action, SceneChoice } from "../pipeline/contract.js";
 import type { RegionGraph } from "../map/types.js";
+import { roomSlotFree } from "./rooms.js";
 
 // --- content shape (mirrored by content/schemas/recipe.schema.json) ---------------------------
 
@@ -71,6 +72,12 @@ export interface RecipeDef {
   readonly purifyFrom?: ContentId;
   /** A **purify** recipe's safe product. */
   readonly purifyTo?: ContentId;
+  /**
+   * A **purify** recipe: how many units one batch of {@link RecipeDef.inputs} converts (M5 task T85).
+   * Omit and the recipe converts the whole carried stack for one set of inputs, which is what every
+   * purify recipe did before T85 and what every unauthored content set still does.
+   */
+  readonly purifyUnitsPerCraft?: number;
   /** A learned unlock this recipe needs (content id); omit ⇒ known from the start (survival basics). */
   readonly blueprint?: ContentId;
   /** A built room this recipe needs to run (content id); omit ⇒ craftable in the bare shelter. */
@@ -226,6 +233,10 @@ export function craftable(state: GameState, graph: RegionGraph | undefined, reci
   // A room already installed at the shelter can't be built again — else the bench keeps offering it and a
   // re-craft would silently burn the inputs for nothing (the room-install is a no-op when already present).
   if (recipe.installsRoom !== undefined && shelterRooms(state).includes(recipe.installsRoom)) return false;
+  // T85: a building holds a bounded number of rooms, so installing one is a choice against the others.
+  // `roomSlotFree` is true whenever the content set authors no `roomSlots` anywhere, which is why every
+  // fixture and every pre-T85 run still appends to an unbounded array.
+  if (recipe.installsRoom !== undefined && !roomSlotFree(state, graph)) return false;
   if (!hasInputs(state.player.inventory, recipe)) return false;
   if (recipe.category === "repair") return repairTarget(state, recipe) !== null;
   if (recipe.category === "purify") return recipe.purifyFrom !== undefined && count(state.player.inventory, recipe.purifyFrom) > 0;
@@ -432,17 +443,59 @@ function repair(state: GameState, recipe: RecipeDef, itemId: string): GameState 
   return appendBeat(next, "repair.done", ["player", itemId], { recipe: recipe.id, item: itemId, from: before, to: after, nth });
 }
 
-/** Purify: convert every carried dirty unit its inputs cover into the safe product, debiting the inputs. */
+/**
+ * Purify: convert the carried dirty units **one batch of inputs covers** into the safe product,
+ * debiting the inputs once.
+ *
+ * ### What this used to do, and why it was wrong (M5 task T85)
+ *
+ * It converted the player's ENTIRE carried stack for one set of inputs. Measured
+ * (`measure/t85.ts --purify`, pre-T85 tree):
+ *
+ * ```
+ *   dirty stack  1  ->  1 clean  for 1 fuel
+ *   dirty stack 10  -> 10 clean  for 1 fuel
+ * ```
+ *
+ * So the correct play was always to hoard dirty water to the pack limit and purify once, and
+ * `item.fuel` — the power loop's only sink — had no recurring cost at all. A recipe that scales its
+ * output with what you happen to be carrying is not a recipe; it is a button.
+ *
+ * ### The gate
+ *
+ * The batch size is **authored on the recipe** ({@link RecipeDef.purifyUnitsPerCraft}). A recipe that
+ * does not author one keeps the whole-stack conversion exactly as before, so every fixture and every
+ * pre-T85 content set is untouched — the content-field gate, the same shape T83 used for `claimable`.
+ */
 function purify(state: GameState, recipe: RecipeDef): GameState {
   if (recipe.purifyFrom === undefined || recipe.purifyTo === undefined) return state;
   const dirty = count(state.player.inventory, recipe.purifyFrom);
   if (dirty <= 0) return state;
+  // `per` is Infinity for an unauthored recipe, so `min` is the whole stack — the exact prior behaviour.
+  const made = Math.min(dirty, purifyBatchSize(recipe));
+  // PROVABLY UNREACHABLE, and kept deliberately: `dirty >= 1` above and `purifyBatchSize` floors at 1,
+  // so `made >= 1` always. A mutation sweep flagged it as an equivalent mutant and this comment is the
+  // proof rather than the excuse — the T84 audit's "dead guards with comments claiming they protected
+  // something" finding, answered the other way. It stands as the total guard for any future caller
+  // that computes `made` differently.
+  if (made <= 0) return state;
   let inv = state.player.inventory;
   for (const io of recipe.inputs) inv = consume(inv, io.item, io.qty);
-  inv = consume(inv, recipe.purifyFrom, dirty);
-  inv = grant(inv, recipe.purifyTo, dirty);
+  inv = consume(inv, recipe.purifyFrom, made);
+  inv = grant(inv, recipe.purifyTo, made);
   const next: GameState = { ...state, player: { ...state.player, inventory: inv } };
-  return appendBeat(next, "purify.done", ["player", recipe.id], { recipe: recipe.id, made: dirty });
+  return appendBeat(next, "purify.done", ["player", recipe.id], { recipe: recipe.id, made });
+}
+
+/**
+ * Units one batch of a purify recipe's inputs covers — `Infinity` (the whole carried stack, the exact
+ * pre-T85 behaviour) when the recipe authors no {@link RecipeDef.purifyUnitsPerCraft}. Clamped to at
+ * least 1 so an authored zero or a negative cannot make the verb a no-op that still burns the inputs.
+ */
+export function purifyBatchSize(recipe: RecipeDef): number {
+  const n = recipe.purifyUnitsPerCraft;
+  if (typeof n !== "number" || Number.isNaN(n)) return Infinity;
+  return Math.max(1, Math.trunc(n));
 }
 
 /** Study: learn a carried blueprint item's unlock and consume the schematic. No-op unless it's actually carried. */

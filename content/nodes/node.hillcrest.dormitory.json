@@ -6,6 +6,7 @@
   "description": "Student housing, room after identical room, most doors ajar. Small comforts left behind in the open ones; small horrors behind the ones still shut.",
   "kind": "residential",
   "richness": 90,
+  "roomSlots": 5,
   "walkers": 3,
   "adjacent": [
     "node.hillcrest.faculty-housing",

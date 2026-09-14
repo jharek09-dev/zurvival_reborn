@@ -6,6 +6,7 @@
   "description": "A silted freight terminus of dead boxcars and a coupling shed. The line runs inland to the ironworks; the cars still hold what never got shipped.",
   "kind": "industrial",
   "richness": 145,
+  "roomSlots": 3,
   "walkers": 3,
   "adjacent": [
     "node.ironworks.rail-depot",

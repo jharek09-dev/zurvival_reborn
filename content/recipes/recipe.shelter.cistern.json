@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/recipe.schema.json",
+  "id": "recipe.shelter.cistern",
+  "category": "shelter",
+  "label": "Cistern",
+  "worldEffect": "Guttering, a tarp and two drums under the downpipe — the roof drinks, and you drink after it.",
+  "inputs": [
+    {
+      "item": "item.scrap",
+      "qty": 3
+    }
+  ],
+  "installsRoom": "room.cistern",
+  "timeCost": 6,
+  "description": "Installs room.cistern, unlocking job.water (a resident works the catchment and banks dirty water into the stash). Buildable in the bare shelter (FR-SHL-04 · GDD XI). It collects — it does not purify: what the cistern banks is item.water-dirty, so the purify recipes become the recurring sink that item.fuel and item.charcoal never had. SCRAP ONLY, and that is measured, not stylistic: a first cut priced it at 2 scrap + 1 cloth and it was built in 0 of 40 settler runs, because cloth drops only in store/residential and a settler searches 97.5% generic — the exact defect T85 exists to fix, re-created in the room that fixes it. At 3 scrap it is payable out of the claim salvage itself, so it competes head-on with the watchtower on the turn the base opens. M5 task T85: before it, NOTHING in the game produced water, while the player burned 0.87/day and each resident 1.20/day against a 0.39/day find rate."
+}

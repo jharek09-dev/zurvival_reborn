@@ -6,6 +6,7 @@
   "description": "The big downtown drugstore. Front shelves swept bare months ago; the controlled-substances cage in back still holds the drugs that matter — and forcing it will matter too.",
   "kind": "medical",
   "richness": 190,
+  "roomSlots": 3,
   "walkers": 3,
   "adjacent": [
     "node.downtown.department-store",

@@ -6,6 +6,7 @@
   "description": "A marshalling yard of dead locomotives and stacked containers. The line runs down to the harbor one way and up toward the hills the other.",
   "kind": "industrial",
   "richness": 110,
+  "roomSlots": 3,
   "adjacent": [
     "node.ironworks.foundry",
     "node.rivermouth.rail-yard"

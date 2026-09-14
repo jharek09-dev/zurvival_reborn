@@ -6,6 +6,7 @@
   "description": "A row of foreclosed houses, half already stripped. The other half still hide full pantries behind the mess — people left here in a hurry.",
   "kind": "residential",
   "richness": 150,
+  "roomSlots": 4,
   "adjacent": [
     "node.the-terraces.community-school",
     "node.the-terraces.maple-street"

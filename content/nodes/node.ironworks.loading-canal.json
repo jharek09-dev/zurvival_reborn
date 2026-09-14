@@ -6,6 +6,7 @@
   "description": "A straight concrete canal cut through the works, a barge half-sunk at the wharf. Slow open water, and the seam where the industry touches the hill's reservoir.",
   "kind": "generic",
   "richness": 30,
+  "roomSlots": 1,
   "adjacent": [
     "node.hillcrest.waterworks",
     "node.ironworks.foreman-office",

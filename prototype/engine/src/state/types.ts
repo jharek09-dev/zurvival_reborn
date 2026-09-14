@@ -509,6 +509,20 @@ export interface NodeState {
    * Optional and absent-reads-stale, so a pre-T84 save needs no rung.
    */
   readonly scoutedOn?: number;
+  /**
+   * Whether this building's walls have already been stripped by a claim (M5 task T85).
+   *
+   * A claim pays out `claimSalvage` scrap — the materials the player took the place apart for. Without
+   * this mark that payout is **farmable**: claim, abandon, re-claim, and the same building hands over
+   * its fittings again, because `searchPct` stays at 100. A `--ceiling` probe found it immediately
+   * (rooms "built in 245% of runs" — the bot was tearing the base down and rebuilding it on free
+   * scrap), which is the one honest reason to store this rather than derive it: there is no other
+   * record that a claim ever happened here.
+   *
+   * Optional and absent-reads-unstripped, so a pre-T85 save needs no `SAVE_SCHEMA_VERSION` rung (the
+   * T84 `scouted` precedent). A building is stripped once and stays stripped for the rest of the run.
+   */
+  readonly stripped?: boolean;
   /** Day of last player visit; null if never visited. */
   readonly lastVisit: number | null;
   /** Noise deposited this turn (stage 6), consumed by hordes next turn (stage 9). */

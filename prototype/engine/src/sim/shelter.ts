@@ -17,12 +17,14 @@
  * Pure, deterministic, dependency-free, integer-only (ADR-0001). No clock, no RNG.
  */
 
-import type { GameState, NodeId } from "../state/types.js";
+import type { ContentId, GameState, NodeId } from "../state/types.js";
 import type { RegionGraph } from "../map/types.js";
 import type { Action, SceneChoice } from "../pipeline/contract.js";
 import { clampNoise } from "./noise.js";
 import { cacheRead } from "./stash.js";
+import { addItemBounded } from "./inventory.js";
 import { releaseShelterVoluntarily, siegeLine } from "./siege.js";
+import { claimSalvage, CLAIM_SALVAGE_ITEM, roomSlotsAuthored, roomSlotsOf, roomsAtShelter, DEMOLISH_COST, DEMOLISH_RECOVERY_PCT } from "./rooms.js";
 
 /** The material spent to fortify — already produced by the T17 loot tables (generic/residential/industrial). */
 export const SCRAP_ITEM = "item.scrap";
@@ -77,6 +79,29 @@ function consumeItem(state: GameState, type: string): GameState["player"]["inven
   const entry = inv[idx]!;
   if (entry.quantity <= 1) return inv.filter((_, i) => i !== idx);
   return inv.map((e, i) => (i === idx ? { ...e, quantity: e.quantity - 1 } : e));
+}
+
+/**
+ * Add up to `qty` units of a non-unique item to the pack, **stopping at {@link CARRY_CAPACITY}** —
+ * returning the new inventory and how many actually fit.
+ *
+ * Bounded, and that is not incidental. `sim/inventory.ts` documents `inventoryWeight <=
+ * CARRY_CAPACITY` as an invariant its own `addItemBounded` preserves, and an unbounded grant here
+ * would have been the one hole in it: a claim at a rich building hands over enough scrap to break a
+ * pack that is already near full. An audit of this task's own diff caught it. What will not fit is
+ * left in the building — the leave-behind that T84 measured as never once happening (PL-M5-56), now
+ * with an occasion that forces it.
+ */
+function grantBounded(inv: GameState["player"]["inventory"], type: string, qty: number): { inventory: GameState["player"]["inventory"]; took: number } {
+  let inventory = inv;
+  let took = 0;
+  for (let i = 0; i < Math.max(0, Math.trunc(qty)); i += 1) {
+    const r = addItemBounded(inventory, type);
+    if (!r.carried) break;
+    inventory = r.inventory;
+    took += 1;
+  }
+  return { inventory, took };
 }
 
 // --- gates ------------------------------------------------------------------------------------
@@ -142,6 +167,31 @@ export function canAbandonShelter(state: GameState): boolean {
   return sid !== null && sid === state.player.location;
 }
 
+/**
+ * The rooms the player could pull back out of their base (T85), in stable content order. Empty unless
+ * the T85 layer is active and they are standing in their own shelter with something built in it.
+ *
+ * Demolition is what makes a slot a **decision rather than a mistake**: a garden installed on day two
+ * can become a cistern on day nine at half the scrap back, so the wrong early choice costs you
+ * materials and hours, not the run. Without it, slots would be a trap the player cannot see coming.
+ */
+export function demolishableRooms(state: GameState, graph?: RegionGraph): readonly ContentId[] {
+  if (!roomSlotsAuthored(graph) || state.player.shelterId === null || state.player.shelterId !== state.player.location) return [];
+  return [...roomsAtShelter(state)].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Scrap a demolition returns for a room: {@link DEMOLISH_RECOVERY_PCT} of what its recipe's scrap
+ * inputs cost, truncated. A room built from no scrap returns nothing, which is the honest answer —
+ * you get back materials, not effort.
+ */
+export function demolishRecovery(graph: RegionGraph | undefined, room: ContentId): number {
+  const recipe = (graph?.recipes ?? []).find((r) => r.installsRoom === room);
+  if (recipe === undefined) return 0;
+  const scrap = recipe.inputs.filter((i) => i.item === SCRAP_ITEM).reduce((a, i) => a + Math.max(0, Math.trunc(i.qty)), 0);
+  return Math.max(0, Math.trunc((scrap * DEMOLISH_RECOVERY_PCT) / 100));
+}
+
 /** The shelter choices offered from the player's current node, in stable order. Empty when none applies. */
 export function shelterChoices(state: GameState, graph?: RegionGraph): readonly SceneChoice[] {
   const choices: SceneChoice[] = [];
@@ -169,21 +219,93 @@ export function shelterChoices(state: GameState, graph?: RegionGraph): readonly 
       action: { type: "abandon-shelter", choiceId: "abandon-shelter", timeCost: ABANDON_COST },
     });
   }
+  for (const room of demolishableRooms(state, graph)) {
+    const back = demolishRecovery(graph, room);
+    choices.push({
+      id: `demolish:${room}`,
+      label: back > 0 ? `Tear out the ${roomName(room)} (${back} scrap back)` : `Tear out the ${roomName(room)}`,
+      timeCost: DEMOLISH_COST,
+      action: { type: "demolish", choiceId: `demolish:${room}`, timeCost: DEMOLISH_COST, params: { room } },
+    });
+  }
   return choices;
+}
+
+/**
+ * What the building has room for, in words and never a bare number pair (FR-UI-02 — the client does not
+ * print the engine's integers at the player). Null when the T85 layer is dark, so no prior run's Scene
+ * gains a sentence.
+ */
+export function roomsLine(state: GameState, graph?: RegionGraph): string | null {
+  if (!roomSlotsAuthored(graph) || state.player.shelterId === null) return null;
+  const total = roomSlotsOf(graph, state.player.shelterId);
+  const used = roomsAtShelter(state).length;
+  const free = Math.max(0, total - used);
+  if (used === 0) return free === 1 ? "There is space in it for one thing." : `There is space in it for ${countWord(free)} things.`;
+  if (free === 0) return "There is nothing left to build into it — something would have to come out first.";
+  return free === 1 ? "There is space in it for one more thing." : `There is space in it for ${countWord(free)} more.`;
+}
+
+/** Small integers as words — the Scene never prints a bare count (FR-UI-02). */
+function countWord(n: number): string {
+  return ["nothing", "one", "two", "three", "four", "five", "six"][n] ?? String(n);
+}
+
+/** A room content id as the player reads it: `room.medical` -> "medical bay" where authored, else the bare noun. */
+function roomName(room: ContentId): string {
+  const bare = room.startsWith("room.") ? room.slice("room.".length) : room;
+  return bare.replace(/-/g, " ");
 }
 
 // --- dispatch (pipeline stage 3, from applyPlayerAction) --------------------------------------
 
 /** Whether an action is one this module owns (used by validation + dispatch). */
 export function isShelterAction(action: Action): boolean {
-  return action.type === "claim-shelter" || action.type === "fortify" || action.type === "abandon-shelter";
+  return action.type === "claim-shelter" || action.type === "fortify" || action.type === "abandon-shelter" || action.type === "demolish";
 }
 
-/** Claim the node the player stands on as their base (T37). Sets `shelterId`; inert if the gate is closed. */
+/**
+ * Claim the node the player stands on as their base (T37). Sets `shelterId`, and — once the T85 layer
+ * is active — **hands over what stripping the building was worth** ({@link claimSalvage}).
+ *
+ * ### Why a claim pays anything at all
+ *
+ * Claiming already requires `searchPct` 100: you have taken the place apart. Before T85 that work
+ * bought a flag and nothing else, and the base economy had no entry fee it could pay — measured
+ * (`measure/t85.ts --settle`, 40 goal-directed settler runs) a settler claimed on **day 1.6** and then
+ * built **0 of the 7 rooms**, holding **0.65 scrap** against the cheapest room's 3. The materials were
+ * always in the walls; nothing handed them over.
+ *
+ * Scaled by T84's authored `richness`, so a building already picked to the bones pays nothing and the
+ * warehouse at the edge of the yard pays for two rooms. Paid into the **pack**, not the cache, so
+ * T84's pack-weight pressure is what decides whether you can carry your own entry fee — the existing
+ * system, not a route around it.
+ *
+ * Inert if the gate is closed, and pays 0 on any content set that authors no `roomSlots`.
+ */
 function claimShelter(state: GameState, graph?: RegionGraph): GameState {
   if (!canClaimShelter(state, graph)) return state;
   const here: NodeId = state.player.location;
-  return { ...state, player: { ...state.player, shelterId: here } };
+  const node = state.nodes[here];
+  // A building is stripped ONCE. Without this, claim -> abandon -> re-claim farms the payout, because
+  // `searchPct` stays at 100 (found by `measure/t85.ts --ceiling`, which reported rooms "built in 245%
+  // of runs" — an immortal bot recycling its own base on free scrap).
+  const alreadyStripped = node?.stripped === true;
+  const salvage = alreadyStripped ? 0 : claimSalvage(graph, here);
+  const { inventory, took } = salvage > 0
+    ? grantBounded(state.player.inventory, CLAIM_SALVAGE_ITEM, salvage)
+    : { inventory: state.player.inventory, took: 0 };
+  // The building is marked stripped on the CLAIM, not on what fitted in the pack. Marking it only when
+  // `took > 0` would have re-opened the farm the mark exists to close: arrive full, claim for nothing,
+  // drop a can, abandon, re-claim, and the walls pay out again.
+  const nodes = salvage > 0 && node !== undefined ? { ...state.nodes, [here]: { ...node, stripped: true } } : state.nodes;
+  const next: GameState = { ...state, nodes, player: { ...state.player, shelterId: here, inventory } };
+  if (took <= 0) return next;
+  const { day, hour, turn } = state.meta;
+  return {
+    ...next,
+    history: [...next.history, { day, hour, turn, type: "shelter.stripped", subjects: [here], data: { item: CLAIM_SALVAGE_ITEM, units: took, offered: salvage } }],
+  };
 }
 
 /**
@@ -238,9 +360,34 @@ export function resolveShelterAction(state: GameState, action: Action, graph?: R
       return fortifyShelter(state);
     case "abandon-shelter":
       return abandonShelter(state);
+    case "demolish": {
+      const room = typeof action.params?.["room"] === "string" ? (action.params["room"] as string) : "";
+      return demolishRoom(state, room, graph);
+    }
     default:
       return state;
   }
+}
+
+/**
+ * Tear a room back out of the base (T85): frees its slot and returns {@link demolishRecovery} scrap.
+ *
+ * Re-validates its whole gate rather than trusting the offered choice, so a forged action — off a
+ * shelter, on a room that is not built, or on a content set with the T85 layer dark — is inert.
+ */
+function demolishRoom(state: GameState, room: string, graph?: RegionGraph): GameState {
+  if (!demolishableRooms(state, graph).includes(room)) return state;
+  const sid = state.player.shelterId!;
+  const node = state.nodes[sid]!;
+  const back = demolishRecovery(graph, room);
+  const { inventory } = back > 0 ? grantBounded(state.player.inventory, SCRAP_ITEM, back) : { inventory: state.player.inventory };
+  const { day, hour, turn } = state.meta;
+  return {
+    ...state,
+    player: { ...state.player, inventory },
+    nodes: { ...state.nodes, [sid]: { ...node, rooms: node.rooms.filter((r) => r !== room) } },
+    history: [...state.history, { day, hour, turn, type: "shelter.demolished", subjects: [sid, room], data: { room, recovered: back } }],
+  };
 }
 
 // --- payoffs ----------------------------------------------------------------------------------
@@ -334,10 +481,21 @@ export function shelterLine(state: GameState, graph?: RegionGraph): string | nul
     // T83: what the dark is doing out there, when it is doing anything. Composed here rather than as a
     // separate line so the base still reads as one paragraph.
     const siege = siegeLine(state, graph);
-    return `This is your shelter — ${read}.${hint}${cache !== null ? ` ${cache}` : ""}${siege !== null ? ` ${siege}` : ""}`;
+    // T85 legibility: the slot rule is invisible otherwise — a recipe the player can afford simply
+    // stops being offered and nothing says why. The T84 lesson in reverse: when the engine acquires a
+    // constraint, the screen has to acquire the sentence. Only on a set that authors slots.
+    const room = roomsLine(state, graph);
+    return `This is your shelter — ${read}.${hint}${room !== null ? ` ${room}` : ""}${cache !== null ? ` ${cache}` : ""}${siege !== null ? ` ${siege}` : ""}`;
   }
   if (canClaimShelter(state, graph)) {
-    return "You have searched this place clean; it could be made your own.";
+    // The offer has to be honest about the walls: a building this run has ALREADY stripped has nothing
+    // left to give, and promising material that the claim will not deliver is exactly the dead
+    // affordance the T84 note is about — here in the prose rather than in a verb.
+    const salvage = state.nodes[here]?.stripped === true ? 0 : claimSalvage(graph, here);
+    if (salvage <= 0) return "You have searched this place clean; it could be made your own.";
+    return salvage === 1
+      ? "You have searched this place clean; it could be made your own — and there is a length of usable material still in its walls."
+      : "You have searched this place clean; it could be made your own — and there is usable material still in its walls.";
   }
   // T83 legibility: with the `claimable` rule live, a safehouse the player has not yet stripped is
   // otherwise indistinguishable from the fifty-odd buildings that can never be one — the verb simply
