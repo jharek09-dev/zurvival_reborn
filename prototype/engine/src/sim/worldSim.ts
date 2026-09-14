@@ -49,6 +49,7 @@ import { tickCompanions } from "./companions.js";
 import { tickShelterOps, offscreenShelterUpkeep, jobsActive } from "./jobs.js";
 import { tickNpcs } from "./npcs.js";
 import { tickPeople, tickGroups, socialActive } from "./social.js";
+import { tickSiege } from "./siege.js";
 
 /**
  * Everything a layer may read that is not already in `GameState`: the `hours` this tick spans (drives
@@ -209,6 +210,12 @@ export function advanceWorld(state: GameState, hours: number, graph?: RegionGrap
     shel = tickPeople(shel, graph, h); // morale drift + desertion/betrayal
     shel = tickGroups(shel, graph, h); // survivors regroup toward home
   }
+  // T83: the night presses on the claimed base off-screen too — this is the version of the siege with
+  // teeth, because a base can be lost in a fast-forward the player was not standing in. Gated on a
+  // claimed shelter and on the span covering a night hour, so every shelter-free advance is inert, and
+  // it runs AFTER the layers so it reads where this advance's masses ended up. `state.meta.hour` is the
+  // opening hour: `advanceWorld` deliberately leaves `meta` to the caller, so the clock has not moved.
+  const besieged = tickSiege(shel, graph, state.meta.hour, h);
   // Off-screen fast-forwards leave a trace in the Living History too (T31).
-  return recordInto(state, shel);
+  return recordInto(state, besieged);
 }

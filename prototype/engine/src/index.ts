@@ -528,6 +528,7 @@ export {
   hordeAt,
   hordeMassAt,
   hordesEnabled,
+  SHELTER_SANCTUARY_AT,
   overrunsPlayer,
   hordeSizeFor,
   massAction,
@@ -798,6 +799,8 @@ export type { CompanionOrder } from "./sim/companions.js";
 export {
   canClaimShelter,
   canFortifyShelter,
+  canAbandonShelter,
+  safehousesAuthored,
   shelterChoices,
   isShelterAction,
   resolveShelterAction,
@@ -817,7 +820,39 @@ export {
   SHELTER_REST_FORT_MAX,
   SHELTER_NOISE_MUFFLE_MAX,
   SHELTER_DETECT_FLOOR_MAX,
+  ABANDON_COST,
 } from "./sim/shelter.js";
+
+// The night attack — a siege at the claimed base, and the way a base is lost (T83 · FR-SHL-06/FR-SHL-10)
+export {
+  SIEGE_STREAM,
+  SIEGE_HOURS_PER_NIGHT,
+  SIEGE_HEARING,
+  SIEGE_MASS_DIVISOR,
+  SIEGE_DENSITY_DIVISOR,
+  SIEGE_NOISE_DIVISOR,
+  SIEGE_PRESSURE_MAX,
+  SIEGE_MIN_PRESSURE,
+  SIEGE_BASE_DEFENCE,
+  SIEGE_WATCH_DEFENCE,
+  SIEGE_COMPANION_DEFENCE,
+  SIEGE_PLAYER_DEFENCE,
+  SIEGE_STASH_LOSS_DIVISOR,
+  SIEGE_WOUND_AT,
+  SIEGE_WOUND_TYPE,
+  SIEGE_WOUND_SEVERITY,
+  SIEGE_FATAL_AT,
+  SIEGE_BREACH_AT,
+  SIEGE_BREACH_WALKERS,
+  isNightHour,
+  nightHoursIn,
+  siegePressure,
+  siegeDefence,
+  breachShelter,
+  tickSiege,
+  siegeLine,
+  type SiegeOutcome,
+} from "./sim/siege.js";
 
 // Shared stash — the base warehouse: deposit/withdraw + the raid hook (T39 · FR-SHL-03/FR-PLR-04)
 export {

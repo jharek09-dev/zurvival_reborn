@@ -3,6 +3,7 @@ import fc from "fast-check";
 import {
   ACTIVE_ENCOUNTER_QUEST,
   HORDE_AWARENESS,
+  SHELTER_SANCTUARY_AT,
   HORDE_DISABLED_FLAG,
   HORDE_MAX_SIZE,
   HORDE_MIN_SIZE,
@@ -75,6 +76,16 @@ const take = (s: GameState, g: RegionGraph, id: string): GameState => {
   return applyAction(s, c.action, g).state;
 };
 const woundCount = (s: GameState): number => s.player.condition.wounds.length;
+/**
+ * Claim `at` as the player's base with `barricades` of wall on it. T83 narrowed the horde exemption
+ * from "your own shelter" to "your own shelter whose wall is still standing" (`SHELTER_SANCTUARY_AT`),
+ * so every sanctuary assertion below has to say which of the two it is testing.
+ */
+const based = (s: GameState, at: string, barricades: number): GameState => ({
+  ...s,
+  player: { ...s.player, shelterId: at },
+  nodes: { ...s.nodes, [at]: { ...s.nodes[at]!, barricades } },
+});
 
 describe("the mass pre-empts every other choice (T76 · FR-CBT-08)", () => {
   it("offers flight and the hold, and NO fight — not even at a node full of walkers", () => {
@@ -144,16 +155,26 @@ describe("the mass pre-empts every other choice (T76 · FR-CBT-08)", () => {
     expect(availableActions(ended, graph)).toStrictEqual([]);
   });
 
-  it("standing in your OWN claimed shelter is not an overrun — the base assault is T83's", () => {
+  it("standing behind your OWN STANDING wall is not an overrun (T76, narrowed by T83)", () => {
     const { state, graph } = boot();
     const s = overrunAt(state, "node.x.1");
-    const based: GameState = { ...s, player: { ...s.player, shelterId: "node.x.1" } };
-    expect(isOverrun(based)).toBe(false);
-    expect(overrunNarration(based)).toBeNull();
-    expect(ids(based, graph)).not.toContain("hold"); // the ordinary explore branch, in your own base
+    const home = based(s, "node.x.1", SHELTER_SANCTUARY_AT);
+    expect(isOverrun(home)).toBe(false);
+    expect(overrunNarration(home)).toBeNull();
+    expect(ids(home, graph)).not.toContain("hold"); // the ordinary explore branch, in your own base
     // but the sanctuary is the SHELTER, not shelter-ownership — you are not immune out in the street
-    const elsewhere: GameState = { ...based, player: { ...based.player, location: "node.x.1", shelterId: "node.x.3" } };
+    const elsewhere: GameState = { ...home, player: { ...home.player, location: "node.x.1", shelterId: "node.x.3" } };
     expect(isOverrun(elsewhere)).toBe(true);
+  });
+
+  it("…and a base whose wall has been beaten flat IS the open street (T83)", () => {
+    // The half PL-M5-18 was holding: the exemption was never meant to be unconditional, it was waiting
+    // for a system that could take the wall down. One point of wall is the whole difference.
+    const { state, graph } = boot();
+    const s = overrunAt(state, "node.x.1");
+    expect(isOverrun(based(s, "node.x.1", SHELTER_SANCTUARY_AT))).toBe(false);
+    expect(isOverrun(based(s, "node.x.1", SHELTER_SANCTUARY_AT - 1))).toBe(true);
+    expect(ids(based(s, "node.x.1", 0), graph)).toContain("hold"); // the collision verbs are back
   });
 
   it("leads the scene, ahead of the fight read it replaces", () => {
@@ -192,10 +213,14 @@ describe("the verbs refuse when there is no mass on you (T76)", () => {
     }
   });
 
-  it("…and neither does a flight taken inside your own shelter", () => {
+  it("…and neither does a flight taken inside your own WALLED shelter", () => {
     const { state, graph } = boot();
-    const based: GameState = { ...overrunAt(state, "node.x.1"), player: { ...state.player, location: "node.x.1", shelterId: "node.x.1" } };
-    const after = applyAction(based, { type: "flee", timeCost: 2, params: { to: "node.x.0", noise: 5 } }, graph).state;
+    const home = based(
+      { ...overrunAt(state, "node.x.1"), player: { ...state.player, location: "node.x.1" } },
+      "node.x.1",
+      SHELTER_SANCTUARY_AT,
+    );
+    const after = applyAction(home, { type: "flee", timeCost: 2, params: { to: "node.x.0", noise: 5 } }, graph).state;
     expect(after.player.location).toBe("node.x.1");
     expect(after.player.condition.wounds).toHaveLength(0);
   });
@@ -306,12 +331,12 @@ describe("every reader branches on the same rule (T76)", () => {
     // while `isOverrun` was false and the player took nothing.
     const { state, graph } = pooled();
     const at = "node.x.1";
-    const based: GameState = { ...state, player: { ...state.player, location: at, shelterId: at }, hordes: [horde(at)] };
-    const beforeArrival: GameState = { ...based, hordes: [horde("node.x.2")] };
-    expect(isOverrun(based)).toBe(false);
-    expect(overrunsPlayer(based)).toBe(false);
-    expect(recordHistory(beforeArrival, based).filter((e) => e.type === "horde.overrun")).toStrictEqual([]);
-    expect(evaluateEvents(based, graph)).not.toBe(based); // beats still fire in your own base
+    const home = based({ ...state, player: { ...state.player, location: at }, hordes: [horde(at)] }, at, SHELTER_SANCTUARY_AT);
+    const beforeArrival: GameState = { ...home, hordes: [horde("node.x.2")] };
+    expect(isOverrun(home)).toBe(false);
+    expect(overrunsPlayer(home)).toBe(false);
+    expect(recordHistory(beforeArrival, home).filter((e) => e.type === "horde.overrun")).toStrictEqual([]);
+    expect(evaluateEvents(home, graph)).not.toBe(home); // beats still fire in your own base
   });
 
   it("a hand-edited NaN horde size cannot reach state.history, or the save", () => {

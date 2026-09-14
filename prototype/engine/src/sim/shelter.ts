@@ -18,9 +18,11 @@
  */
 
 import type { GameState, NodeId } from "../state/types.js";
+import type { RegionGraph } from "../map/types.js";
 import type { Action, SceneChoice } from "../pipeline/contract.js";
 import { clampNoise } from "./noise.js";
 import { cacheRead } from "./stash.js";
+import { releaseShelterVoluntarily, siegeLine } from "./siege.js";
 
 /** The material spent to fortify — already produced by the T17 loot tables (generic/residential/industrial). */
 export const SCRAP_ITEM = "item.scrap";
@@ -30,6 +32,12 @@ export const SCRAP_ITEM = "item.scrap";
  * shouldn't eat the day on top of the search itself. */
 export const CLAIM_COST = 2;
 export const FORTIFY_COST = 2;
+/**
+ * Time cost of walking away from a base (T83 · PL-M3-07). One hour: gathering what you can carry and
+ * closing the door behind you. Non-zero like every other resolved verb (FR-CORE-03/04), and cheaper
+ * than claiming because leaving is always easier than settling.
+ */
+export const ABANDON_COST = 1;
 
 /** Scrap spent per fortify, barricades added per fortify, and the cap (matches the NodeState 0–100 field). */
 export const FORTIFY_SCRAP = 1;
@@ -74,14 +82,42 @@ function consumeItem(state: GameState, type: string): GameState["player"]["inven
 // --- gates ------------------------------------------------------------------------------------
 
 /**
- * May the player claim the node they stand on? Only while they have **no shelter yet** (one active
- * shelter per run · FR-SHL-01) and have **searched this node clean** (`searchPct >= 100`) — you secure a
- * building before you make it home. The search gate also keeps claim inert on any run that never fully
- * searches a node, so prior golden scenes are untouched.
+ * Does this content set author safehouses at all? The master gate for the `claimable` rule (T83).
+ *
+ * `NodeDef.claimable` has been declared in `map/types.ts` since T13 and read by **exactly zero engine
+ * code** ever since, so the fourteen hand-authored safehouses in `content/nodes/` were decorative and
+ * every node in the city was equally claimable. Measured: **60 of 60 bot runs claimed the START node**
+ * (`node.rivermouth.transit-plaza`) **on day 1**, one distinct node across sixty runs — and that node
+ * does not declare `claimable`.
+ *
+ * Honouring the field is therefore a real behaviour change, which is why it rides an active-system gate
+ * of exactly the shape `jobsActive` and the T81 weapon pool use: if **no** node in the graph declares
+ * `claimable`, the rule is dark and every node is claimable (the pre-T83 behaviour, so every fixture
+ * graph and every golden run is byte-identical); if **any** node declares it, only declared nodes are.
+ * The shipped city declares fourteen, so the rule is live there and nowhere else.
  */
-export function canClaimShelter(state: GameState): boolean {
-  const node = state.nodes[state.player.location];
-  return state.player.shelterId === null && node !== undefined && node.searchPct >= MAX_FORTIFICATION;
+export function safehousesAuthored(graph: RegionGraph | undefined): boolean {
+  if (graph === undefined) return false;
+  for (const id of Object.keys(graph.nodes)) if (graph.nodes[id]?.claimable !== undefined) return true;
+  return false;
+}
+
+/**
+ * May the player claim the node they stand on? Only while they have **no shelter yet** (one active
+ * shelter per run · FR-SHL-01), have **searched this node clean** (`searchPct >= 100`) — you secure a
+ * building before you make it home — and, from T83, only where the content set says a safehouse can be
+ * (see {@link safehousesAuthored}). The search gate also keeps claim inert on any run that never fully
+ * searches a node, so prior golden scenes are untouched.
+ *
+ * `graph` is optional and the `claimable` rule is simply absent without one, so every existing caller
+ * that had no graph to give keeps its exact prior behaviour.
+ */
+export function canClaimShelter(state: GameState, graph?: RegionGraph): boolean {
+  const here = state.player.location;
+  const node = state.nodes[here];
+  if (state.player.shelterId !== null || node === undefined || node.searchPct < MAX_FORTIFICATION) return false;
+  if (safehousesAuthored(graph) && graph!.nodes[here]?.claimable !== true) return false;
+  return true;
 }
 
 /**
@@ -95,10 +131,21 @@ export function canFortifyShelter(state: GameState): boolean {
   return node !== undefined && node.barricades < MAX_FORTIFICATION && carries(state, SCRAP_ITEM);
 }
 
-/** The shelter choices offered from the player's current node, in stable order. Empty when neither applies. */
-export function shelterChoices(state: GameState): readonly SceneChoice[] {
+/**
+ * May the player walk away from the base they hold? Only while **standing in it** — abandoning a place
+ * is something you do at the door, not from across the city. Closes PL-M3-07's "relocate/abandon" half:
+ * until T83 `shelterId` had no clearer at all, so a base you had outgrown (or that a siege had beaten
+ * flat) was yours forever and a better building found on day nine could never become home.
+ */
+export function canAbandonShelter(state: GameState): boolean {
+  const sid = state.player.shelterId;
+  return sid !== null && sid === state.player.location;
+}
+
+/** The shelter choices offered from the player's current node, in stable order. Empty when none applies. */
+export function shelterChoices(state: GameState, graph?: RegionGraph): readonly SceneChoice[] {
   const choices: SceneChoice[] = [];
-  if (canClaimShelter(state)) {
+  if (canClaimShelter(state, graph)) {
     choices.push({
       id: "claim-shelter",
       label: "Make this place your shelter",
@@ -114,6 +161,14 @@ export function shelterChoices(state: GameState): readonly SceneChoice[] {
       action: { type: "fortify", choiceId: "fortify", timeCost: FORTIFY_COST },
     });
   }
+  if (canAbandonShelter(state)) {
+    choices.push({
+      id: "abandon-shelter",
+      label: "Leave this place behind",
+      timeCost: ABANDON_COST,
+      action: { type: "abandon-shelter", choiceId: "abandon-shelter", timeCost: ABANDON_COST },
+    });
+  }
   return choices;
 }
 
@@ -121,14 +176,43 @@ export function shelterChoices(state: GameState): readonly SceneChoice[] {
 
 /** Whether an action is one this module owns (used by validation + dispatch). */
 export function isShelterAction(action: Action): boolean {
-  return action.type === "claim-shelter" || action.type === "fortify";
+  return action.type === "claim-shelter" || action.type === "fortify" || action.type === "abandon-shelter";
 }
 
 /** Claim the node the player stands on as their base (T37). Sets `shelterId`; inert if the gate is closed. */
-function claimShelter(state: GameState): GameState {
-  if (!canClaimShelter(state)) return state;
+function claimShelter(state: GameState, graph?: RegionGraph): GameState {
+  if (!canClaimShelter(state, graph)) return state;
   const here: NodeId = state.player.location;
   return { ...state, player: { ...state.player, shelterId: here } };
+}
+
+/**
+ * Give up the base (T83 · PL-M3-07). Clears `shelterId` and leaves the cache, the barricades and the
+ * dead exactly where they stand — an abandoned base is a building you no longer own, not a building
+ * that burned. That is the whole difference between walking away and being broken out, which
+ * `sim/siege.ts#breachShelter` handles the other way (it scatters the cache and leaves walkers in it).
+ *
+ * **What the cache does is worth stating precisely, because the first draft of this comment got it
+ * wrong.** The stash lives on `player.stash`, not on the node, so it is not "still there to come back
+ * for" — it travels with you, and every path that reads or writes it (`stashChoices`, `cacheRead`,
+ * deposit and withdraw) is gated on `atOwnShelter`. So between abandoning one base and claiming the
+ * next, the banked units are intact but **unreachable**, and they reappear at whatever you claim next.
+ * Nothing is destroyed; nothing is spendable either.
+ *
+ * Re-validates its gate, so a forged action outside the base is inert.
+ */
+function abandonShelter(state: GameState): GameState {
+  if (!canAbandonShelter(state)) return state;
+  const sid = state.player.shelterId!;
+  const { day, hour, turn } = state.meta;
+  // Through the shared tenancy teardown, so abandoning clears the banked night and the residents' job
+  // assignments exactly as a breach does — the audit found the first cut leaving both behind, which let
+  // hours banked at an abandoned base buy a siege check at the next one.
+  const next = releaseShelterVoluntarily(state);
+  return {
+    ...next,
+    history: [...next.history, { day, hour, turn, type: "shelter.abandoned", subjects: [sid], data: {} }],
+  };
 }
 
 /** Fortify the base (T38): spend one scrap, raise `barricades` by {@link FORTIFY_GAIN} (capped). Inert if gate closed. */
@@ -146,12 +230,14 @@ function fortifyShelter(state: GameState): GameState {
 }
 
 /** Resolve a shelter action (stage 3, dispatched from `applyPlayerAction`). Unrelated types pass through. Pure. */
-export function resolveShelterAction(state: GameState, action: Action): GameState {
+export function resolveShelterAction(state: GameState, action: Action, graph?: RegionGraph): GameState {
   switch (action.type) {
     case "claim-shelter":
-      return claimShelter(state);
+      return claimShelter(state, graph);
     case "fortify":
       return fortifyShelter(state);
+    case "abandon-shelter":
+      return abandonShelter(state);
     default:
       return state;
   }
@@ -228,7 +314,7 @@ export function muffleShelterNoise(state: GameState, hours: number): GameState {
  * when they stand in it (with a scrap hint when they can reinforce), or an invitation to claim a
  * searched-clean node when they have none. Null otherwise. Screen-reader-safe — all words.
  */
-export function shelterLine(state: GameState): string | null {
+export function shelterLine(state: GameState, graph?: RegionGraph): string | null {
   const here = state.player.location;
   const sid = state.player.shelterId;
   if (sid === here) {
@@ -245,10 +331,21 @@ export function shelterLine(state: GameState): string | null {
               : "newly claimed and bare";
     const hint = canFortifyShelter(state) ? " You have scrap to reinforce it further." : "";
     const cache = cacheRead(state);
-    return `This is your shelter — ${read}.${hint}${cache !== null ? ` ${cache}` : ""}`;
+    // T83: what the dark is doing out there, when it is doing anything. Composed here rather than as a
+    // separate line so the base still reads as one paragraph.
+    const siege = siegeLine(state, graph);
+    return `This is your shelter — ${read}.${hint}${cache !== null ? ` ${cache}` : ""}${siege !== null ? ` ${siege}` : ""}`;
   }
-  if (canClaimShelter(state)) {
+  if (canClaimShelter(state, graph)) {
     return "You have searched this place clean; it could be made your own.";
+  }
+  // T83 legibility: with the `claimable` rule live, a safehouse the player has not yet stripped is
+  // otherwise indistinguishable from the fifty-odd buildings that can never be one — the verb simply
+  // fails to appear and nothing says why. The fourteen authored safehouses are the whole point of the
+  // field; they have to be findable. Only on a run whose content set authors them, and only once the
+  // player already has nowhere to live.
+  if (state.player.shelterId === null && safehousesAuthored(graph) && graph?.nodes[here]?.claimable === true) {
+    return "This place could be made to hold — if you stripped it out first.";
   }
   return null;
 }

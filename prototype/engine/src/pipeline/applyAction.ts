@@ -27,6 +27,7 @@ import { applyPlayerAction, assertLegal, sceneOf, tickNeeds } from "../actions/c
 import { updateNodeNoise } from "../sim/noise.js";
 import { decayShelterFortification, muffleShelterNoise } from "../sim/shelter.js";
 import { runLayer, type SimContext } from "../sim/worldSim.js";
+import { tickSiege } from "../sim/siege.js";
 import { tickRoutes } from "../sim/routes.js";
 import { tickNpcs } from "../sim/npcs.js";
 import { tickCompanions } from "../sim/companions.js";
@@ -146,8 +147,22 @@ const updateWorld: StageFn = (ctx) => {
   return { ...ctx, state: tickRoutes(world, c.hours) };
 };
 
-/** Stage 9: migrating hordes re-path to fresh noise and step over the graph (T26). */
-const moveHordes: StageFn = (ctx) => ({ ...ctx, state: runLayer(ctx.state, "hordes", simCtx(ctx)) });
+/**
+ * Stage 9: migrating hordes re-path to fresh noise and step over the graph (T26), and then — T83 — the
+ * night presses on the claimed base. The siege runs HERE, after the walk, because what besieges you is
+ * where the masses actually ended up this turn; running it first would price last turn's map.
+ *
+ * `ctx.before.meta.hour` is the turn's OPENING hour: stage 2 has already advanced the clock, so the
+ * span has to be reconstructed from where it started — a siege is gated on the hours a turn COVERED,
+ * never on the phase it resolved in (a 9-hour sleep from 21:00 resolves in "dawn"). The stage name and
+ * the 14-stage order are unchanged; only the body graduated, exactly as stages 5/6/10 did. Inert
+ * without a claimed shelter, so every prior run is byte-identical.
+ */
+const moveHordes: StageFn = (ctx) => {
+  const hours = Math.max(0, Math.trunc(ctx.action.timeCost ?? 0));
+  const walked = runLayer(ctx.state, "hordes", simCtx(ctx));
+  return { ...ctx, state: tickSiege(walked, ctx.graph, ctx.before.meta.hour, hours) };
+};
 
 /**
  * Stage 10: move the people — off-screen survivors regroup a step toward their faction's home (T53 ·

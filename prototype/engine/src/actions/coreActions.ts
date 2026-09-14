@@ -258,7 +258,7 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   // Shelter (T37/T38 · FR-SHL): claim a searched-clean node as your base, or fortify the base you stand in.
   // Appended after rest — both are "at this place" actions — and before the people/drop blocks. Inert until a
   // node is searched clean (claim) or you stand in your own shelter with scrap (fortify).
-  for (const choice of shelterChoices(state)) choices.push(choice);
+  for (const choice of shelterChoices(state, graph)) choices.push(choice);
 
   // Shared stash (T39 · FR-SHL-03/FR-PLR-04): bank surplus at the base or pull it back. Offered only while
   // standing in your own shelter, per carried/stashed stack, free like the T18 drop — inert everywhere else.
@@ -375,7 +375,7 @@ export function applyPlayerAction(state: GameState, graph: RegionGraph, action: 
   if (isEncounterAction(action)) return resolveEncounterAction(state, action, graph);
   if (isSocialAction(action)) return resolveSocialAction(state, graph, action);
   if (isCompanionOrderAction(action)) return resolveCompanionOrder(state, action);
-  if (isShelterAction(action)) return resolveShelterAction(state, action);
+  if (isShelterAction(action)) return resolveShelterAction(state, action, graph);
   if (isStashAction(action)) return resolveStashAction(state, action);
   if (isGearAction(action)) return resolveGearAction(state, action);
   if (isStoryAction(action)) return resolveStoryAction(state, action);
@@ -673,7 +673,7 @@ export function sceneOf(state: GameState, graph?: RegionGraph): Scene {
   // betrayed you, an honest words-only read. Null on any other turn, so an ordinary scene is untouched.
   const social = socialLine(state, graph);
   const people = peopleLine(state, graph);
-  const shelter = shelterLine(state);
+  const shelter = shelterLine(state, graph);
   const story = storyLine(state);
   const moral = humanityBand(state);
   const atmosphere = atmosphereLine(state);

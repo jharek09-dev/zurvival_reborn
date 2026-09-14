@@ -159,6 +159,28 @@ export const HORDE_HOURS_PER_STEP = 4;
 export const REPATH_NOISE = 30;
 
 /**
+ * The `barricades` level at which a claimed base still shelters the player from a mass standing on it
+ * (T83). Below it the base is the open street and {@link overrunsPlayer} fires there like anywhere else.
+ *
+ * At **1**, which is functionally `> 0`: no player action ever produces exactly 1, because `fortify`
+ * jumps 0 to `FORTIFY_GAIN` 25 and `FORTIFY_DECAY_PER_HOUR` erodes it one point an hour, so 1 is only
+ * ever a transient decay value on the way down. The constant is named rather than inlined so the rule
+ * has somewhere to be read and swept, not because the number is tuned.
+ *
+ * The value that matters is the DISTINCTION, and it is a sharp one on the shipped economy: a claimed
+ * base carries any wall at all on **4.2% of based turns** (109 of 2579 measured, `--home`), because
+ * peak scrap carried averages 0.4 units a run. So in practice this narrowing means **a claimed base is
+ * not a sanctuary unless you fortified it within the last day** — which is a much bigger change than
+ * "one point of wall" sounds, and is recorded as such.
+ *
+ * **Declared consequence (PL-M5-49):** `availableActions` returns `overrunChoices` before it reaches
+ * `shelterChoices`, so at a 0-wall base with a mass standing on it the player is offered flight and the
+ * hold and cannot `fortify` or `abandon`. Fortifying is the answer to the siege, but only *before* the
+ * night — never during the collision.
+ */
+export const SHELTER_SANCTUARY_AT = 1;
+
+/**
  * The band a horde's size lives in. A horde never sheds itself out of existence (it stops shedding at
  * the floor) and never balloons without bound (it stops absorbing at the ceiling).
  *
@@ -347,8 +369,12 @@ export function hordeMassAt(state: GameState, nodeId: NodeId): number {
  *
  * Three clauses, and each is load-bearing for a different consumer:
  *   1. the layer is enabled (`hordes.disabled` really does switch the whole system off);
- *   2. the player is not standing in their own claimed shelter (the base assault is T83's brief — see
- *      `sim/overrun.ts`);
+ *   2. the player is not standing behind their own STANDING walls. T83 narrowed this from "their own
+ *      claimed shelter" to "their own claimed shelter whose `barricades` are above zero": the wall is
+ *      literally what keeps a mass out, so a base fortified to any degree is still the sanctuary
+ *      PL-M5-18 described, and a base whose wall has been beaten flat is the open street. That is what
+ *      PL-M5-18 was holding — the exemption was never meant to be unconditional, it was waiting for a
+ *      system that could take the wall down. `sim/siege.ts` is that system;
  *   3. a mass is actually here.
  *
  * It lives in this module rather than in `sim/overrun.ts` so that `sim/events.ts` and `sim/history.ts`
@@ -360,7 +386,8 @@ export function hordeMassAt(state: GameState, nodeId: NodeId): number {
  */
 export function overrunsPlayer(state: GameState): boolean {
   if (!hordesEnabled(state)) return false;
-  if (state.player.shelterId !== null && state.player.shelterId === state.player.location) return false;
+  const sid = state.player.shelterId;
+  if (sid !== null && sid === state.player.location && (state.nodes[sid]?.barricades ?? 0) >= SHELTER_SANCTUARY_AT) return false;
   return hordeAt(state, state.player.location) !== null;
 }
 

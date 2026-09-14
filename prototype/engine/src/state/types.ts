@@ -415,6 +415,14 @@ export interface World {
    */
   readonly directorReliefDay?: number;
   readonly directorReliefBeats?: number;
+  /**
+   * Banked NIGHT hours toward the next siege check (T83) — the hours a turn's *span* spent between
+   * 21:00 and 02:59, not the phase it resolved in. Every {@link SIEGE_HOURS_PER_NIGHT} banked is one
+   * night resolved against the claimed base, so a played night and a fast-forwarded one cost the same.
+   * Optional and reads 0 when absent (the T74 accumulator precedent above), so a pre-T83 save loads
+   * with no banked night and needs no `SAVE_SCHEMA_VERSION` rung. See `sim/siege.ts`.
+   */
+  readonly siegeHours?: number;
 }
 
 /** Regions live on their own clock (pipeline stage 7) — 0–100 ints throughout. */

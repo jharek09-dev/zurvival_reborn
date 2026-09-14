@@ -413,6 +413,55 @@ describe("Shelter (SCR-05) — walls, rooms, jobs, report", () => {
   });
 });
 
+describe("the night attack reads correctly (T83)", () => {
+  /** The four outcomes must read as four different nights, or the log cannot tell the player which it was. */
+  const line = (type: string): string =>
+    historyLine({ turn: 9, day: 4, hour: 22, type, subjects: ["node.b.1"], data: { pressure: 43, defence: 12, overflow: 31, stashLost: 3, breached: type === "siege.breached" } } as unknown as HistoryEvent);
+
+  it("gives each siege outcome its own words, and never leaks an id or a number", () => {
+    const lines = ["siege.passed", "siege.repelled", "siege.held", "siege.breached", "shelter.abandoned"].map(line);
+    expect(new Set(lines).size).toBe(lines.length); // four outcomes plus the abandon, five readings
+    for (const l of lines) {
+      expect(l).toContain("Day 4, 22:00");
+      expect(l).not.toContain("node.b.1");
+      expect(l).not.toMatch(/\b(43|12|31)\b/); // no raw pressure/defence/overflow in player prose
+      expect(l).not.toMatch(/siege [a-z]+\.$/); // not the humanised fallback for an unhandled type
+    }
+    expect(line("siege.breached")).toContain("through the walls");
+    expect(line("siege.repelled")).toContain("the walls held them");
+  });
+
+  it("the base screen carries the siege read — the graph must actually reach shelterLine", () => {
+    // `shelterLine(state, graph?)` takes an OPTIONAL graph, so `shelterLine(state)` compiles happily and
+    // silently produces `siegeLine(state, undefined)` → pressure 0 → null. That is exactly what shipped
+    // in the first cut: the engine's own caller was updated and this one was not, and nothing failed.
+    const { state, graph } = base();
+    const home = state.player.location;
+    const neighbour = graph.nodes[home]!.adjacent[0]!;
+    const night: GameState = {
+      ...withShelter(state),
+      meta: { ...state.meta, hour: 22, phase: "night" },
+      hordes: [{ id: "horde.1", size: 40, pos: neighbour, dest: null, speed: 1, awareness: 2, types: [] }] as never,
+    };
+    expect(renderShelter(night, graph).join("\n")).toContain("moving out there");
+  });
+
+  it("the base screen reports the nights — a shelter screen that hides the siege hides the stakes", () => {
+    const { state, graph } = base();
+    const withBeats: GameState = {
+      ...withShelter(state),
+      history: [
+        ...state.history,
+        { turn: 9, day: 4, hour: 22, type: "siege.held", subjects: [], data: {} },
+        { turn: 10, day: 5, hour: 1, type: "siege.breached", subjects: [], data: {} },
+      ] as unknown as GameState["history"],
+    };
+    const text = renderShelter(withBeats, graph).join("\n");
+    expect(text).toContain("took what they could reach");
+    expect(text).toContain("through the walls");
+  });
+});
+
 describe("Map & Journal (SCR-06) — fog, node memory, your notes", () => {
   it("states the fog percentage and marks where you are", () => {
     const { state, graph } = base();
