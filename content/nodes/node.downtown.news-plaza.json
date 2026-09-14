@@ -6,6 +6,7 @@
   "description": "A civic square under a dead jumbotron, ringed by the shapes of a crowd that never dispersed. Open ground — and a scream here reaches every window.",
   "kind": "generic",
   "richness": 25,
+  "roomSlots": 1,
   "adjacent": [
     "node.downtown.gridlock-bridge",
     "node.downtown.meridian-tower",

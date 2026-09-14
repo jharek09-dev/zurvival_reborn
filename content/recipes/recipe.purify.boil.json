@@ -12,6 +12,7 @@
   ],
   "purifyFrom": "item.water-dirty",
   "purifyTo": "item.water",
+  "purifyUnitsPerCraft": 2,
   "timeCost": 1,
-  "description": "FR-ECO-05. Converts every carried dirty-water unit to safe water, debiting fuel — the power loop's sink. Known from the start; the honest gate on dirty water (you can never drink it directly)."
+  "description": "FR-ECO-05. Converts up to 2 carried dirty-water units per batch, debiting fuel once — the power loop's sink. Known from the start; the honest gate on dirty water (you can never drink it directly)."
 }

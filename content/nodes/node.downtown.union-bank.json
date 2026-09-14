@@ -6,6 +6,7 @@
   "description": "A marble banking hall, its vault door yawning open and empty of cash — but the safe-deposit room and the manager's cabinet were never touched.",
   "kind": "generic",
   "richness": 130,
+  "roomSlots": 4,
   "adjacent": [
     "node.downtown.city-hall",
     "node.downtown.grand-pharmacy",

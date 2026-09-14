@@ -6,6 +6,7 @@
   "description": "A tiered auditorium, seats bolted in rows, the projection booth barricaded from within. Someone rationed their last days up in that booth.",
   "kind": "generic",
   "richness": 80,
+  "roomSlots": 3,
   "walkers": 2,
   "adjacent": [
     "node.hillcrest.science-labs",

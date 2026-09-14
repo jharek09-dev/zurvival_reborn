@@ -6,6 +6,7 @@
   "description": "The city's drinking water behind an earthen dam, still and clean and enormous. A long, open, exposed walk out along the crest to reach it.",
   "kind": "generic",
   "richness": 45,
+  "roomSlots": 1,
   "adjacent": [
     "node.hillcrest.observatory",
     "node.hillcrest.waterworks"

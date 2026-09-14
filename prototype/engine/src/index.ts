@@ -353,6 +353,7 @@ export {
   recipeOf,
   economyActive,
   craftable,
+  purifyBatchSize,
   workshopListing,
   carriedArtifacts,
   blueprintIdForItem,
@@ -846,7 +847,27 @@ export {
   SHELTER_NOISE_MUFFLE_MAX,
   SHELTER_DETECT_FLOOR_MAX,
   ABANDON_COST,
+  demolishableRooms,
+  roomsLine,
+  demolishRecovery,
 } from "./sim/shelter.js";
+
+// Room slots — what a building holds, what stripping it pays, and the demolish verb (T85 · FR-SHL-04 · GDD XI)
+export {
+  ROOM_SLOTS_DEFAULT,
+  ROOM_SLOTS_MIN,
+  ROOM_SLOTS_MAX,
+  CLAIM_SALVAGE_BASE,
+  CLAIM_SALVAGE_ITEM,
+  DEMOLISH_RECOVERY_PCT,
+  DEMOLISH_COST,
+  roomSlotsAuthored,
+  roomSlotsOf,
+  roomsAtShelter,
+  freeRoomSlots,
+  roomSlotFree,
+  claimSalvage,
+} from "./sim/rooms.js";
 
 // The night attack — a siege at the claimed base, and the way a base is lost (T83 · FR-SHL-06/FR-SHL-10)
 export {

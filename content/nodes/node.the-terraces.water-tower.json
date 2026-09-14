@@ -6,6 +6,7 @@
   "description": "The suburb's tank on rusted stilts, ladder rungs slick to the touch. From the catwalk the whole east side lays open; the tank itself is a lot of clean water.",
   "kind": "generic",
   "richness": 50,
+  "roomSlots": 1,
   "adjacent": [
     "node.the-terraces.maple-street",
     "node.the-terraces.overlook-road"

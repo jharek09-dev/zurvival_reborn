@@ -16,6 +16,7 @@
   ],
   "purifyFrom": "item.water-dirty",
   "purifyTo": "item.water",
+  "purifyUnitsPerCraft": 3,
   "timeCost": 1,
   "description": "The SCR-10 'Water filter — 1 charcoal · 1 cloth' path: a fuel-free alternative to boiling that spends components instead. Known from the start; a real economy choice (fuel vs charcoal+cloth)."
 }

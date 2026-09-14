@@ -6,6 +6,7 @@
   "description": "The treatment plant below the dam — pumps, chlorine drums, the clean pipes the whole city drank from. Restart it and taps run again; the walkers came for the same water.",
   "kind": "industrial",
   "richness": 120,
+  "roomSlots": 3,
   "adjacent": [
     "node.hillcrest.reservoir",
     "node.hillcrest.university-quad",

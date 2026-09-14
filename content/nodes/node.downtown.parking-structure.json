@@ -6,6 +6,7 @@
   "description": "A concrete spiral of dead cars, pitch black between the levels. Fuel to siphon and a shortcut through the block — if you can stand the dark.",
   "kind": "generic",
   "richness": 90,
+  "roomSlots": 4,
   "walkers": 3,
   "adjacent": [
     "node.downtown.food-court",

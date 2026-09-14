@@ -66,6 +66,8 @@ import {
   buildableJobs,
   recipePool,
   craftable,
+  roomSlotsAuthored,
+  freeRoomSlots,
   type RecipeDef,
   // map/journal (SCR-06)
   discoveredNodeIds,
@@ -538,13 +540,27 @@ export function renderShelter(state: GameState, graph?: RegionGraph): readonly s
   // Rooms — built (glow) vs. the real "+ build" slots: unbuilt room recipes (not already-built ones).
   const built = node?.rooms ?? [];
   const builtRows = built.length > 0 ? built.map((r) => `  - ${humanId(r)} (built)`) : ["  (only the bare walls so far)"];
+  // T85: the slot rule is the base's central constraint, and a screen that lists what you "could build"
+  // without it lies to the player twice — it advertises rooms the bench will refuse, and it hides the
+  // fact that a room already in is a room given up. The T84 dead-affordance lesson pointed the other
+  // way (ship the verb the screen promised); here the engine acquired the constraint, so the screen has
+  // to acquire the sentence. Silent on a content set that authors no slots.
+  const slotted = roomSlotsAuthored(graph);
+  const free = slotted ? freeRoomSlots(state, graph) : 0;
+  if (slotted) builtRows.push(free > 0 ? `  room for ${free} more` : "  the building is full — something must come out first");
   section(body, "Rooms", builtRows);
   const unbuilt = recipePool(graph).filter((r) => r.installsRoom !== undefined && !built.includes(r.installsRoom));
-  if (unbuilt.length > 0) {
+  if (unbuilt.length > 0 && (!slotted || free > 0)) {
     section(
       body,
       "Could build",
       unbuilt.map((r) => `  - ${humanId(r.installsRoom!)} — ${r.worldEffect}${craftable(state, graph, r) ? " (you have what it takes)" : ""}`),
+    );
+  } else if (unbuilt.length > 0) {
+    section(
+      body,
+      "Could build",
+      [`  nothing more will fit. ${conjoin(unbuilt.map((r) => humanId(r.installsRoom!)))} would each need a room torn out.`],
     );
   }
 
@@ -577,6 +593,8 @@ export function renderShelter(state: GameState, graph?: RegionGraph): readonly s
     "siege.held",
     "siege.breached",
     "shelter.abandoned",
+    "shelter.stripped",
+    "shelter.demolished",
     "social.deserted",
     "social.betrayed",
     "social.confided",
@@ -694,6 +712,22 @@ export function historyLine(ev: HistoryEvent): string {
     case "siege.breached":
       what = "they came through the walls in the night — the place is theirs now";
       break;
+    // T85 — the base as a set of choices: what the walls gave up when you took the place, and what you
+    // tore back out later. Both are decisions the player should be able to find again in the log.
+    case "shelter.stripped": {
+      const got = typeof data["units"] === "number" ? data["units"] : 0;
+      const offered = typeof data["offered"] === "number" ? data["offered"] : got;
+      what = offered > got
+        ? "you stripped the walls for what your pack would still take, and left the rest"
+        : "you stripped the walls for what they were worth";
+      break;
+    }
+    case "shelter.demolished": {
+      const room = typeof data["room"] === "string" ? humanId(data["room"]) : "a room";
+      const back = typeof data["recovered"] === "number" ? data["recovered"] : 0;
+      what = back > 0 ? `you tore the ${room} back out and kept what came away` : `you tore the ${room} back out`;
+      break;
+    }
     case "shelter.abandoned":
       what = "you closed the door behind you for the last time";
       break;

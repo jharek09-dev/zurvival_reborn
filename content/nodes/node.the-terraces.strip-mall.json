@@ -6,6 +6,7 @@
   "description": "A laundromat, a nail salon, a liquor store, a taquería — fronts smashed, stockrooms maybe not. The parking lot is one slow, grazing crowd.",
   "kind": "store",
   "richness": 135,
+  "roomSlots": 4,
   "adjacent": [
     "node.downtown.department-store",
     "node.the-terraces.corner-chapel",

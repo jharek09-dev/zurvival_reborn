@@ -6,6 +6,7 @@
   "description": "The hospital's multi-storey deck, staff cars still in their spots, a helipad on the roof where the last flight never came.",
   "kind": "generic",
   "richness": 65,
+  "roomSlots": 4,
   "walkers": 3,
   "adjacent": [
     "node.downtown.subway-entrance",

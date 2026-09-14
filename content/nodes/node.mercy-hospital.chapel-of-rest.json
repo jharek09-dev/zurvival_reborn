@@ -6,6 +6,7 @@
   "description": "The hospital chapel, untouched, its candles long out. A door that locks from the inside and a silence the rest of the building cannot reach.",
   "kind": "generic",
   "richness": 55,
+  "roomSlots": 2,
   "claimable": true,
   "adjacent": [
     "node.mercy-hospital.blood-bank",

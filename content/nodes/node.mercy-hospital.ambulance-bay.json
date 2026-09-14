@@ -6,6 +6,7 @@
   "description": "A row of open rigs and a diesel pump that still holds pressure. The loud way into the hospital — engines, jump kits, and a roll-up door that screams when it moves.",
   "kind": "generic",
   "richness": 100,
+  "roomSlots": 2,
   "walkers": 2,
   "adjacent": [
     "node.mercy-hospital.emergency-room",

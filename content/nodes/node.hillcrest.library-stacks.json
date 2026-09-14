@@ -6,6 +6,7 @@
   "description": "Miles of silent shelving in the dark, the card catalog the only index left. Manuals for everything humans knew how to do — and long blind aisles between you and the door.",
   "kind": "generic",
   "richness": 70,
+  "roomSlots": 4,
   "claimable": true,
   "adjacent": [
     "node.hillcrest.dormitory",

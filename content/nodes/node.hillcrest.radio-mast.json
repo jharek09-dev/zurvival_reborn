@@ -6,6 +6,7 @@
   "description": "The campus transmitter shack under a steel mast, a rack of ham gear intact. Put power to it and you can reach the whole network — and be heard by it.",
   "kind": "generic",
   "richness": 110,
+  "roomSlots": 2,
   "claimable": true,
   "adjacent": [
     "node.hillcrest.faculty-housing",

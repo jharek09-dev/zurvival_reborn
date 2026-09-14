@@ -6,6 +6,7 @@
   "description": "Pallet racks tower into the dark in a building the size of a runway. Everything here comes in bulk — but the aisles are blind canyons, and you never see what shares one until you are in it.",
   "kind": "industrial",
   "richness": 200,
+  "roomSlots": 6,
   "adjacent": [
     "node.ironworks.foundry",
     "node.ironworks.loading-canal",

@@ -6,6 +6,7 @@
   "description": "A cracked bus concourse open to the sky. Dead departure boards, a jackknifed coach, and two streets leading off into the haze.",
   "kind": "generic",
   "richness": 50,
+  "roomSlots": 2,
   "start": true,
   "adjacent": [
     "node.rivermouth.corner-store",

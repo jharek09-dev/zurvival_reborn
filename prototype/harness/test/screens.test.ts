@@ -8,6 +8,8 @@ import {
   availableActions,
   scoutFrom,
   SCOUT_HOPS,
+  roomSlotsOf,
+  freeRoomSlots,
   THE_LAST_CUSTOMER,
   ARC_PLEA,
   type GameState,
@@ -413,6 +415,56 @@ describe("Shelter (SCR-05) — walls, rooms, jobs, report", () => {
     expect(cbBlock).not.toContain("kitchen (built)");
     expect(cbBlock).not.toMatch(/- kitchen —/); // kitchen is built, must not appear as buildable
     expect(cbBlock).not.toMatch(/- workshop —/);
+  });
+
+  /**
+   * T85 — the base screen and the slot rule. The screen used to list every unbuilt room under "Could
+   * build" whatever the building could hold, so a player at a full base read an offer the bench would
+   * refuse and was never told why. The T84 dead-affordance lesson pointed the other way (ship the verb
+   * the screen promised); here the engine acquired the constraint, so the screen has to acquire the
+   * sentence. Written against the UNFIXED screen, which said neither thing.
+   */
+  it("states what the building still has room for, in words", () => {
+    const { state, graph } = base();
+    const text = renderShelter(withShelter(state), graph).join("\n");
+    expect(text).toMatch(/room for \d+ more|the building is full/);
+  });
+
+  it("A FULL BUILDING STOPS ADVERTISING ROOMS THE BENCH WILL REFUSE", () => {
+    const { state, graph } = base();
+    const s = withShelter(state);
+    const sid = s.player.shelterId!;
+    const slots = roomSlotsOf(graph, sid);
+    const rooms = Array.from({ length: slots }, (_, i) => `room.filler${i}`);
+    const full: GameState = { ...s, nodes: { ...s.nodes, [sid]: { ...s.nodes[sid]!, rooms } } };
+    expect(freeRoomSlots(full, graph)).toBe(0);
+    const text = renderShelter(full, graph).join("\n");
+    expect(text).toContain("the building is full");
+    expect(text).toMatch(/nothing more will fit/);
+    expect(text).toMatch(/would each need a room torn out/);
+    // and it does NOT print the old per-room "could build" rows
+    expect(text).not.toMatch(/- cistern —/);
+  });
+
+  it("the log tells the player what the walls gave up and what they tore back out", () => {
+    const { state, graph } = base();
+    const s = withShelter(state);
+    const sid = s.player.shelterId!;
+    const ev = (type: string, data: Record<string, unknown>) => ({ day: 2, hour: 9, turn: 3, type, subjects: [sid], data });
+    const withBeats: GameState = {
+      ...s,
+      history: [
+        ...s.history,
+        ev("shelter.stripped", { item: "item.scrap", units: 4, offered: 4 }),
+        ev("shelter.stripped", { item: "item.scrap", units: 1, offered: 4 }),
+        ev("shelter.demolished", { room: "room.garden", recovered: 1 }),
+      ] as GameState["history"],
+    };
+    const text = renderShelter(withBeats, graph).join("\n");
+    expect(text).toMatch(/stripped the walls/);
+    expect(text).toMatch(/tore the garden back out/);
+    // the partial strip reads differently from the full one — otherwise the loss is invisible
+    expect(text).toMatch(/left the rest/);
   });
 });
 
