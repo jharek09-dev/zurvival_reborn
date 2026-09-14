@@ -14,7 +14,7 @@
 import { createInitialState, type InitialStateOptions } from "../state/createInitialState.js";
 import type { GameState, NodeState, RegionId, RegionState } from "../state/types.js";
 import { buildRegionGraph } from "./regionGraph.js";
-import { discoverAround } from "./fogOfWar.js";
+import { discoverAround, markScoutedHere } from "./fogOfWar.js";
 import { seedStarterHordes } from "../sim/hordes.js";
 import { seedRoutes } from "../sim/routes.js";
 import { spawnNpcs, type NPCDef } from "../sim/npcs.js";
@@ -157,6 +157,9 @@ export function startRun(
 
   // Reveal the start node and everything one step out.
   nodes = discoverAround(nodes, graph, graph.startNodeId);
+  // ...and the one node the player is actually standing in counts as looked at, today (T84). The
+  // neighbours revealed above do NOT — knowing what is in them is what the `scout` verb sells.
+  nodes = markScoutedHere(nodes, graph.startNodeId, base.meta.day);
 
   // Seed a clear route for every undirected edge in the graph (T29 · FR-MAP-04).
   const adjacency: Record<string, readonly string[]> = {};

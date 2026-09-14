@@ -69,6 +69,8 @@ import {
   type RecipeDef,
   // map/journal (SCR-06)
   discoveredNodeIds,
+  isScouted,
+  scoutIsFresh,
   isVisited,
   neighborsOf,
   // codex (SCR-07)
@@ -733,8 +735,21 @@ export function renderMap(state: GameState, graph?: RegionGraph): readonly strin
     const tags: string[] = [];
     if (id === here) tags.push("you are here");
     if (id === home) tags.push("home");
-    tags.push(isVisited(node) ? searchWord(node.searchPct) : "not yet entered");
-    if (node.walkers > 0) tags.push(node.walkers === 1 ? "1 walker" : `${node.walkers} walkers`);
+    // T84: three tiers now, not two. `discovered` is free from walking past; `scouted` is a look you
+    // paid an hour for (or the node you are standing in); `visited` is having been inside. And what you
+    // know goes stale — the counts below are quoted only while the look is fresh, on the same
+    // `SCOUT_MEMORY_DAYS` window the travel choices use, because a map that reports a district's live
+    // population forever is a satellite, not a journal.
+    //
+    // This DOES take something away: before T84 the screen printed the walker count of any discovered
+    // node, including one the player had only ever seen the name of. That was free omniscience and it
+    // is exactly what the `scout` verb now sells, so the removal is the point rather than a regression —
+    // but it is a removal, and it is declared in `docs/qa/QA_REVIEW_T84.md`.
+    const fresh = scoutIsFresh(node, state.meta.day);
+    tags.push(isVisited(node) ? searchWord(node.searchPct) : isScouted(node) ? "scouted, not entered" : "not yet entered");
+    if (fresh && node.walkers > 0) tags.push(node.walkers === 1 ? "1 walker" : `${node.walkers} walkers`);
+    if (fresh && node.corpses > 0) tags.push(node.corpses === 1 ? "a body" : `${node.corpses} bodies`);
+    if (!fresh && isScouted(node) && id !== here) tags.push("not seen lately");
     const discoveries = node.discoveries ?? [];
     if (discoveries.length > 0) tags.push(`found: ${conjoin(discoveries.map(humanId))}`);
     const row = `  - ${graph?.nodes[id]?.name ?? humanId(id)} (${threatWord(state.regions[regionId]?.threat ?? 0)}) — ${conjoin(tags)}`;
@@ -758,7 +773,10 @@ export function renderMap(state: GameState, graph?: RegionGraph): readonly strin
   const recent = state.history.slice(-6).reverse();
   if (recent.length > 0) section(body, "Recent history", recent.map(historyLine));
 
-  body.push("", "Travel (with its time and noise) and add-a-note appear in your choices.");
+  // T84 made both halves of this line true. `add-a-note` was advertised here from T54 and had no verb
+  // behind it — `NodeState.playerNotes` had exactly one writer in the whole engine, the seed, writing
+  // `[]` (PL-M4-46, measured in `measure/t84.ts`). Scouting is the new half.
+  body.push("", "Travel, scouting the next blocks, and add-a-note appear in your choices.");
   return frame(screenById("map"), body);
 }
 

@@ -75,6 +75,12 @@
       ],
       "description": "Location kind \u2014 selects the loot plausibility table for searches here (FR-ECO-02, T17). Defaults to generic when absent."
     },
+    "richness": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 250,
+      "description": "How deep this particular building's stock is, as a PERCENTAGE of the ordinary yield for its region (FR-ECO-02, T84). 100 is an ordinary place of its kind and is the default when omitted; below it a place already stripped or never worth much; above it the pharmacy at the end of the block nobody got to. This is the node's only contribution to its own loot beyond the live searchPct \u2014 without it the yield cap has exactly one value per region and two nodes of the same kind in the same district are arithmetically identical. It scales the region's term only, never the picked-over penalty, and is clamped by what the region actually has left, so it redistributes a district's finite stock rather than adding to it. The multiply is gated on SOME node in the set authoring it, so a set that omits it everywhere computes the pre-T84 cap exactly."
+    },
     "zombieTypes": {
       "type": "array",
       "description": "Distinct zombie type ids present at this node (FR-CBT-07, T25). Since T75 each seeds one BODY in the node's roster (see walkers); NodeState.zombieTypes is then derived from that roster, so a type clears from the node when its last body is put down.",

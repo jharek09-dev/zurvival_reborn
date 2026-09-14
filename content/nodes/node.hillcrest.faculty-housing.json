@@ -5,6 +5,7 @@
   "name": "Faculty Housing",
   "description": "Hillside homes for the professors, better built and better stocked than the dorms. One study is locked, and the key is on a body downstairs.",
   "kind": "residential",
+  "richness": 160,
   "claimable": true,
   "adjacent": [
     "node.hillcrest.dormitory",

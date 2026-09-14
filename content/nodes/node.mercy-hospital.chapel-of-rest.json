@@ -5,6 +5,7 @@
   "name": "Chapel of Rest",
   "description": "The hospital chapel, untouched, its candles long out. A door that locks from the inside and a silence the rest of the building cannot reach.",
   "kind": "generic",
+  "richness": 55,
   "claimable": true,
   "adjacent": [
     "node.mercy-hospital.blood-bank",

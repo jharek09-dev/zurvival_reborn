@@ -5,6 +5,7 @@
   "name": "Evac Checkpoint",
   "description": "The Guard's last stand: sandbag walls, a drift of spent brass, a message board thick with photos and names. The evacuation left from here, and then it didn't.",
   "kind": "police",
+  "richness": 95,
   "adjacent": [
     "node.mercy-hospital.ambulance-bay",
     "node.mercy-hospital.parking-deck",

@@ -271,10 +271,16 @@ export function nextZombieState(current: ZombieState, i: Senses): ZombieState {
   // it did not need to while `PLAYER_HERE_BONUS` was 40 — presence alone out-ranked feeding and the
   // node snapped to `chasing`. At 25 the presence rung ties `RUNG.feeding`, so without this the node
   // would sit there being fed on, and `AROUSAL_DETECT.feeding` (5) would hand the player a **discount**
-  // for standing on a nest mid-meal. Unreachable on today's content — nothing in the engine ever
-  // writes `NodeState.corpses`, which is why the whole `feeding` rung is inert (PL-M5-25) — but the
-  // discount is a thing T77 introduced, so T77 closes it rather than leaving it for whoever wires
-  // corpses up.
+  // for standing on a nest mid-meal.
+  //
+  // T77 wrote this guard against a rung that was then unreachable: nothing in the engine wrote
+  // `NodeState.corpses` (PL-M5-25). **T84 wires corpses up** — `combat/combat.ts#killEnemy` writes one
+  // per kill — and the rung is now live, measured at 280 node-turns in 1706 (`measure/t84.ts
+  // --aftermath`) against 0 by construction before. So this line stopped being insurance and started
+  // being load-bearing, and it is the only thing standing between a player who fights at a node and a
+  // permanent stealth discount there. An audit raised that discount as a T84 regression; it is not one
+  // *because of this guard*, and a probe confirms it: `stealthRead` reads the node the player is
+  // standing in, and this rule refuses to let that node stay `feeding` while they are in it.
   if (current === "feeding" && i.playerHere) return fromRung(Math.max(target, RUNG.wandering));
   if (target < cur) return fromRung(cur - 1); // relax one rung
   return current; // steady (stays chasing/feeding under sustained stimulus)

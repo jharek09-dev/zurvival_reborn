@@ -5,6 +5,7 @@
   "name": "Veterinary Clinic",
   "description": "An animal hospital whose drug cabinet was built for large dogs and, near enough, for people. Someone tried to shelter here and did not finish.",
   "kind": "medical",
+  "richness": 155,
   "adjacent": [
     "node.the-terraces.fire-station",
     "node.the-terraces.garden-center"

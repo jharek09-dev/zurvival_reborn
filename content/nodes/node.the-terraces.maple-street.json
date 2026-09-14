@@ -5,6 +5,7 @@
   "name": "Maple Street",
   "description": "A cul-de-sac of open front doors and picked-over kitchens. One house at the end still keeps its curtains drawn and, some nights, a light.",
   "kind": "residential",
+  "richness": 45,
   "claimable": true,
   "adjacent": [
     "node.the-terraces.elm-court",

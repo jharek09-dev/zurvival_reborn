@@ -5,6 +5,9 @@ import { dirname, join } from "node:path";
 import {
   startRun,
   sceneOf,
+  availableActions,
+  scoutFrom,
+  SCOUT_HOPS,
   THE_LAST_CUSTOMER,
   ARC_PLEA,
   type GameState,
@@ -474,6 +477,40 @@ describe("Map & Journal (SCR-06) — fog, node memory, your notes", () => {
     const { state, graph } = base();
     const text = renderMap(withNote(state), graph).join("\n");
     expect(text).toContain('your note: "good water here');
+  });
+
+  /**
+   * T84. This screen advertised *"add-a-note appear in your choices"* from T54 while
+   * `NodeState.playerNotes` had exactly one writer in the whole engine — the seed, writing `[]`
+   * (PL-M4-46). Both halves of the line are now true, and the screen has a third fog tier to report.
+   */
+  it("promises only verbs that exist, and names scouting", () => {
+    const { state, graph } = base();
+    const text = renderMap(state, graph).join("\n");
+    expect(text).toContain("add-a-note");
+    expect(text).toContain("scouting");
+    const offered = availableActions(state, graph).map((c) => c.id);
+    expect(offered).toContain("note");
+    expect(offered).toContain("scout");
+  });
+
+  it("tells you what is standing in a place only where you have actually looked", () => {
+    const { state, graph } = base();
+    const here = state.player.location;
+    const neighbour = (graph.nodes[here]?.adjacent ?? [])[0]!;
+    const busy: GameState = {
+      ...state,
+      nodes: { ...state.nodes, [neighbour]: { ...state.nodes[neighbour]!, walkers: 4, discovered: true, lastVisit: null } },
+    };
+    // Discovered by walking past: a name and a direction, and nothing about what is inside.
+    const blind = renderMap(busy, graph).join("\n");
+    expect(blind).toContain("not yet entered");
+    expect(blind).not.toContain("4 walkers");
+    // An hour spent looking buys the count.
+    const looked: GameState = { ...busy, nodes: scoutFrom(busy.nodes, graph, here, SCOUT_HOPS) };
+    const informed = renderMap(looked, graph).join("\n");
+    expect(informed).toContain("scouted, not entered");
+    expect(informed).toContain("4 walkers");
   });
 });
 

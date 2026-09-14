@@ -36,7 +36,12 @@ describe("play the core loop over Rivermouth (T12)", () => {
     const scene = sceneOf(state, graph);
     expect(scene.location).toBe("node.rivermouth.transit-plaza");
     expect(scene.choices.length).toBeGreaterThanOrEqual(3); // 2 neighbors + search + rest
-    expect(scene.choices.every((c) => c.timeCost > 0)).toBe(true);
+    // Every action that moves the world spends hours (FR-CORE-03). T84's map-journal `note` is the one
+    // exception in this branch and is free by the T18 rule that managing what you already have costs no
+    // in-game time — named, so a future free action still has to come through this assertion.
+    const FREE = new Set(["note"]);
+    expect(scene.choices.every((c) => (FREE.has(c.id) ? c.timeCost === 0 : c.timeCost > 0))).toBe(true);
+    expect(scene.choices.some((c) => c.id === "scout")).toBe(true); // T84: look before you walk
   });
 
   it("plays a scripted run: time advances and every turn is autosave-lossless", () => {

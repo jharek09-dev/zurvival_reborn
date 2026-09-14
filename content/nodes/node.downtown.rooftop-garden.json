@@ -5,6 +5,7 @@
   "name": "Rooftop Garden",
   "description": "A hotel roof somebody turned into a vegetable garden before the end. High, quiet, hidden from the street, with soil that still grows things.",
   "kind": "generic",
+  "richness": 100,
   "claimable": true,
   "adjacent": [
     "node.downtown.department-store",

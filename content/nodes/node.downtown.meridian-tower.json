@@ -5,6 +5,7 @@
   "name": "Meridian Tower",
   "description": "A half-gutted office high-rise. The stairwell is a punishing climb, but the upper floors are dry, defensible, and someone clearly broadcast from the top once.",
   "kind": "generic",
+  "richness": 60,
   "claimable": true,
   "adjacent": [
     "node.downtown.news-plaza",

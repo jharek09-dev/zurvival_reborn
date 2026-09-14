@@ -5,6 +5,7 @@
   "name": "Department Store",
   "description": "Four floors of retail gone to looters and damp. Camping gear and winter coats survive on the top floor, past the dead escalators and whatever grazes the aisles.",
   "kind": "store",
+  "richness": 150,
   "adjacent": [
     "node.downtown.food-court",
     "node.downtown.grand-pharmacy",

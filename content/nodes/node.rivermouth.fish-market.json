@@ -5,6 +5,7 @@
   "name": "Fish Market",
   "description": "A gutted riverside market of empty ice beds and a stench that has outlived its cause. Sealed tins and a chandlery in back survived the looting; the smell hid them.",
   "kind": "store",
+  "richness": 125,
   "walkers": 2,
   "adjacent": [
     "node.rivermouth.corner-store",

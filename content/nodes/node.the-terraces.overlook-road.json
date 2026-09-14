@@ -5,6 +5,7 @@
   "name": "Overlook Road",
   "description": "The switchback where the suburb climbs toward the hill. Long sightlines both ways — and nowhere to hide if something is already on it.",
   "kind": "generic",
+  "richness": 20,
   "adjacent": [
     "node.hillcrest.ridge-road",
     "node.the-terraces.little-league-park",

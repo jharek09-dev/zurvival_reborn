@@ -27,7 +27,7 @@
  * table lands in M2; the wound *prose* already lives in `content/wounds/` (T16).
  */
 
-import type { ActorId, CombatState, ContentId, GameState, NodeId, Player, Survivor } from "../state/types.js";
+import type { ActorId, CombatState, ContentId, GameState, NodeId, NodeState, Player, Survivor } from "../state/types.js";
 import type { Action, SceneChoice } from "../pipeline/contract.js";
 import type { RegionGraph } from "../map/types.js";
 import { neighborsOf } from "../map/regionGraph.js";
@@ -42,6 +42,7 @@ import { weatherDetectionDelta } from "../sim/weather.js";
 import { phaseConcealment } from "../sim/timeOfDay.js";
 import { rosterOf, removeBodyAt, withRoster } from "../sim/roster.js";
 import { ZOMBIE_WALKER } from "../sim/zombies.js";
+import { CORPSES_PER_KILL, BLOOD_PER_KILL } from "../sim/noise.js";
 import { conditionOf, extraCostOf, isBlocked, routeWear, ROUTE_FLOODED_AT } from "../sim/routes.js";
 import { stealthDetectChance, stealthRead, stealthTell } from "../sim/detection.js";
 import { MOVE_COST } from "../actions/costs.js";
@@ -687,6 +688,24 @@ function beginCombat(state: GameState): GameState {
 }
 
 /**
+ * The 0-100 integer discipline, for the node marks a kill leaves behind (T84).
+ *
+ * **Total, because a hand-edited save reaches here.** `assertSaveFile` is deliberately shallow, so a
+ * node whose `corpses` or `blood` is missing or non-numeric arrives as `undefined` — and
+ * `Math.max(0, Math.min(100, Math.trunc(undefined + 1)))` is `NaN`, not 0. `Math.min`/`Math.max` do
+ * **not** scrub NaN. Left unguarded that NaN is absorbing (every later kill keeps it NaN), it reaches
+ * the save as `null`, and it silently switches off every reader this task just gave these fields: the
+ * `feeding` rung's `corpses > 0`, the encounter `minBlood`/`minCorpses` gates, and the map-journal
+ * note. A string is worse than junk: `"3" + 1` is `"31"`, which clamps to a plausible 31.
+ *
+ * This is the identical defect T83's audit found in `overrun.ts` one task ago, in the identical shape.
+ */
+const clampNodePct = (n: unknown): number => {
+  const v = typeof n === "number" && Number.isFinite(n) ? n : 0;
+  return Math.max(0, Math.min(100, Math.trunc(v)));
+};
+
+/**
  * Enemy is down: clear the fight and remove **that body** from the node's roster (T75), which drops
  * `walkers` by one and clears the type when it was the last of its kind — so the riot you just killed
  * is gone and the walkers behind it fight as walkers. Before T75 only the count moved, and the type
@@ -698,6 +717,18 @@ function killEnemy(state: GameState, def: EnemyDef): GameState {
   const node = state.nodes[state.player.location];
   let nodes = state.nodes;
   if (node !== undefined) {
+    // T84 — the two fields the 2026-09 design review's signal ledger listed as DEAD ("corpses / blood:
+    // seeded, never written"). Verified before writing them (`measure/t84.ts`): each had exactly ONE
+    // writer in the whole engine, `map/seedWorld.ts`, writing 0. That is what made the T25 `feeding`
+    // arousal rung unreachable (PL-M5-25 — `zombies.ts` gates it on `corpses > 0`) and what would have
+    // made any encounter authored with `minBlood`/`minCorpses` unfireable (`events.ts`; no shipped
+    // encounter uses either yet, so nothing was blocked in practice — the gate was simply a dead
+    // predicate waiting for content, PL-M5-03).
+    //
+    // A kill is the honest writer for both: a body on the floor and what putting it there spilled. It
+    // happens HERE, after the roster has been asked whether this body was real, so an unmatched kill
+    // against an empty roster still counts — you killed something, it is still on the floor.
+    //
     const bodies = rosterOf(node);
     const idx = bodyIndexFor(bodies, def);
     // A kill against a body the roster no longer lists (an encounter effect emptied the node mid-fight,
@@ -713,7 +744,16 @@ function killEnemy(state: GameState, def: EnemyDef): GameState {
         : bodies.length === 0
           ? node
           : withRoster(node, bodies.slice(0, bodies.length - 1));
-    nodes = dropped === node ? state.nodes : { ...state.nodes, [state.player.location]: dropped };
+    // Both clamped to the 0-100 discipline every sim quantity keeps. `blood` fades (BLOOD_DECAY_PER_HOUR,
+    // 2/h); `corpses` does not — bodies do not tidy themselves.
+    const marked: NodeState = {
+      ...dropped,
+      // `+ CORPSES_PER_KILL` on a junk value would produce NaN or a string concatenation, so the
+      // existing value is scrubbed FIRST and the increment added to the clean number.
+      corpses: clampNodePct(clampNodePct(dropped.corpses) + CORPSES_PER_KILL),
+      blood: clampNodePct(clampNodePct(dropped.blood) + BLOOD_PER_KILL),
+    };
+    nodes = { ...state.nodes, [state.player.location]: marked };
   }
   let player = state.player;
   if (def.burstInfection > 0) {

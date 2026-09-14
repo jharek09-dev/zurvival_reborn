@@ -19,3 +19,19 @@ export const SEARCH_COST = 2; // T72: 3→2 (a node still takes 3 searches to st
 export const REST_COST = 4; // T72: 6→4 (the away-from-base rest; "Sleep until morning" is the in-base recovery)
 /** Managing the pack costs no in-game time (T18). */
 export const DROP_COST = 0;
+/**
+ * Looking before you walk (M5 task T84 · FR-MAP-02). One hour and **no noise**.
+ *
+ * Silence is not what distinguishes it — `rest`, `eat`, `drink` and `treat` are all silent too, and an
+ * earlier draft of this comment wrongly called it the only quiet verb and credited it with giving
+ * night's concealment its first use. What is actually new is that it is the only verb that **buys
+ * information**, and the only one that advances the run's knowledge without advancing its position.
+ *
+ * Dearer than free and cheaper than the two-hour move it exists to inform: the whole question the verb
+ * poses is whether knowing what is in the next block is worth half a walk. Swept at 1 / 2 / 3 against a
+ * scouting-vs-blind A/B — a dearer look avoids more (walk-ins 2.17 / 1.83 / 1.60) but survives less
+ * (end day 4.2 / 4.1 / 3.9), because the hour comes straight out of the needs clock.
+ */
+export const SCOUT_COST = 1;
+/** Writing in your own journal costs no in-game time — the T18 `DROP_COST` rule (T84). */
+export const NOTE_COST = 0;

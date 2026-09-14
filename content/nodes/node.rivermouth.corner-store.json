@@ -5,6 +5,7 @@
   "name": "Corner Store",
   "description": "A convenience store with its shutter half-down. Shelves stripped at eye level, but the back room and the crawlspace under the counter look untouched.",
   "kind": "store",
+  "richness": 140,
   "adjacent": [
     "node.rivermouth.clinic",
     "node.rivermouth.fish-market",

@@ -5,6 +5,7 @@
   "name": "Fire Station",
   "description": "Engine bay open, one truck gone, the tool wall intact — axes, halligans, bolt cutters. The dormitory upstairs was built to sleep a crew.",
   "kind": "police",
+  "richness": 170,
   "claimable": true,
   "adjacent": [
     "node.mercy-hospital.evac-checkpoint",

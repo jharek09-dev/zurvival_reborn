@@ -5,6 +5,7 @@
   "name": "Little League Park",
   "description": "A ball field with a concession stand and a horde grazing the outfield like cattle. Snacks and a first-aid kit wait in the dugout, if you stay quiet.",
   "kind": "generic",
+  "richness": 65,
   "walkers": 2,
   "adjacent": [
     "node.the-terraces.garden-center",
