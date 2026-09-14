@@ -1,0 +1,69 @@
+{
+  "id": "encounter.rivermouth.the-berth",
+  "category": "social",
+  "title": "A berth at the marina",
+  "premise": "Standing: the Harbor Holdout count you as theirs, and act like it.",
+  "requirements": {
+    "regionIds": [
+      "region.rivermouth"
+    ],
+    "faction": "faction.harbor-holdout",
+    "minReputation": 40
+  },
+  "scope": "run",
+  "stages": [
+    {
+      "id": "s",
+      "narration": "The gate on the dock road is chained, but the woman behind it works the padlock without being asked and stands aside. \"They said to watch for you.\" There's a crate inside the hut with your name chalked on the lid in someone else's hand — not much in it, and offered like it's a great deal more.",
+      "choices": [
+        {
+          "id": "take",
+          "label": "Take what they've set aside",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "grantItem",
+              "item": "item.canned-food",
+              "quantity": 2
+            },
+            {
+              "kind": "grantItem",
+              "item": "item.water",
+              "quantity": 1
+            },
+            {
+              "kind": "adjustMind",
+              "morale": 10
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "the Harbor Holdout set a crate aside"
+            }
+          ]
+        },
+        {
+          "id": "decline",
+          "label": "Tell her to keep it — they need it more",
+          "timeCost": 1,
+          "effects": [
+            {
+              "kind": "adjustHumanity",
+              "delta": 10
+            },
+            {
+              "kind": "adjustMind",
+              "morale": 6
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.harbor-holdout",
+              "delta": 10
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "T86 · the high-standing cash-out. The brief asked for TRADE here; there is no trade verb in the engine (37 dispatched action types, none of them barter), so this pays in what the game can actually hand over and trading stays PL-M4-34's. Region-gated, because the marina node itself is reached in 10% of ordinary runs."
+}

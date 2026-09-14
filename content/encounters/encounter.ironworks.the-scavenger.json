@@ -33,6 +33,11 @@
             {
               "kind": "adjustHumanity",
               "delta": -25
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.slagworks-crew",
+              "delta": -20
             }
           ]
         },
@@ -54,6 +59,11 @@
             {
               "kind": "adjustHumanity",
               "delta": 10
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.slagworks-crew",
+              "delta": 8
             }
           ]
         },
@@ -76,5 +86,5 @@
       ]
     }
   ],
-  "notes": "The Survival Triangle made personal: her supplies against your hunger, against who you are."
+  "notes": "The Survival Triangle made personal: her supplies against your hunger, against who you are. T86: nia is Slagworks Crew, so how this goes is a crew matter — and the Crew's feuds carry it onward to the Harbor Holdout and the Quad Collective."
 }

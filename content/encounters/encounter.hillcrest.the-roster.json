@@ -1,0 +1,94 @@
+{
+  "id": "encounter.hillcrest.the-roster",
+  "category": "social",
+  "title": "The chore roster",
+  "premise": "Moral: the Quad Collective ration by vote, and the crate under the noticeboard is not locked.",
+  "requirements": {
+    "nodeIds": [
+      "node.hillcrest.university-quad"
+    ]
+  },
+  "scope": "run",
+  "stages": [
+    {
+      "id": "s",
+      "narration": "A chore roster is pinned to the noticeboard under the arch, names in five different hands, every line initialled off. Below it sits the week's ration crate, unlocked, because nobody here has yet had to lock it. There is nobody in the quad. There is a bell on a post by the arch, and a sign asking you to ring it.",
+      "choices": [
+        {
+          "id": "ring",
+          "label": "Ring the bell and wait to be seen",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "addNoise",
+              "amount": 15
+            },
+            {
+              "kind": "adjustMind",
+              "morale": 6
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.quad-collective",
+              "delta": 12
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "rang the bell on the quad and waited"
+            }
+          ]
+        },
+        {
+          "id": "add",
+          "label": "Put your own name on the roster and take a share",
+          "timeCost": 3,
+          "effects": [
+            {
+              "kind": "grantItem",
+              "item": "item.canned-food",
+              "quantity": 1
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.quad-collective",
+              "delta": 16
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "signed the Quad's roster and took a share"
+            }
+          ]
+        },
+        {
+          "id": "take",
+          "label": "Empty the crate while there is nobody in the quad",
+          "timeCost": 2,
+          "effects": [
+            {
+              "kind": "grantItem",
+              "item": "item.canned-food",
+              "quantity": 3
+            },
+            {
+              "kind": "adjustHumanity",
+              "delta": -18
+            },
+            {
+              "kind": "adjustReputation",
+              "faction": "faction.quad-collective",
+              "delta": -30
+            },
+            {
+              "kind": "logHistory",
+              "event": "encounter.note",
+              "note": "emptied the Quad Collective's ration crate"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "T86 · the Quad's own UNGATED standing act. Measured after the first cut: the Collective moved ±4 across every ceiling run and crossed neither threshold in 0% of them, because it had no authored occasion of its own — only the spill from the Slagworks Crew. A faction with standing and no occasion is the very defect T86 exists to fix, so it got one. Sited on the REGION, not the Quad's homeNode: the first cut gated it on node.hillcrest.university-quad, which `measure/t86.ts --reach` puts at 5% of runs even for a bot walking straight at it — the same self-inflicted unreachable its sibling `the-reckoning` was written to avoid. The crate is deliberately the largest single negative step in the game: an unlocked crate is a community's trust, and taking it is not a misunderstanding."
+}

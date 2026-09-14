@@ -35,6 +35,8 @@ import type { ActorId, GameState, InventoryEntry, NodeId, NPCDisposition, NPCSta
 import type { SceneChoice, Action } from "../pipeline/contract.js";
 import { driftNeeds, NEED_FATAL } from "./survival.js";
 import { bankHours } from "./clocks.js";
+import type { RegionGraph } from "../map/types.js";
+import { effectiveDisposition } from "./reputation.js";
 
 /** Flag marking a `Survivor` as a party companion that follows the player (vs a reserved faction member). */
 export const COMPANION_FLAG = "companion" as const;
@@ -123,20 +125,28 @@ export function partyIsFull(state: GameState): boolean {
  * survivor is not `hostile` (a hostile one never joins, however high trust runs). Pairs with the T34
  * `canRecruit` trust gate — the offer needs both.
  */
-export function canRecruitEligible(state: GameState, npc: NPCState): boolean {
-  return npc.disposition !== "hostile" && !partyIsFull(state);
+export function canRecruitEligible(state: GameState, npc: NPCState, graph?: RegionGraph): boolean {
+  // T86: the disposition read is the EFFECTIVE one — a survivor whose faction the player has pushed to
+  // REPUTATION_HOSTILE_AT or below will not join however high their personal trust runs. Derived from
+  // the faction pool, never stored, so `graph` absent (or a run with no factions) is the exact T45 gate.
+  return effectiveDisposition(state, graph, npc) !== "hostile" && !partyIsFull(state);
 }
 
 /**
  * Graduate a survivor from `npcs` (met) into `actors` (joined) — the T36 recruitment, now carrying the
  * survivor's `name` + `trust` (T45) so the party can name them and gate their orders. Refuses if the id is
- * not a living survivor, the party is full, or the survivor is a hostile who would never join — so a
- * caller that skips the offer gate still can't overfill or shanghai a hostile. Pure, deterministic.
+ * not a living survivor, the party is full, or the survivor is a hostile who would never join — by their
+ * authored disposition OR by their faction's standing (T86) — so a caller that skips the offer gate still
+ * can't overfill or shanghai a hostile. Pure, deterministic.
  */
-export function recruit(state: GameState, npcId: ActorId): GameState {
+export function recruit(state: GameState, npcId: ActorId, graph?: RegionGraph): GameState {
   const npc = state.npcs[npcId];
   if (npc === undefined || !npc.alive) return state;
-  if (!canRecruitEligible(state, npc)) return state;
+  // T86 threads `graph` here for the same reason the doc above gives for the disposition check: the
+  // resolve layer must refuse what the offer layer would never have shown. Without it a client that
+  // dispatches `recruit` directly could take in a member of a faction that has turned on the player —
+  // the offer gate would be doing work the engine did not actually enforce.
+  if (!canRecruitEligible(state, npc, graph)) return state;
   const companion: Survivor = {
     id: npc.id,
     type: npc.type,

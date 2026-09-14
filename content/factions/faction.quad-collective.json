@@ -8,5 +8,6 @@
   "goal": "keep-the-lights-on",
   "members": ["npc.jonah-sable", "npc.mara", "npc.emeka-okonkwo"],
   "baseline": { "strength": 55, "hostility": 0, "reputation": 20 },
-  "notes": "T53 · Hillcrest. Organized and friendly-leaning; jonah runs the radio mast. The collective's survivors regroup on the quad off-screen (PL-M3-02)."
+  "rivals": ["faction.slagworks-crew"],
+  "notes": "T53 · Hillcrest. Organized and friendly-leaning; jonah runs the radio mast. The collective's survivors regroup on the quad off-screen (PL-M3-02). T86 · the Quad names the Slagworks Crew as rivals at the FACTION level: no two of their survivors grudge each other by name, so the derived rivalry has nothing to read, and a committee that rations by vote has nothing to say to a crew that owes nobody. The Crew's other feud, with the Harbor Holdout, IS derived from the authored npc grudges and needs no entry here."
 }

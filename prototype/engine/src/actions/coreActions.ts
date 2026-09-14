@@ -79,6 +79,10 @@ import {
   orderOf,
 } from "../sim/companions.js";
 import { canParley } from "../sim/trust.js";
+// NOTE: `effectiveDisposition` is deliberately NOT read here. The standing-hostile branch a few
+// lines below `continue`s before this point is ever reached, so calling it would be dead code dressed
+// up as a guarantee — mutation testing proved the call equivalent to the plain authored read.
+import { standingIsHostile, standingLine } from "../sim/reputation.js";
 import {
   infectionChoices,
   isInfectionAction,
@@ -367,7 +371,7 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
   // People here (T35 · FR-NPC): talk / share / threaten / recruit a survivor present, or feed a companion.
   // Offered in the explore branch only — an active fight or loitering walkers pre-empt it above — and
   // appended after the survival verbs so the world-danger and self-care choices lead the list.
-  for (const choice of encounterPeople(state)) choices.push(choice);
+  for (const choice of encounterPeople(state, graph)) choices.push(choice);
 
   // Companion standing orders (T45 · FR-NPC-03): free management verbs to tell a companion at your side to
   // follow / hold / scavenge / guard — the dangerous two gated on earned trust. Appended after the people
@@ -774,14 +778,25 @@ function peopleLine(state: GameState, graph: RegionGraph | undefined): string | 
     if (!n.alive) { bits.push(`${n.name} lies where they fell.`); continue; }
     witness = true;
     if (!canParley(n)) { bits.push(`${n.name} will not meet your eye — past talking now.`); continue; }
+    // T86 · a door the STANDING closed, not the trust. The Scene has to say which, or the player is
+    // looking at a survivor who was friendly an hour ago and has no idea why the choices went away
+    // (the T85 "when the engine acquires a constraint, the screen acquires the sentence" rule).
+    if (standingIsHostile(state, graph, id)) {
+      bits.push(`${standingLine(state, graph, id, n.name) ?? `${n.name} wants nothing to do with you.`}${npcNeedRead(n)}`);
+      continue;
+    }
     // A met survivor's attitude toward you (T53 · FR-NPC-02): respect/fear surfaced as behaviour, never a
     // number. Gated on the social system; a survivor you've done nothing to reads by disposition alone (T35).
     const att = n.met && socialActive(graph) ? attitudeRead(n) : null;
+    // How their PEOPLE hold you (T86) — added only when the faction has a strong view, so an unknown
+    // standing reads exactly as it did before.
+    const standing = socialActive(graph) ? standingLine(state, graph, id, n.name) : null;
     bits.push(
       n.met
         ? `${n.name} is here${npcNeedRead(n)}${att !== null ? `, ${att}` : ""}.`
         : `Someone is here — ${n.name}, ${dispositionRead(n.disposition)}${npcNeedRead(n)}.`,
     );
+    if (standing !== null) bits.push(standing);
   }
 
   // Others react to the visible sign of infection on you (T49 · FR-INJ-06): companions grow afraid,
