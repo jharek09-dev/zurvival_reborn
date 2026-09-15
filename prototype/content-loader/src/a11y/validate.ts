@@ -9,6 +9,7 @@
  *     `--text` must clear AAA (≥ 7). A body token dropping below AA is an ERROR (a readability regression).
  *  2. **The lint rule.** `--danger`/`--info` are below AA-normal (4.36 / 4.26) — confirmed as a fact and
  *     surfaced as the policy the client lint enforces: large text / icons / edges only, never body copy.
+ *     (Until T63 that client lint did not exist — the sentence was a promise. It is `client.ts`.)
  *  3. **Colourblind (NFR-ACC-03).** The six rationed hues must be clearly distinct under NORMAL vision
  *     (ΔE ≥ 20); under protanopia/deuteranopia/tritanopia the warm hues converge (that is *why* the colorway
  *     rule is "colour is never the sole signal" — every hue paired with a label/icon), so a known set of
@@ -113,7 +114,7 @@ export function validatePalette(tokens: PaletteTokens): A11yReport {
       if (ratio >= AA_NORMAL) {
         issues.push({ level: "warn", code: "lint-may-relax", message: `--${row.token} (${ratio}) now clears AA-normal — the large-only-never-body lint could relax` });
       } else {
-        issues.push({ level: "warn", code: "large-only", message: `--${row.token} (${ratio}) is below AA-normal — large text / icons / edges only, never body copy (client lint enforces this)` });
+        issues.push({ level: "warn", code: "large-only", message: `--${row.token} (${ratio}) is below AA-normal — large text / icons / edges only, never body copy (enforced on the web client's sheet by the client lint, src/a11y/client.ts)` });
       }
     }
   }

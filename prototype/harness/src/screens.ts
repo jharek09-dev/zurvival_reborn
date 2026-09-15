@@ -184,6 +184,16 @@ function humanId(id: string): string {
   return tail.replace(/[._-]/g, " ").trim() || id;
 }
 
+/** A node's player-facing name — the graph's authored name, else the humanised last id segment, never the raw id. */
+function placeName(nodeId: string, graph?: RegionGraph): string {
+  // Own-property read: `foundAt` comes from a save, and `nodes["constructor"].name` is "Object" (the T60 hazard).
+  const node = graph !== undefined && Object.prototype.hasOwnProperty.call(graph.nodes, nodeId) ? graph.nodes[nodeId] : undefined;
+  const named = node?.name;
+  if (typeof named === "string" && named.length > 0) return named;
+  const tail = nodeId.includes(".") ? nodeId.slice(nodeId.lastIndexOf(".") + 1) : nodeId;
+  return tail.replace(/[._-]/g, " ").trim() || "somewhere you've been";
+}
+
 /** Capitalise the first letter (for a name drawn from a humanised id in the memorial). */
 function cap(s: string): string {
   return s.length > 0 ? s[0]!.toUpperCase() + s.slice(1) : s;
@@ -260,8 +270,12 @@ function section(lines: string[], header: string, body: readonly string[]): void
 // Screen frame — a stable, labelled shell every depth screen shares (NFR-ACC-02)
 // ---------------------------------------------------------------------------
 
-/** The back-hint that closes every depth screen (a screen never traps you). */
-export const SCREEN_BACK_HINT = "[any other key returns to the story]";
+/**
+ * The back-hint that closes every depth screen (a screen never traps you). T63: it said "[any other key returns to
+ * the story]", which stopped being literal once the terminal client began WAITING on a screen — there a choice number
+ * still takes that choice and Q still quits (the `playByInputs` fold, unchanged). It now says what each key does.
+ */
+export const SCREEN_BACK_HINT = "[Enter returns to the story · a choice number, screen key, S or Q works from here too]";
 
 /**
  * Wrap a screen body in the shared frame: a title bar naming the active screen (the "pressed" state,
@@ -270,6 +284,117 @@ export const SCREEN_BACK_HINT = "[any other key returns to the story]";
  */
 function frame(screen: DepthScreen, body: readonly string[]): readonly string[] {
   return [`— ${screen.title} — ${screen.summary}`, "", ...body, "", SCREEN_BACK_HINT];
+}
+
+// ---------------------------------------------------------------------------
+// Screen OUTLINE — the same lines, as structure a non-terminal client can render semantically (T63)
+// ---------------------------------------------------------------------------
+
+/**
+ * One list row of a depth screen. `mark` is the row's leading glyph: `-` for an ordinary row, `✗` for a
+ * locked order and `†` for a memorial line — both of which ALSO say so in words ("[locked — …]", "did not
+ * make it"), so a client may hide the glyph from assistive tech without hiding the fact. `more` holds the
+ * deeper-indented continuation lines that belong to the row, each with its own mark (a map node's "your note:
+ * …", a companion's condition and their "✗ scavenge [locked — …]" orders).
+ */
+export interface ScreenLine {
+  readonly mark: "" | "-" | "✗" | "†";
+  readonly text: string;
+}
+export interface ScreenItem extends ScreenLine {
+  readonly more: readonly ScreenLine[];
+}
+
+/** A block of a depth screen, in reading order. `raw` is the exact lines it was built from. */
+export type ScreenBlock =
+  | { readonly kind: "heading"; readonly text: string; readonly raw: readonly string[] }
+  | { readonly kind: "text"; readonly text: string; readonly raw: readonly string[] }
+  | { readonly kind: "list"; readonly items: readonly ScreenItem[]; readonly raw: readonly string[] }
+  | { readonly kind: "gap"; readonly raw: readonly string[] };
+
+export interface ScreenOutline {
+  readonly title: string;
+  readonly summary: string;
+  readonly blocks: readonly ScreenBlock[];
+  /** The frame's closing hint, or null when the lines did not end with it. */
+  readonly back: string | null;
+}
+
+const ITEM_MARKS = ["-", "✗", "†"] as const;
+
+/** Split a row's leading glyph from its words. */
+function marked(body: string): ScreenLine {
+  const mark = ITEM_MARKS.find((m) => body.startsWith(`${m} `));
+  return mark !== undefined ? { mark, text: body.slice(mark.length + 1).trim() } : { mark: "", text: body.trim() };
+}
+
+/**
+ * T63 · NFR-ACC-02. Recover a depth screen's STRUCTURE from the lines `frame`/`section` produce, so the web
+ * client can render a screen as a heading, sub-headings and real lists instead of one `<pre>` a screen reader
+ * can only read top to bottom. It reads the shapes THIS FILE writes and nothing else: the frame's title bar
+ * (`— Title — summary`), `section`'s `Header:` line, its two-space rows, deeper-indented continuations, and
+ * the back hint. It is total — the title bar and back hint land in their own fields, every other line in exactly
+ * one block, and the title, every block's `raw` and the back hint concatenated give back the input exactly, which
+ * the harness test asserts over a battery of states, so a new line shape can never be silently dropped from the web
+ * client. A blank line BETWEEN two rows of one section (two companions) stays inside that list rather than splitting
+ * it into two one-item lists, so a screen reader hears "list with 2 items", not two lists of one.
+ */
+export function outlineScreen(lines: readonly string[], screen?: DepthScreen): ScreenOutline {
+  let title = screen?.title ?? "";
+  let summary = screen?.summary ?? "";
+  let start = 0;
+  const first = lines[0];
+  if (first !== undefined) {
+    const prefix = screen !== undefined ? `— ${screen.title} — ` : null;
+    if (prefix !== null && first.startsWith(prefix)) {
+      summary = first.slice(prefix.length);
+      start = 1;
+    } else if (prefix === null) {
+      const m = /^— (.+?) — (.*)$/.exec(first);
+      if (m) { title = m[1]!; summary = m[2]!; start = 1; }
+    }
+  }
+  let end = lines.length;
+  const back = end > start && lines[end - 1] === SCREEN_BACK_HINT ? SCREEN_BACK_HINT : null;
+  if (back !== null) end -= 1;
+
+  const blocks: ScreenBlock[] = [];
+  let list: { items: { mark: ScreenLine["mark"]; text: string; more: ScreenLine[] }[]; raw: string[] } | null = null;
+  const closeList = (): void => {
+    if (list !== null) blocks.push({ kind: "list", items: list.items, raw: list.raw });
+    list = null;
+  };
+  for (let i = start; i < end; i += 1) {
+    const line = lines[i]!;
+    if (line.trim() === "") {
+      let k = i + 1;
+      while (k < end && lines[k]!.trim() === "") k += 1;
+      if (list !== null && k < end && /^ {2}\S/.test(lines[k]!) && lines[k]!.trim() !== "(nothing yet)") {
+        (list as { raw: string[] }).raw.push(line); // a gap inside one section's list
+        continue;
+      }
+      closeList();
+      blocks.push({ kind: "gap", raw: [line] });
+      continue;
+    }
+    if (/^ {4,}\S/.test(line) && list !== null) {
+      const l = list as { items: { more: ScreenLine[] }[]; raw: string[] };
+      const last = l.items[l.items.length - 1];
+      if (last !== undefined) { last.more.push(marked(line.trim())); l.raw.push(line); continue; }
+    }
+    if (/^ {2}\S/.test(line) && line.trim() !== "(nothing yet)") {
+      const item = { ...marked(line.slice(2)), more: [] as ScreenLine[] };
+      if (list === null) list = { items: [], raw: [] };
+      list.items.push(item);
+      list.raw.push(line);
+      continue;
+    }
+    closeList();
+    if (/^\S.*:$/.test(line)) blocks.push({ kind: "heading", text: line.slice(0, -1), raw: [line] });
+    else blocks.push({ kind: "text", text: line.trim(), raw: [line] });
+  }
+  closeList();
+  return { title, summary, blocks, back };
 }
 
 // ---------------------------------------------------------------------------
@@ -317,13 +442,16 @@ function hasProvenance(item: ItemInstance): boolean {
 }
 
 /** A one-line provenance for a tracked artifact, drawn from its instance metadata (open, content-shaped). */
-function artifactProvenance(item: ItemInstance): string {
+function artifactProvenance(item: ItemInstance, graph?: RegionGraph): string {
   const meta = item.metadata;
   const bits: string[] = [];
   if (meta && typeof meta === "object" && !Array.isArray(meta)) {
     const m = meta as { readonly [k: string]: unknown };
     if (typeof m.origin === "string") bits.push(m.origin);
-    if (typeof m.foundAt === "string") bits.push(`found at ${m.foundAt}`);
+    // T63: `foundAt` is a NODE ID ("node.rivermouth.marina"), and it was printed raw — a screen reader would read it
+    // out as "node dot rivermouth dot marina". Name the place the way every other screen does; a node the graph
+    // cannot name (a hand-built state, a pre-graph caller) falls back to its humanised tail, never the id.
+    if (typeof m.foundAt === "string") bits.push(`found at ${placeName(m.foundAt, graph)}`);
     if (typeof m.history === "string") bits.push(m.history);
     if (Array.isArray(m.history)) bits.push(m.history.filter((h) => typeof h === "string").join("; "));
     if (typeof m.repairs === "number" && m.repairs > 0) bits.push(m.repairs === 1 ? "repaired once" : `repaired ${m.repairs} times`);
@@ -359,7 +487,7 @@ export function renderInventory(state: GameState, graph?: RegionGraph): readonly
     section(
       body,
       "Artifacts",
-      artifacts.map((a) => `  - ${niceItemName(a.entry.type)} [artifact] — ${artifactProvenance(a.item)}`),
+      artifacts.map((a) => `  - ${niceItemName(a.entry.type)} [artifact] — ${artifactProvenance(a.item, graph)}`),
     );
   }
   for (const cat of ["Medical", "Food & water", "Weapons", "Materials", "Other"] as const) {

@@ -6,6 +6,7 @@ import {
   startRun,
   sceneOf,
   availableActions,
+  applyAction,
   scoutFrom,
   SCOUT_HOPS,
   roomSlotsOf,
@@ -43,6 +44,8 @@ import {
   playByInputs,
   playSession,
   transcript,
+  outlineScreen,
+  type ScreenBlock,
   type ScreenId,
 } from "../src/index.js";
 
@@ -626,5 +629,171 @@ describe("the horde collision reads correctly (T76)", () => {
     // the whole read is words — a screen reader gets the same scene (FR-AUD-06 / FR-UI)
     expect(scene.narration).not.toMatch(/\bhorde\.x\b/);
     expect(scene.narration).not.toContain("33");
+  });
+});
+
+
+// --- T63: the screen OUTLINE a semantic client renders (NFR-ACC-02) ----------------------------------------------
+
+/** Two companions standing with the player — the shape that must stay ONE list, not two lists of one. */
+function withTwoCompanions(s: GameState): GameState {
+  const one = withCompanion(s);
+  const marcus = one.actors["actor.test-marcus"]!;
+  const ada: Survivor = { ...marcus, id: "actor.test-ada", type: "npc.ada", name: "Ada", trust: 90 };
+  return { ...one, actors: { ...one.actors, [ada.id]: ada } };
+}
+
+/**
+ * The hand-built fixtures above, every combination that matters, plus played states. Be honest about what each half
+ * reaches: in the PLAYED half (three seeds, a spread of offered actions) the memorial's † lines, map notes and
+ * sectioned screens do turn up, but no companion is ever recruited, so every ✗ (a trust-locked order) comes from the
+ * companion FIXTURES — which is why the counts below are also pinned on those fixtures exactly.
+ */
+function battery(): { state: GameState; graph: RegionGraph }[] {
+  const out: { state: GameState; graph: RegionGraph }[] = [];
+  const { state: s0, graph } = base();
+  for (const mk of [
+    (x: GameState) => x, withCompanion, withTwoCompanions, withShelter, withNote, withHistory, withRadio, withArtifact,
+    (x: GameState) => withArtifact(withHistory(withRadio(withNote(withShelter(withTwoCompanions(x)))))),
+  ]) out.push({ state: mk(s0), graph });
+  for (const seed of ["outline-a", "outline-b", "outline-c"]) {
+    let { state } = startRun({ seed, createdAt: "2026-09-15T06:00:00.000Z" }, regions, nodes, npcs, [], encounters, signals, recipes, jobs, factions);
+    const g = base().graph;
+    for (let t = 0; t < 90; t += 1) {
+      const acts = availableActions(state, g);
+      if (acts.length === 0) break;
+      state = applyAction(state, acts[(t * 7 + 3) % acts.length]!.action, g).state;
+      if (t % 3 === 0) out.push({ state, graph: g });
+      if (state.player.condition.needs.thirst >= 100) break;
+    }
+  }
+  return out;
+}
+
+/** An independent recount from the raw lines — the second way the outline's counts are computed. */
+function recount(lines: readonly string[]): { items: number; more: number; marks: Record<string, number>; empties: number } {
+  const body = lines.slice(1, lines[lines.length - 1] === SCREEN_BACK_HINT ? -1 : undefined);
+  let items = 0, more = 0, empties = 0, inList = false;
+  const marks: Record<string, number> = { "✗": 0, "†": 0 };
+  for (const l of body) {
+    if (/^ {2}\(nothing yet\)$/.test(l)) { empties += 1; inList = false; continue; }
+    if (/^ {2}\S/.test(l)) { items += 1; inList = true; }
+    else if (/^ {4,}\S/.test(l) && inList) more += 1;
+    else if (/^\S/.test(l)) inList = false;
+    const m = /^ +([✗†]) /.exec(l);
+    if (m) marks[m[1]!] = (marks[m[1]!] ?? 0) + 1;
+  }
+  return { items, more, marks, empties };
+}
+
+describe("outlineScreen — every depth screen as structure, losing nothing (T63 · NFR-ACC-02)", () => {
+  const states = battery();
+  const all = states.flatMap(({ state, graph }) => ALL.map((id) => ({ id, lines: renderDepthScreen(id, state, graph) })));
+
+  it("is TOTAL: the title, every block's raw lines and the back hint give the screen back exactly", () => {
+    for (const { id, lines } of all) {
+      const screen = screenById(id)!;
+      const o = outlineScreen(lines, screen);
+      const rebuilt = [`— ${o.title} — ${o.summary}`, ...o.blocks.flatMap((b) => b.raw), ...(o.back !== null ? [o.back] : [])];
+      expect(rebuilt).toEqual([...lines]);
+      expect(o.title).toBe(screen.title);
+      expect(o.back).toBe(SCREEN_BACK_HINT);
+    }
+    expect(all.length).toBe(states.length * ALL.length);
+  });
+
+  it("items, continuations, glyphs and '(nothing yet)' agree with an independent recount of the raw lines", () => {
+    for (const { id, lines } of all) {
+      const o = outlineScreen(lines, screenById(id));
+      const want = recount(lines);
+      const lists = o.blocks.filter((b): b is Extract<ScreenBlock, { kind: "list" }> => b.kind === "list");
+      const rows = lists.flatMap((b) => b.items);
+      expect(rows.length).toBe(want.items);
+      expect(rows.reduce((n, it) => n + it.more.length, 0)).toBe(want.more);
+      const lineMarks = rows.flatMap((it) => [it, ...it.more]).map((x) => x.mark);
+      expect(lineMarks.filter((m) => m === "✗").length).toBe(want.marks["✗"]);
+      expect(lineMarks.filter((m) => m === "†").length).toBe(want.marks["†"]);
+      // "(nothing yet)" is always a TEXT block, never a list row
+      expect(o.blocks.filter((b) => b.kind === "text" && b.text === "(nothing yet)").length).toBe(want.empties);
+      // a list's raw lines are exactly its rows, their continuations, and any blank lines between its rows
+      for (const b of lists) {
+        expect(b.raw.filter((l) => l.trim() !== "").length).toBe(b.items.length + b.items.reduce((n, it) => n + it.more.length, 0));
+      }
+    }
+  });
+
+  it("a row's words never keep their glyph, and are exactly the raw line without indent and mark", () => {
+    for (const { id, lines } of all) {
+      const o = outlineScreen(lines, screenById(id));
+      for (const b of o.blocks) {
+        if (b.kind !== "list") continue;
+        const flat = b.items.flatMap((it) => [it, ...it.more]);
+        const raws = b.raw.filter((l) => l.trim() !== "");
+        expect(flat.length).toBe(raws.length);
+        flat.forEach((x, k) => {
+          expect(x.text).not.toMatch(/^[✗†-] /);
+          expect((x.mark === "" ? "" : `${x.mark} `) + x.text).toBe(raws[k]!.trim());
+        });
+      }
+    }
+  });
+
+  it("recovers every `Header:` line as a heading and leaves none as text", () => {
+    let headings = 0;
+    for (const { id, lines } of all) {
+      const o = outlineScreen(lines, screenById(id));
+      const want = lines.filter((l, k) => k > 0 && /^\S.*:$/.test(l)).length;
+      expect(o.blocks.filter((b) => b.kind === "heading").length).toBe(want);
+      headings += want;
+    }
+    expect(headings).toBeGreaterThan(0);
+  });
+
+  it("pins the fixtures that carry the glyphs: one companion, two companions, and the memorial", () => {
+    const { state, graph } = base();
+    const one = outlineScreen(renderDepthScreen("companions", withCompanion(state), graph), screenById("companions"));
+    const oneList = one.blocks.filter((b) => b.kind === "list");
+    expect(oneList.length).toBe(1);
+    const marcus = (oneList[0] as Extract<ScreenBlock, { kind: "list" }>).items;
+    expect(marcus.map((it) => it.text)).toEqual(["Marcus — here, at your side"]);
+    expect(marcus[0]!.more.map((m) => m.mark)).toEqual(["", "", "", "", "-", "✗", "✗"]);
+    expect(marcus[0]!.more.filter((m) => m.mark === "✗").every((m) => /\[locked — .+\]$/.test(m.text))).toBe(true);
+
+    const two = outlineScreen(renderDepthScreen("companions", withTwoCompanions(state), graph), screenById("companions"));
+    const twoLists = two.blocks.filter((b): b is Extract<ScreenBlock, { kind: "list" }> => b.kind === "list");
+    expect(twoLists.length).toBe(1); // ONE list of two companions, the blank line between them kept inside it
+    expect(twoLists[0]!.items.map((it) => it.text.split(" — ")[0]).sort()).toEqual(["Ada", "Marcus"]);
+
+    const memorial = outlineScreen(renderDepthScreen("codex", withHistory(state), graph), screenById("codex"));
+    const dead = memorial.blocks.flatMap((b) => (b.kind === "list" ? b.items : [])).filter((it) => it.mark === "†");
+    expect(dead.length).toBe(1);
+    expect(dead[0]!.text).toMatch(/— Day 4, fell at your side\.$/);
+  });
+
+  it("recovers the title and summary even without the registry entry", () => {
+    const { state, graph } = base();
+    const o = outlineScreen(renderDepthScreen("map", state, graph));
+    expect([o.title, o.summary]).toEqual([screenById("map")!.title, screenById("map")!.summary]);
+  });
+
+  it("never prints a raw node id for where an artifact was found — a screen reader would read it out as 'node dot …' (T63)", () => {
+    const { state, graph } = base();
+    const here = state.player.location;
+    const s: GameState = {
+      ...state,
+      player: { ...state.player, inventory: [...state.player.inventory, { type: "item.axe", quantity: 1, itemId: "axe-9" }] },
+      items: { ...state.items, "axe-9": { type: "item.axe", quality: 60, durability: 50, metadata: { foundDay: 1, foundAt: here, repairs: [] } } },
+    };
+    const text = renderDepthScreen("inventory", s, graph).join("\n");
+    expect(text).toContain(`found at ${graph.nodes[here]!.name}`);
+    expect(text).not.toContain(here);
+    // a node the graph cannot name (an old save, a removed node): the humanised tail, still never the id
+    const gone: GameState = { ...s, items: { ...s.items, "axe-9": { ...s.items["axe-9"]!, metadata: { foundAt: "node.elsewhere.old-mill", repairs: [] } } } };
+    const goneText = renderDepthScreen("inventory", gone, graph).join("\n");
+    expect(goneText).toContain("found at old mill");
+    expect(goneText).not.toContain("node.elsewhere");
+    // a save-supplied id that names a prototype key must not read "Object" (the T60 prototype-chain hazard)
+    const proto: GameState = { ...s, items: { ...s.items, "axe-9": { ...s.items["axe-9"]!, metadata: { foundAt: "constructor", repairs: [] } } } };
+    expect(renderDepthScreen("inventory", proto, graph).join("\n")).toContain("found at constructor");
   });
 });

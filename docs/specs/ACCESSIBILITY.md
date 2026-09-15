@@ -5,6 +5,44 @@
 
 ---
 
+## 0a. Status — NFR-ACC at M5, verified with a screen reader (T63, 2026-09-15)
+
+**What T63 verified, and with what.** Both clients were driven by **Orca 46** — a real screen reader, over AT-SPI —
+and the transcripts are committed: the web client in Chromium, the terminal client in a VTE terminal
+(`docs/qa/at/`, runner `prototype/harness/web/at/`). Every scenario asserts what Orca must say (and, for the web
+client, where focus must land), and the three scenarios that run unchanged on the pre-T63 clients were run there too,
+so those defects are on record in the reader's own words (`docs/qa/at/T63_PRE_*.md`). What a CI runner can repeat is `prototype/harness/web/a11y-check.mjs`: the built page in
+headless Chromium, read through its accessibility tree (structure and Tab order · focus and announcements around a
+turn · every dialog modal, named, trapping Tab, returning focus · single-key shortcuts off · rendered contrast in every
+state it can reach · reflow at 320 px with 200% text and no focus hidden under the pinned bars · 44 px targets ·
+reduced motion and forced colours · settings persistence). The palette gate now also lints the client
+stylesheet the player actually receives (`content-loader/src/a11y/client.ts`).
+
+**What it did NOT verify — say it before anyone ticks a box for it.** Only ONE screen reader on ONE platform: NVDA,
+JAWS, VoiceOver and TalkBack (§12) have not been run. No switch-access device, no human playtest with disabled
+players, no photosensitivity analysis (nothing in any client flashes; the designed flicker effects are unbuilt). The
+CI check runs Chromium only. Details and the parked items are in `docs/qa/QA_REVIEW_T63.md`.
+
+- **NFR-ACC-01 (no colour/audio-only info) — MET, and now checked in the RENDERED client.** No hue in the web client
+  carries a fact on its own — every coloured edge, tint or word sits beside words that say the same thing — and
+  `--danger`/`--info` can no longer colour text (client lint). The places text sat in those below-AA hues are fixed:
+  the soundscape captions, FR-AUD-06's text for sound (`--info`, measured 3.94:1 on the story card), the run-over
+  heading, and the error messages (`--danger`: 4.36:1 even on `--bg`, 3.35:1 for the error toast on `--surface-3`).
+- **NFR-ACC-02 (full screen-reader support, semantic, navigable) — MET and verified with Orca** on both clients: a
+  heading outline and landmarks; focus moves to the new scene's heading after a turn and ONE polite announcer speaks
+  an ordered digest — what is new or no longer so about you, new sounds, the story, the number of choices (verbosity is
+  a setting); choices are an ordered list of buttons whose names carry their cost in
+  words; depth screens are modal dialogs rendered as headings and lists; the terminal client keeps a depth screen on
+  screen until it is left.
+- **NFR-ACC-03 (scalable text, high contrast, colourblind-safe) — MET in the runtime.** Text 100–200% (reflow verified
+  at 320 px), standard / high / follow-the-system contrast, a sans-serif story font and wide spacing; reader settings
+  persist; forced colours keep every boundary and the focus ring.
+- **NFR-ACC-04 (reduced motion/flicker, Should) — MET for what exists.** The only motion in any client is a toast fade,
+  and the OS reduced-motion preference removes it. The client lint fails the build if the sheet moves without a
+  universal `none !important` switch in exactly `@media (prefers-reduced-motion: reduce)`, or if any other rule declares
+  motion `!important` (which would outrank that switch); the rendered check confirms nothing moves under the
+  preference. There is no in-game motion toggle, because there is nothing yet for it to switch.
+
 ## 0. Baseline status — NFR-ACC at M4 (T56 pt 2, 2026-07-18)
 
 The NFR-ACC baseline is **complete at the M4 tier** and its Musts are tracked + machine-checked:
@@ -107,36 +145,43 @@ The eleven gaps are the real agenda; they are pulled together in §10.
   and setting reachable and actuatable by keyboard alone. *(Planned; NFR-ACC-02 implies it, but
   FR-UI-07 currently scopes keyboard/controller parity to v1 — pull the keyboard half forward to
   M1.)*
-- [ ] **[B]** **No timed or repeated inputs.** No button-mashing, no quick-time events, no choice
-  that expires. Turn-based by design. *(Designed-in; FR-CORE-03. Guard rule: if a future
+- [x] **[B]** **No timed or repeated inputs.** No button-mashing, no quick-time events, no choice
+  that expires. *(T63: the web client has no timer that acts; an error notice no longer auto-dismisses.)* Turn-based by design. *(Designed-in; FR-CORE-03. Guard rule: if a future
   "micro-choice" (GDD III) is ever timed, the timer must be adjustable/removable.)*
-- [ ] **[B]** **Same input method for UI and gameplay** — no separate dexterity mode for menus vs.
+- [x] **[B]** **Same input method for UI and gameplay** — no separate dexterity mode for menus vs.
   play. *(Designed-in; one story-first screen, FR-UI-01.)*
-- [ ] **[B]** **Large, stationary targets.** Choices are a static vertical list; honor the 44px
-  minimum on every interactive row and control. *(Designed-in; `--tap-min: 44px`, FR-UI-05.)*
-- [ ] **[I]** **No simultaneous inputs required** (no chording, no hold-and-press). Single
+- [x] **[B]** **Large, stationary targets.** Choices are a static vertical list; honor the 44px
+  minimum on every interactive row and control. *(Designed-in; `--tap-min: 44px`, FR-UI-05. T63: the top-bar
+  and depth-screen-bar buttons were 36 px tall; every control on the page and in every dialog is now ≥ 44×44,
+  asserted by `a11y-check.mjs` §G.)*
+- [x] **[I]** **No simultaneous inputs required** (no chording, no hold-and-press). Single
   discrete activation per choice. *(Designed-in; single-decision model, FR-UI-01.)*
 - [ ] **[I]** **Remappable controls / shortcuts**, including number-key or single-key choice
-  selection on desktop. *(Planned; part of FR-UI-07.)*
+  selection on desktop. *(Planned; part of FR-UI-07. T63 PARTIAL: single-key shortcuts can be switched OFF (WCAG 2.1.4)
+  and are advertised via `aria-keyshortcuts` only while on; they cannot be remapped.)*
 - [ ] **[I]** **One-handed & reachable on mobile** — controls within thumb reach; nothing
   requires two-hand gestures or precise drags. *(Designed-in; "one-hand layout", FR-UI-05.)*
 - [ ] **[A]** **Switch-access & assistive-tech compatible** — the choice list works with switch
   scanning and platform AT; no custom-canvas input that AT can't see. *(Planned; falls out of
   semantic HTML + keyboard operability, but must be tested.)*
-- [ ] **[A]** **Adjustable/auto-advance reading pace** — text that "arrives with weight"
+- [x] **[A]** **Adjustable/auto-advance reading pace** — text that "arrives with weight"
   (GDD XVII) never forces the player to keep up; allow instant-reveal and no auto-dismiss.
-  *(Gap/decision: specify text-reveal behavior and its off switch.)*
+  *(Gap/decision: specify text-reveal behavior and its off switch. T63: no client reveals text over time, and
+  nothing auto-dismisses that the player needs — an error stays until the next render.)*
 
 ## 6. Cognitive
 
 - [x] **[B]** **Difficulty options**, including a gentle mode. *(Designed-in; Story / Survivor /
   Hardcore / Nightmare + Ironman, GDD XVI.)*
-- [ ] **[B]** **Pause anytime & stop anytime** with no loss. *(Designed-in; FR-CORE-07,
+- [x] **[B]** **Pause anytime & stop anytime** with no loss. *(T63 note: turn-based, so pausing is free; stopping
+  without loss means saving first — S in the terminal, Save in the browser, which has no autosave.)* *(Designed-in; FR-CORE-07,
   NFR-SAVE-01.)*
-- [ ] **[B]** **No essential information conveyed only by a timed sequence.** *(Designed-in;
+- [x] **[B]** **No essential information conveyed only by a timed sequence.** *(Designed-in;
   no wall-clock, TEC-01.)*
-- [ ] **[B]** **Clear, consistent screen model** — one decision at a time; the same header /
-  status / story / choices / footer stack every turn. *(Designed-in; FR-UI-01, GDD XVII.)*
+- [x] **[B]** **Clear, consistent screen model** — one decision at a time; the same header /
+  status / story / choices / footer stack every turn. *(Designed-in; FR-UI-01, GDD XVII. T63: in the web client the
+  stack is a fixed heading outline — scene heading, condition, what you hear, the story, "What do you do?" — walked
+  by heading in Orca, `docs/qa/at/T63_web-turn.md`.)*
 - [ ] **[I]** **Always-available objective / "where am I" recap.** Surface the save's one-line
   "where you are" summary (DESIGN §9) on demand so a returning player re-orients. *(Planned.)*
 - [ ] **[I]** **Optional tutorial & hints.** GDD XVI's "teach through pressure, not tutorials" is
@@ -147,7 +192,9 @@ The eleven gaps are the real agenda; they are pulled together in §10.
   codex of coined terms, survivors met, and what happened. *(Planned; leverages existing systems.)*
 - [ ] **[I]** **"What changed" is always legible.** The Four Questions guarantee every scene
   answers *what changed* (GDD III) — make that summary explicit and consistent, not buried in
-  prose, for players who can't infer it. *(Planned.)*
+  prose, for players who can't infer it. *(Planned. T63 PARTIAL: for a screen-reader player the announcer's
+  "Only what changed" setting speaks exactly the condition and sound lines that are new this turn; there is no visual
+  equivalent yet.)*
 - [ ] **[A]** **Difficulty adjustable mid-run**, not only at start. *(Gap/decision: interacts with
   Ironman/roguelite integrity — decide which modes allow it.)*
 - [ ] **[A]** **Optional reading-load reduction.** The prose is the art and won't be "dumbed
@@ -160,9 +207,11 @@ The eleven gaps are the real agenda; they are pulled together in §10.
 
 ## 7. Vision
 
-- [ ] **[B]** **Resizable text to ≥200%** without loss of function or truncation. *(Designed-in;
-  colorway "scales to 200%", `--type-*` scale — verify reflow at 200%, especially choice rows.)*
-- [ ] **[B]** **Legible default size & measured line length.** 19px story body, 1.62 line-height,
+- [x] **[B]** **Resizable text to ≥200%** without loss of function or truncation. *(Designed-in;
+  colorway "scales to 200%", `--type-*` scale — verify reflow at 200%, especially choice rows. T63: a Text size
+  setting to 200% (it stopped at 130%); at 320 px wide and 200% nothing scrolls sideways or clips, asserted by
+  `a11y-check.mjs` §F.)*
+- [x] **[B]** **Legible default size & measured line length.** 19px story body, 1.62 line-height,
   64ch max measure. *(Designed-in; `tokens.css`. Note: `--measure` becomes per-script for
   CJK/Arabic, see LOCALIZATION §8.)*
 - [x] **[B]** **High contrast, verified.** Body text clears WCAG **AAA**; ships a high-contrast
@@ -173,24 +222,34 @@ The eleven gaps are the real agenda; they are pulled together in §10.
   (`FEVERISH`, not just a green pixel). *(Designed-in; colorway core rule, NFR-ACC-01.)*
 - [ ] **[B]** **Photosensitivity-safe.** No flashing >3 Hz; nothing in the saturated-red danger
   range flashes. The "flicker for a failing light" and similar effects must be capped and
-  disable-able. *(Gap/decision; NFR-ACC-04 — see §10.)*
+  disable-able. *(Gap/decision; NFR-ACC-04 — see §10. T63: MET ONLY VACUOUSLY and so left unticked — nothing in any
+  client flashes because none of the designed flicker effects is built. The client lint makes any future motion obey
+  reduced-motion, but a 3 Hz cap is not yet enforced for players who have not set that preference.)*
 - [ ] **[I]** **Reduced-motion mode.** Honor OS `prefers-reduced-motion` and an in-game toggle for
   text-arrival animation, feverish letter-spacing drift, power-out dimming, and Quiet-Screen
-  transitions. *(Planned; NFR-ACC-04, effects catalogued in colorway "States & degradation".)*
+  transitions. *(Planned; NFR-ACC-04, effects catalogued in colorway "States & degradation". T63 PARTIAL: the OS
+  preference is honoured and gated; the in-game toggle is deliberately not shipped while there is no effect for it to
+  switch — a toggle that changes nothing is a dead affordance.)*
 - [x] **[I]** **Colorblind-safe palette, validated.** The rationed palette is checked for deuteranopia/protanopia/tritanopia by the `validate:a11y` gate (Machado-2009 CVD simulation + CIELAB ΔE). *Finding (corrects the colorway's guess):* under red-green CVD the real convergent pairs are the **warm cluster** — `--accent`/`--infection`, `--accent`/`--warning`, `--danger`/`--infection`, `--infection`/`--warning` — **not** `--hope`/`--infection` (teal/bile), which stays separable. All are covered by the core rule that colour is never the sole signal (every hue paired with a label/icon); a *new* collapse outside that documented set fails the gate. Full ΔE table in [`../qa/QA_REVIEW_M4_PART13.md`](../qa/QA_REVIEW_M4_PART13.md). *(colorway's `--hope`/`--infection` adjacency caution stands as a separate visual-crowding rule.)*
 - [ ] **[I]** **Scalable / themable UI, not just body text** — controls, tags, and meta scale with
-  text; offer text/background theme choices beyond the two shipped. *(Planned.)*
-- [ ] **[I]** **Distinct, visible focus indicator** for keyboard/AT users. *(Designed-in;
+  text; offer text/background theme choices beyond the two shipped. *(Planned. T63 PARTIAL: every control, tag and
+  meta line is rem-sized and scales with the Text size setting; forced colours are supported; there are still only the
+  two themes.)*
+- [x] **[I]** **Distinct, visible focus indicator** for keyboard/AT users. *(Designed-in;
   `--focus-ring: 0 0 0 2px var(--accent)` — verify it's never suppressed and meets non-text
-  contrast.)*
-- [ ] **[A]** **Full screen-reader support for gameplay *and* menus** — semantic structure, new
+  contrast. T63: a 3 px `--accent` outline on `:focus-visible` (7.24:1 on `--bg`, over the 3:1 non-text minimum),
+  `Highlight` under forced colours; only programmatic focus on a heading hides it.)*
+- [x] **[A]** **Full screen-reader support for gameplay *and* menus** — semantic structure, new
   scene text announced via a polite live region, choices exposed as a labelled list/buttons,
   status changes announced, drill-downs as focus-managed dialogs. *(Planned — flagship item; the
-  game is mostly text, so this should be exceptional. NFR-ACC-02, GDD XVII. See §10.)*
-- [ ] **[A]** **Dyslexia-friendly reading options** — a toggle to a high-legibility sans for the
+  game is mostly text, so this should be exceptional. NFR-ACC-02, GDD XVII. See §10. T63: built and VERIFIED WITH
+  ORCA on both clients (`docs/qa/at/`). Verified with that one reader only — the §12 matrix is not done.)*
+- [x] **[A]** **Dyslexia-friendly reading options** — a toggle to a high-legibility sans for the
   story window (the default is a serif), adjustable letter/line/paragraph spacing. *(Gap/decision;
-  the three-font system is deliberate — offer an accessible override, don't discard it.)*
-- [ ] **[A]** **Audio description N/A / covered by text.** The world is described in prose already;
+  the three-font system is deliberate — offer an accessible override, don't discard it. T63: Story font — serif or
+  sans-serif — and Letter and line spacing — standard or wide (letter, word, line and paragraph spacing together);
+  no dyslexia-specific typeface is bundled.)*
+- [x] **[A]** **Audio description N/A / covered by text.** The world is described in prose already;
   ensure any purely-visual state (an icon-only tag) also has text. *(Designed-in.)*
 
 ## 8. Hearing
@@ -223,9 +282,9 @@ meaningful sound cue."
 
 ## 9. Speech
 
-- [ ] **[B]** **No speech input required.** Nothing is gated behind a microphone. *(Designed-in;
+- [x] **[B]** **No speech input required.** Nothing is gated behind a microphone. *(Designed-in;
   single-player, choice-driven — note it so no future feature breaks it.)*
-- [ ] **[B]** **No mandatory voice chat.** No multiplayer at v1.0 (PRD §6 Won't-now). *(Designed-in.)*
+- [x] **[B]** **No mandatory voice chat.** No multiplayer at v1.0 (PRD §6 Won't-now). *(Designed-in.)*
 
 ## 10. Key workstreams (the real agenda)
 
@@ -291,10 +350,19 @@ hooks alongside the localization gates (LOCALIZATION §13):
 - **Automated (CI):** contrast assertions against `tokens.css` (the §11 table as tests);
   axe-core / Lighthouse on the web client; a focus-order and "every control has an accessible
   name" check; a lint rule for `--danger`/`--info` misuse on body text.
+  **T63:** the §11 table ✅ (T56); the client lint ✅ (`content-loader/src/a11y/client.ts`); the focus / accessible-name
+  / dialog / contrast / reflow / target / motion check ✅ (`prototype/harness/web/a11y-check.mjs`, Chromium's
+  accessibility tree over CDP). **Not axe-core or Lighthouse** — no npm dependency was added; the rules they would
+  add beyond these are not covered.
 - **Manual, per milestone:** screen-reader passes on **NVDA + Firefox, JAWS + Chrome, VoiceOver
   (macOS/iOS), TalkBack (Android)**; keyboard-only run of a full turn + every drill-down;
   switch-access smoke test; 200% and 400% zoom reflow; reduced-motion and high-contrast runs;
   photosensitivity check (flash-rate analysis) on all motion effects.
+  **T63:** Orca + Chromium and Orca + VTE terminal ✅ (`docs/qa/at/`); NVDA, JAWS, VoiceOver, TalkBack ❌ not run;
+  keyboard: Tab reaches every control from a fresh load and each turn and drill-down is operated by key ✅
+  (`a11y-check.mjs` §A–C; the Orca scenarios focus their starting control by script, then use keys); 200% text and
+  320 px (the 400% reflow width) ✅; reduced motion ✅; high contrast ✅; forced colours in Chromium's emulation only;
+  switch access ❌; flash-rate analysis — nothing flashes.
 - **Human playtesting** with disabled players / an accessibility consultancy, folded into the
   M5 accessibility pass — and ideally the M1 slice screen-reader prototype.
 - **Definition of done (per release):** NFR-ACC-01…04 satisfied; all `[B]` and `[I]` items met;
@@ -326,7 +394,7 @@ hooks alongside the localization gates (LOCALIZATION §13):
 | **M2 — Reactive world** | Reduced-motion + photosensitivity policy across the growing effect set; focus indicators; volume channels. |
 | **M3 — People & shelter** | Codex/journal clarity layer; "what changed" + recap; captioned SFX + speech subtitles as content grows. |
 | **M4 — Content-complete** | ✅ **T56 pt 2 (2026-07-18):** FR-AUD-06 cue-redundancy matrix tracked + tested end-to-end (`cueMatrix.ts`/`.test.ts`, `docs/reference/AUDIO_CUE_MATRIX.md`); colourblind + contrast validation shipped as the `validate:a11y` CI gate over `tokens.css`; NFR-ACC-01 acceptance consolidated. Dyslexia / reading-load font options remain an M5 web-client concern. |
-| **M5 — Release candidate** | Full screen-reader parity (gameplay + menus), human playtest with disabled players, all `[A]` items, accessibility statement. Satisfies PRD M5 "accessible (NFR-ACC)". |
+| **M5 — Release candidate** | Full screen-reader parity (gameplay + menus), human playtest with disabled players, all `[A]` items, accessibility statement. Satisfies PRD M5 "accessible (NFR-ACC)". **T63 (2026-09-15):** screen-reader support built and verified with Orca on both clients; reader settings; the client lint and the CI page check; the accessibility statement (`docs/ACCESSIBILITY_STATEMENT.md`). **Not done:** the other four screen readers (NVDA, JAWS, VoiceOver, TalkBack), the human playtest, switch access, and the `[A]`/`[I]` items still unticked above. |
 
 ## Appendix B — Reference map
 

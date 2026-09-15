@@ -1,0 +1,60 @@
+{
+ "title": "Terminal client — a turn and a depth screen",
+ "about": "The terminal client under Orca in a VTE terminal; runs unchanged on the pre-T63 client. What must hold: a turn is spoken in reading order; opening a depth screen speaks the whole screen, title line first, and then STOPS (before T63 the title line was dropped and the whole scene ran straight on after the screen); a bare Enter returns to the story.",
+ "steps": [
+  {
+   "label": "launch",
+   "fromLaunch": true,
+   "keys": [],
+   "wait": 3000,
+   "expect": [
+    "What do you do?",
+    "Travel to Corner Store"
+   ]
+  },
+  {
+   "label": "type 2, Enter",
+   "type": "2",
+   "keys": [
+    "Return"
+   ],
+   "wait": 20000,
+   "quietMs": 2500,
+   "expect": [
+    "at Collapsed Overpass",
+    "What do you do?"
+   ]
+  },
+  {
+   "label": "type I, Enter — the inventory",
+   "type": "I",
+   "keys": [
+    "Return"
+   ],
+   "wait": 20000,
+   "quietMs": 2500,
+   "expect": [
+    "— Inventory — your pack",
+    "Pack: 12/40 weight",
+    "Enter returns to the story"
+   ],
+   "forbid": [
+    "What do you do?"
+   ]
+  },
+  {
+   "label": "Enter — back to the story",
+   "keys": [
+    "Return"
+   ],
+   "wait": 20000,
+   "quietMs": 2500,
+   "expect": [
+    "What do you do?"
+   ],
+   "forbid": [
+    "type a number"
+   ]
+  }
+ ]
+}

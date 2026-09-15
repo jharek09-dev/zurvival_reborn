@@ -1,0 +1,14 @@
+{
+ "title": "Web client — a dialog keeps the keyboard (runs unchanged on the pre-T63 page)",
+ "about": "Written against selectors both the pre-T63 page and the T63 page have, so the SAME script is evidence before and after: open the Companions screen from the depth-screen bar, read on with the browse cursor, Tab three times, press Escape. What must hold: the dialog is announced; after reading on with Down, Tab still lands inside the dialog; Escape closes it and focus is back on the button that opened it.",
+ "steps": [
+  {"js": "document.querySelector('#screens button:nth-child(2)').focus()"},
+  {"label": "Enter on Companions", "keys": ["Return"], "expect": ["dialog", "Close push button"]},
+  {"label": "Orca Down", "keys": ["Down"]},
+  {"label": "Orca Down", "keys": ["Down"]},
+  {"label": "Tab", "keys": ["Tab"], "focus": "dialog *, [role=dialog] *"},
+  {"label": "Tab", "keys": ["Tab"], "focus": "dialog *, [role=dialog] *"},
+  {"label": "Tab", "keys": ["Tab"], "focus": "dialog *, [role=dialog] *", "forbid": ["Address and search bar", "Skip to"]},
+  {"label": "Escape", "keys": ["Escape"], "wait": 8000, "quietMs": 2000, "focus": "#screens button:nth-child(2)", "expect": ["Companions push button"], "forbid": ["You hear:"]}
+ ]
+}

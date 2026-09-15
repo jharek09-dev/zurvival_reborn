@@ -1,0 +1,98 @@
+{
+ "title": "Web client — taking a turn",
+ "about": "A choice is taken from the keyboard. Written against selectors both the pre-T63 page and the T63 page have, so the same script is evidence before and after. What must hold: the choice button's name carries its cost in words; after Enter, focus is on the NEW scene's heading (the button pressed no longer exists) and Orca speaks one ordered digest ending in the choice count; the scene can then be walked by heading.",
+ "steps": [
+  {
+   "js": "document.querySelector('#choices .choice').focus()"
+  },
+  {
+   "label": "Tab to the second choice",
+   "keys": [
+    "Tab"
+   ],
+   "expect": [
+    "Travel to Collapsed Overpass, 2 hours push button"
+   ],
+   "forbid": [
+    "1 hours"
+   ],
+   "focus": "#choices > li:nth-child(2) > .choice, #choices > .choice:nth-child(2)"
+  },
+  {
+   "label": "Enter takes it",
+   "keys": [
+    "Return"
+   ],
+   "wait": 12000,
+   "quietMs": 2000,
+   "focus": "#scene-title",
+   "expect": [
+    "Day 1, dawn 08:00 — at Collapsed Overpass",
+    "/\\d+ choices?\\./"
+   ],
+   "forbid": [
+    "WHAT YOU HEAR",
+    "What you hear What you hear",
+    "region Day"
+   ],
+   "note": "The scene section was a region named by its own heading in the first T63 build, and Orca then spoke the day, time and place twice on every turn ('region Day 1 …' then the heading); it is no longer a named region."
+  },
+  {
+   "label": "Orca H — next heading",
+   "keys": [
+    "h"
+   ],
+   "expect": [
+    "Your condition heading level 3"
+   ]
+  },
+  {
+   "label": "Orca H",
+   "keys": [
+    "h"
+   ],
+   "expect": [
+    "What you hear heading level 3"
+   ]
+  },
+  {
+   "label": "Orca H",
+   "keys": [
+    "h"
+   ],
+   "expect": [
+    "The story heading level 3"
+   ]
+  },
+  {
+   "label": "Orca H",
+   "keys": [
+    "h"
+   ],
+   "expect": [
+    "What do you do? heading level 2"
+   ]
+  },
+  {
+   "label": "Orca Down — the first choice",
+   "keys": [
+    "Down"
+   ],
+   "expect": [
+    "/list with \\d+ items|push button/"
+   ]
+  },
+  {
+   "label": "Orca B — next button",
+   "keys": [
+    "b"
+   ],
+   "expect": [
+    "push button"
+   ],
+   "forbid": [
+    "1 hours"
+   ]
+  }
+ ]
+}

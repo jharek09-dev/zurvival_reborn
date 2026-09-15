@@ -133,6 +133,15 @@ async function main(argv: readonly string[]): Promise<number> {
   };
 
   draw();
+  // T63: a depth screen STAYS on screen until the player leaves it. Before T63 the screen was written and the
+  // whole scene redrawn in the same tick, so in a terminal the screen scrolled straight off and — verified with
+  // a real screen reader, Orca in a VTE terminal — the reader dropped the screen's title line and ran the rest
+  // straight into the full scene with no break (docs/qa/at/T63_PRE_cli-screen.md), while the screen's own last line
+  // promised "[any other key returns to the story]". Now the screen waits, and the hint says what each key does. What the next line DOES is unchanged and is exactly
+  // `playByInputs`' fold (a screen is a free overlay on the same scene): another screen key opens that screen,
+  // a choice number / S / Q acts, and a line that is not a command — a bare Enter — returns to the story
+  // instead of printing the "type a number" complaint.
+  let onScreen = false;
   for await (const line of rl) {
     const cmd = parseCommand(sceneOf(state, graph), line);
     if (cmd.kind === "quit") { process.stdout.write("Left the run (unsaved).\n"); rl.close(); return 0; }
@@ -143,13 +152,18 @@ async function main(argv: readonly string[]): Promise<number> {
       return 0;
     }
     if (cmd.kind === "screen") {
-      // A depth screen is a read-only overlay (FR-UI-04): show it, then redraw the scene. No turn
+      // A depth screen is a read-only overlay (FR-UI-04): show it and wait (T63 — see above). No turn
       // resolves, no time is spent, no state changes — opening a screen is free.
-      process.stdout.write(`\n${renderDepthScreen(cmd.screenId, state, graph).join("\n")}\n`);
-      draw();
+      process.stdout.write(`\n${renderDepthScreen(cmd.screenId, state, graph).join("\n")}\n\n> `); // one atomic write
+      onScreen = true;
       continue;
     }
-    if (cmd.kind === "invalid") { process.stdout.write(`(${cmd.reason})\n> `); continue; }
+    if (cmd.kind === "invalid") {
+      if (onScreen) { onScreen = false; draw(); continue; } // leaving a screen is not a mistake
+      process.stdout.write(`(${cmd.reason})\n> `);
+      continue;
+    }
+    onScreen = false;
     const action = availableActions(state, graph).find((c) => c.id === cmd.choiceId)!.action;
     state = applyAction(state, action, graph).state;
     if (isRunOver(state)) {

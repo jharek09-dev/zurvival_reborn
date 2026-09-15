@@ -1,0 +1,67 @@
+{
+ "title": "Web client — reader settings",
+ "about": "The Settings dialog is operated with a screen reader. What must hold: each option is announced inside the setting it belongs to, Space selects it and the page's text really does grow, and closing the dialog replays nothing (in the first T63 build closing it re-read the last turn's whole digest).",
+ "steps": [
+  {
+   "js": "document.querySelector('#btn-settings').focus()"
+  },
+  {
+   "label": "Enter on Settings — focus lands on the first setting, in its group",
+   "keys": [
+    "Return"
+   ],
+   "focus": "#set-scale-1",
+   "expect": [
+    "dialog",
+    "Text size panel",
+    "/100% ‖ selected radio button/"
+   ]
+  },
+  {
+   "label": "Right arrow",
+   "keys": [
+    "Right"
+   ],
+   "expect": [
+    "125%"
+   ]
+  },
+  {
+   "label": "Space selects 125%",
+   "keys": [
+    "space"
+   ],
+   "focus": "#set-scale-125",
+   "expect": [
+    "/(^|[^t] )selected/"
+   ],
+   "assertJs": "window.__ZURV_UI.settings.scale === 1.25 && getComputedStyle(document.documentElement).fontSize === '20px'"
+  },
+  {
+   "label": "Tab to Contrast",
+   "keys": [
+    "Tab"
+   ],
+   "expect": [
+    "Contrast panel",
+    "Follow my system"
+   ]
+  },
+  {
+   "label": "Escape closes, nothing replays",
+   "keys": [
+    "Escape"
+   ],
+   "wait": 8000,
+   "quietMs": 2000,
+   "focus": "#btn-settings",
+   "expect": [
+    "Settings push button"
+   ],
+   "forbid": [
+    "You hear:",
+    "choices."
+   ]
+  }
+ ]
+}

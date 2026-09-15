@@ -1,0 +1,10 @@
+{
+ "title": "Web client — the last turn of a run",
+ "about": "A run is played to one turn before its end (by script), then the fatal choice is taken from the keyboard. What must hold: focus lands on 'The run is over.', and Orca speaks the ending and how to start again.",
+ "steps": [
+  {"js": "(function(){var U=window.__ZURV_UI;var prev=null,lab=null;for(var i=0;i<800;i++){var bs=[].slice.call(document.querySelectorAll('.choice'));if(!bs.length)break;var b=bs.filter(function(x){return /Rest/.test(x.textContent)})[0]||bs[bs.length-1];prev=U.G.state;lab=b.getAttribute('data-choice');b.click();if(document.querySelector('.ended'))break;}U.G.state=prev;U.render({});document.querySelector('[data-choice=\"'+lab+'\"]').focus();return lab;})()", "wait": 8000},
+  {"label": "Enter — the last choice", "keys": ["Return"], "wait": 20000, "quietMs": 3000, "focus": "#choices-title",
+   "expect": ["The run is over.", "Start a new run to play again."]},
+  {"label": "Tab", "keys": ["Tab"], "expect": ["New run push button"]}
+ ]
+}

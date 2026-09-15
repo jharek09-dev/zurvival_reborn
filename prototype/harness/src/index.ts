@@ -61,6 +61,12 @@ export {
   screenById,
   screenLegend,
   renderDepthScreen,
+  // the same screen as structure, for a semantic (web / assistive-tech) client (T63 · NFR-ACC-02)
+  outlineScreen,
+  type ScreenOutline,
+  type ScreenBlock,
+  type ScreenItem,
+  type ScreenLine,
   renderInventory,
   renderCompanions,
   renderShelter,
