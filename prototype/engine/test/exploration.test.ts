@@ -113,10 +113,14 @@ describe("a node contributes to its own loot (T84 · FR-ECO-02)", () => {
   it("the gate is OFF for a set that authors no richness — the cap is the exact pre-T84 number", () => {
     const { graph } = run(PLAIN);
     expect(richnessAuthored(graph)).toBe(false);
-    // The pre-T84 formula, spelled out rather than referenced, so a change to it has to come through here.
+    // The formula, spelled out rather than referenced, so a change to it has to come through here.
+    // T59 halved both terms together (800 -> 400, 34 -> 17) so that a district's stock buys twice the
+    // cap while the picked-over penalty still costs exactly one point per third of a node's progress —
+    // `SEARCH_GAIN` moved 34 -> 17 in the same pass. The gate is still OFF here: what this proves is
+    // that an unauthored set computes the UNRICHENED number, not that the number never moves.
     for (const loot of [0, 8, 24, 50, 70, 85, 100]) {
-      for (const pct of [0, 34, 68, 100]) {
-        const expected = Math.max(0, Math.min(loot, Math.trunc(loot / 8) - Math.trunc(pct / 34)));
+      for (const pct of [0, 17, 34, 51, 68, 85, 100]) {
+        const expected = Math.max(0, Math.min(loot, Math.trunc(loot / 4) - Math.trunc(pct / 17)));
         expect(searchYieldCap(loot, pct)).toBe(expected);
         expect(searchYieldCap(loot, pct, DEFAULT_RICHNESS)).toBe(expected);
       }
@@ -133,27 +137,34 @@ describe("a node contributes to its own loot (T84 · FR-ECO-02)", () => {
   });
 
   it("richness multiplies the cap, and never conjures stock the region does not have", () => {
-    expect(searchYieldCap(88, 0, 100)).toBe(11);
-    expect(searchYieldCap(88, 0, 200)).toBe(22);
-    expect(searchYieldCap(88, 0, 50)).toBe(5);
+    // T59: the denominator halved (800 -> 400), so every cap here is exactly twice its pre-T59 value.
+    // Richness is still a pure multiplier on the region term, which is the property under test.
+    expect(searchYieldCap(88, 0, 100)).toBe(22);
+    expect(searchYieldCap(88, 0, 200)).toBe(44);
+    expect(searchYieldCap(88, 0, 50)).toBe(11);
     expect(searchYieldCap(88, 0, 0)).toBe(0);
     // Richness scales the REGION's term, so a deep place is the LAST one in a thinning district to run
     // dry — where an ordinary node has already reached zero.
-    expect(searchYieldCap(7, 0, DEFAULT_RICHNESS)).toBe(0);
-    expect(searchYieldCap(7, 0, 250)).toBe(2);
-    // ...but it can never hand out a point the district does not hold: the clamp to what remains binds.
+    expect(searchYieldCap(3, 0, DEFAULT_RICHNESS)).toBe(0);
+    expect(searchYieldCap(3, 0, 250)).toBe(1);
+    // ...but it can never hand out a point the district does not hold. T59 halved the denominator, so
+    // the arithmetic bound is now `cap <= trunc(0.625 * loot)` where it was `0.3125 * loot`: still
+    // <= loot for every non-negative loot, so the `Math.min(regionLoot, ...)` clamp remains a backstop
+    // that cannot engage — it starts binding the moment RICHNESS_MAX passes 400 rather than 800.
     expect(searchYieldCap(0, 0, 250)).toBe(0);
     expect(searchYieldCap(1, 0, 250)).toBe(0);
-    expect(searchYieldCap(4, 0, 250)).toBe(1);
+    expect(searchYieldCap(4, 0, 250)).toBe(2);
     for (const loot of [0, 1, 2, 3, 5, 9, 17, 40]) {
       for (const r of [0, 50, 100, 250]) expect(searchYieldCap(loot, 0, r)).toBeLessThanOrEqual(loot);
     }
     // And the node's own picked-over penalty is NOT amplified by richness — a rich node loses the same
-    // 1 per 34% searched that a poor one does, which is what keeps a low-richness node from reaching a
-    // guaranteed-empty search the Scene would still offer.
+    // 1 per 17% searched (T59: was 34%, halved alongside SEARCH_GAIN) that a poor one does, which is
+    // what keeps a low-richness node from reaching a guaranteed-empty search the Scene would offer.
+    // T59: the penalty steps once per 17 points of searchPct, i.e. once per search at SEARCH_GAIN 17.
     for (const r of [20, 100, 200]) {
-      expect(searchYieldCap(88, 0, r) - searchYieldCap(88, 34, r)).toBe(1);
-      expect(searchYieldCap(88, 34, r) - searchYieldCap(88, 68, r)).toBe(1);
+      expect(searchYieldCap(88, 0, r) - searchYieldCap(88, 17, r)).toBe(1);
+      expect(searchYieldCap(88, 17, r) - searchYieldCap(88, 34, r)).toBe(1);
+      expect(searchYieldCap(88, 34, r) - searchYieldCap(88, 51, r)).toBe(1);
     }
   });
 

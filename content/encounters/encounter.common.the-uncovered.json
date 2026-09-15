@@ -4,6 +4,7 @@
   "title": "The uncovered",
   "premise": "The weather has laid a body bare again.",
   "repeatable": true,
+  "tone": "tension",
   "cooldownHours": 120,
   "tags": ["the-dead"],
   "requirements": {

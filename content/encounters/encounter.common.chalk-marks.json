@@ -4,6 +4,7 @@
   "title": "Chalk marks",
   "premise": "Someone's private code on the brick.",
   "repeatable": true,
+  "tone": "neutral",
   "cooldownHours": 96,
   "tags": ["scavenger-sign"],
   "requirements": {

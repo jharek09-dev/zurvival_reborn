@@ -42,13 +42,31 @@ export interface DifficultyProfile {
   /** Survivability — multiplier on food/water relief. >1 ⇒ a ration buys back more. */
   readonly needRelief: number;
   /**
-   * Scarcity FIND-DENIAL gate — a multiplier (≤1) on a search's yield cap used only to decide whether a
-   * THIN search comes up empty (a harder mode denies a find when the node is nearly stripped). The find
-   * *amount* draws against the raw cap, so this can only DENY a find, never grant one — Story keeps this at
-   * 1 (its loot advantage rides {@link lootContest}, which keeps regions rich). 1 = never deny (Survivor).
+   * Scarcity HAUL multiplier (≤1) — scales a search's points→items conversion, so a harder mode's
+   * rummage through the same district comes away with fewer items. It can only reduce a haul, never
+   * grant one, so Story keeps it at 1 and takes its loot advantage through {@link lootContest} (which
+   * keeps districts rich). 1 = the full haul (Survivor / unset, and byte-identical).
+   *
+   * T60 moved this off the yield CAP, where T56 first sited it and where it measured **0.1 turns** at
+   * Nightmare's 0.6 — see the note at its use site in `sim/loot.ts` for why the cap could not work.
    */
   readonly lootYield: number;
-  /** Scarcity — multiplier on off-screen rivals' loot draw-down. >1 ⇒ the world eats the stock faster. */
+  /**
+   * Scarcity — multiplier on off-screen rivals' loot draw-down. >1 ⇒ the world eats the stock faster.
+   *
+   * **The weakest dial in the set, structurally, and T60 measured why rather than cranking it.** Over a
+   * 3.3× magnitude range (1.8 / 3 / 6) it moves the haul — 8.5 / 7.7 / 6.3 items a run — and moves
+   * survival by nothing: 51.1 / 51.1 / 50.9 turns against a 51.5 control. It is competing for `loot`,
+   * and after T59 a run is bounded by the district's drinkable WATER, which this never touches. T60
+   * built and measured the obvious fix (rivals drink too, on the same banked clock) and **reverted it**:
+   * it bought about half a turn, inside the noise of what the dial already had, for a new drain on the
+   * binding resource. That last figure measures code that is not in the tree and nothing can check it —
+   * it is recorded as a decision, not offered as a reading. Left at its first-pass magnitude, doing the
+   * job it can actually do (thinning what you find), and declared. See PL-M5-81.
+   *
+   * (Both sweeps above are rebuild sweeps: the dial is edited and the tree re-run. `measure/t60.ts`
+   * cannot print them; `docs/qa/QA_REVIEW_T60.md` records how they were taken.)
+   */
   readonly lootContest: number;
   /**
    * Pacing — multiplier on the Director's *escalate* nudge (a coasting run is escalated harder). The base
@@ -58,6 +76,43 @@ export interface DifficultyProfile {
    * escalates, only relieves). 1 = Survivor's single step (the identity).
    */
   readonly directorAggression: number;
+  /**
+   * **Consequence** — multiplier on the hourly progression an untreated bite adds
+   * (`sim/infection.ts`'s `BITE_INFECT_RATE`, base 2). The first consequence dial in the set, and the
+   * reason PL-M4-57 named one: before T60 all five dials were scarcity, needs or pacing, so "harsher
+   * consequences" was a thing the mode descriptions promised and no dial delivered.
+   *
+   * It is the strongest lever T60 measured anywhere in the engine. Isolated (this dial alone off
+   * identity, 120 runs, control 51.5 turns): at **0.5** a run lasts **54.1 turns** and 2 of 120 end in
+   * infection; at **1** it is the 51.5-turn control with 21 of 120; at **2** it is **44.3 turns** and
+   * **54 of 120** — infection becomes the commonest death in the game. A rebuild sweep (the dial is
+   * edited and the tree re-run), so `measure/t60.ts` cannot print it; `--modes` shows the end-to-end
+   * consequence. It is also
+   * where integer truncation stops being a hazard and becomes the point: against a base of 2 the four
+   * multipliers land on the whole numbers 1 / 2 / 3 / 4, one clean step a mode, with no rounding rule
+   * to argue about.
+   *
+   * GDD XVI rule 1 is honoured: this scales what an untreated wound COSTS, never an enemy's stats.
+   */
+  readonly infectionRisk: number;
+  /**
+   * **Consequence** — multiplier on {@link LAST_STAND_AT}, the untreated-wound burden at which being
+   * held stops being a fight and becomes a death. Lower is harsher, so this dial runs the opposite way
+   * to the others: Story is forgiving at >1, Nightmare unforgiving at <1.
+   *
+   * Closes the headline half of PL-M5-45, open for four consecutive tasks: the threshold was a flat 80
+   * on Story and Ironman alike. Measured in isolation (rebuild sweep, 120 runs, control 51.5 turns),
+   * 0.7 gives **49.2 turns** with the Last Stand as the commonest death (52 of 120 against the
+   * control's 49) — real, and gentler than the infection dial, so the magnitudes here are deliberately
+   * modest.
+   *
+   * Its resolution is coarse and deliberately declared: the untreated-wound burden at a grab has a 32%
+   * atom at exactly 40 (one `wound.bite`), so the threshold moves in discrete steps of about ten points
+   * of dial. Two consequences a retune must know. 0.7 and 0.55 straddle only one sample in nineteen and
+   * measured bit-identical over 60 runs. And **0.5 puts the threshold ON 40**, where the test is `>=`,
+   * so any grab while carrying a single untreated bite becomes instantly fatal — a cliff, not a step.
+   */
+  readonly woundTolerance: number;
 }
 
 /** The neutral profile — every dial its identity. Survivor and an unset difficulty resolve to this. */
@@ -67,6 +122,8 @@ export const IDENTITY_PROFILE: DifficultyProfile = {
   lootYield: 1,
   lootContest: 1,
   directorAggression: 1,
+  infectionRisk: 1,
+  woundTolerance: 1,
 };
 
 /**
@@ -79,10 +136,10 @@ export const IDENTITY_PROFILE: DifficultyProfile = {
 const PROFILES: { readonly [mode in DifficultyMode]: DifficultyProfile } = {
   // NB directorAggression uses INTEGER steps (see the field doc): 1.5 would trunc back to Survivor's 1, so
   // Hardcore/Nightmare use 2/3. lootYield only DENIES (≤1), so Story keeps it at 1 (loot ease via contest).
-  story: { needDrift: 0.7, needRelief: 1.3, lootYield: 1, lootContest: 0.6, directorAggression: 0.5 },
+  story: { needDrift: 0.7, needRelief: 1.5, lootYield: 1, lootContest: 0.6, directorAggression: 0.5, infectionRisk: 0.5, woundTolerance: 1.25 },
   survivor: IDENTITY_PROFILE,
-  hardcore: { needDrift: 1.25, needRelief: 0.85, lootYield: 0.8, lootContest: 1.4, directorAggression: 2 },
-  nightmare: { needDrift: 1.5, needRelief: 0.7, lootYield: 0.6, lootContest: 1.8, directorAggression: 3 },
+  hardcore: { needDrift: 1.2, needRelief: 0.85, lootYield: 0.8, lootContest: 1.4, directorAggression: 2, infectionRisk: 1.5, woundTolerance: 0.85 },
+  nightmare: { needDrift: 1.35, needRelief: 0.7, lootYield: 0.6, lootContest: 1.8, directorAggression: 3, infectionRisk: 2, woundTolerance: 0.7 },
 };
 
 /**

@@ -99,9 +99,19 @@ export const hasSuccumbed = (infection: Infection): boolean => infection.progres
  * climbs past terminal onset toward {@link INFECT_SUCCUMB_AT} while the driver runs; treating the bite
  * (closing the wound) or curing it stops/reverses it. Pure — returns a new {@link Infection}.
  */
-export function advanceInfection(infection: Infection, biteOpen: boolean, hours: number): Infection {
+export function advanceInfection(infection: Infection, biteOpen: boolean, hours: number, rate: number = BITE_INFECT_RATE): Infection {
   if (!biteOpen || hours <= 0) return infection;
-  const progression = clampInfection(infection.progression + BITE_INFECT_RATE * hours);
+  // T60: `rate` defaults to the flat constant, so every existing caller and every prior save is
+  // byte-identical; the survival loop passes the difficulty-scaled rate (see `infectionRisk`). Total
+  // about a hand-edited profile: a non-finite or negative rate cannot make the fever RECEDE, which
+  // would be a cure by save-editing — it reads as the base rate.
+  // Truncate FIRST, then test. `rate > 0 && Math.trunc(rate)` passes 0.5 and then returns 0 — the
+  // fever stops entirely, which is the one outcome this guard exists to prevent, and an audit found it
+  // by asking for rate 0.5 (progression 0 after 24 hours with an open bite). A rate that truncates to
+  // nothing is junk, not a cure, and reads as the base rate.
+  const whole = Number.isFinite(rate) ? Math.trunc(rate) : 0;
+  const perHour = whole > 0 ? whole : BITE_INFECT_RATE;
+  const progression = clampInfection(infection.progression + perHour * hours);
   if (progression === infection.progression) return infection;
   return { progression, stage: stageFor(progression) };
 }

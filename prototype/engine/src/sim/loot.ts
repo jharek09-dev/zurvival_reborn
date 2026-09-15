@@ -31,8 +31,19 @@ import { bankHours } from "./clocks.js";
  * Rivals draw a region down one point per this many banked *pressure-hours* (`survivorActivity` x hours).
  * T74: the remainder is carried on `RegionState.lootContestHours`, so ordinary turns accumulate instead
  * of truncating to nothing; the T56 scarcity dial shortens this period rather than scaling the points.
+ *
+ * **50 -> 120 (M5 task T59 · GDD X rule 4 "loot is finite and contested").** At 50 the city stripped
+ * ITSELF, on a wall clock, faster than any run could reach it — measured off the shipped baselines,
+ * with the player asleep: the-terraces empty on **day 2.1**, hillcrest **day 2.3**, the start district
+ * **day 5.8**, the whole city by **day 17.7**. "The world can beat you to it" had become "the world
+ * has already been". Measured with the same instrument on both trees (`measure/t59.ts --scarcity`),
+ * the mean cap where the player actually stands runs **4.45 -> 9.15** and a whole run's haul
+ * **4.2 -> 9.8 items**. At 120 the same districts last 5.0 / 5.6 / 14.0 days and downtown 42.5, so the
+ * race is one the player is in. The contest is not weakened relative to the PLAYER — T59 roughly
+ * doubles what a search draws (see {@link searchYieldCap}), so the district's stock now falls mostly
+ * to the survivor standing in it, which is the pressure GDD X asks for.
  */
-export const LOOT_CONTEST_DIVISOR = 50;
+export const LOOT_CONTEST_DIVISOR = 120;
 
 /** Node kind → the item ids a search there can plausibly turn up (FR-ECO-02). */
 export const LOOT_TABLES: { readonly [kind: string]: readonly string[] } = {
@@ -62,7 +73,16 @@ const RADIO_LOOT_KINDS: ReadonlySet<string> = new Set(["store", "residential", "
  * and a rare blueprint schematic in the clinic (`antibiotics`) / the station (`molotov`).
  */
 const ECONOMY_LOOT: { readonly [kind: string]: readonly string[] } = {
-  generic: ["item.food-fresh", "item.water-dirty", "item.charcoal"],
+  // T59: `item.cloth` joins the generic table. `recipe.purify.filter` — the charcoal-and-cloth bridge
+  // from the commoner find (dirty water) to the one that keeps you alive — priced its two components
+  // out of DISJOINT node kinds: charcoal in generic/industrial, cloth in store/residential. Measured
+  // over 24 pre-T59 runs, the player holds dirty water on **54% of turns** and holds charcoal AND
+  // cloth on **1.25 turns a run**, so the bridge was unusable for want of a rag. This is the T85
+  // cistern defect exactly ("a settler searches 97.5% generic"), one task later, in the recipe that
+  // matters most. Rags are the most universal object in an abandoned city; this is where they were
+  // always missing from. Measured pre-T59 (`measure/t59.ts --water`): a settler holds dirty water on
+  // 36.1% of its turns and holds charcoal AND cloth together on **0.00** of them; post-T59, 1.42.
+  generic: ["item.food-fresh", "item.water-dirty", "item.charcoal", "item.cloth"],
   store: ["item.food-fresh", "item.cloth"],
   medical: ["item.blueprint.antibiotics"],
   police: ["item.blueprint.molotov"],
@@ -111,12 +131,13 @@ export function lootEntriesFor(
   kind: string | undefined,
   includeRadio = false,
   includeEconomy = false,
+  waterLevel?: number,
 ): readonly Weighted<string>[] {
   const base = lootTableFor(kind, includeRadio, includeEconomy).filter((id) => WEAPONS[id] === undefined);
   // T84: ordinary items are no longer all equals — but their TOTAL is unchanged (`tieredOrdinary`), so
   // the weapon-vs-ordinary odds T81 swept are preserved exactly and only the mix among ordinary finds
   // moves. A kind whose whole table is untiered is still an exactly uniform draw at BASE_LOOT_WEIGHT.
-  const entries: Weighted<string>[] = [...tieredOrdinary(base)];
+  const entries: Weighted<string>[] = [...tieredOrdinary(base, waterLevel)];
   for (const w of weaponLootFor(kind)) entries.push({ value: w.id, weight: w.weight });
   return entries;
 }
@@ -206,12 +227,154 @@ export const ITEM_LOOT_WEIGHT: { readonly [id: string]: number } = {
   "item.cloth": 28,
   "item.charcoal": 28,
   "item.water-dirty": 28,
+  /**
+   * **The one row a district scales** (M5 task T59 · GDD XVI "scarcity is the primary difficulty
+   * driver" · FR-SIM-08). Written here at {@link WATER_LEVEL_NEUTRAL}'s worth and then multiplied by
+   * how much drinkable water the district still has — see {@link itemLootWeight}.
+   *
+   * Before T59 it was untiered, i.e. {@link BASE_LOOT_WEIGHT} = 18 against `item.water-dirty`'s junk
+   * tier of 28, so **the drink you cannot drink came out of a search oftener than the drink you can**
+   * — measured over 120 runs across five policies (`measure/t59.ts --scarcity`), dirty water 0.57 a
+   * run against clean 0.42, a ratio of 1.36; a settler alone read 0.67 against 0.46 while drinking
+   * 1.92. T84 wrote that by accident: it tiered the junk and left water sitting at the base weight.
+   *
+   * **48 is swept, not chosen** (`measure/t59.ts --water`, five bot policies x 24 runs each), as the
+   * share of a run's turns spent holding an empty canteen:
+   *
+   * |        | settler | forager | medic |
+   * | ------ | ------- | ------- | ----- |
+   * | **18** (pre-T59) | 30.0% | 39.4% | 32.4% |
+   * | 36     | 17%     | 24%     |  8%   |
+   * | **48** | **13.3%** | **19.7%** | **6.4%** |
+   * | 60     | 10%     | 18%     |  5%   |
+   *
+   * 48 is where the death mix finally SPREADS — `starved` fires for the first time in the project's
+   * measured history — while a run still spends a fifth of itself dry. At 60 the curve has flattened
+   * and water has stopped being the pressure; GDD XVI rule 1 is "the player is always a little short",
+   * so the dial stops at the value where they still are.
+   */
+  "item.water": 48,
 };
 
-/** The weight one ordinary item draws at BEFORE normalisation; {@link BASE_LOOT_WEIGHT} if untiered. */
-export function itemLootWeight(id: string): number {
+// --- water as a property of PLACE (M5 task T59) -----------------------------------------------
+
+/**
+ * The one loot row a district's own water level scales — the *drinkable* half of the pair.
+ *
+ * `item.water-dirty` is deliberately NOT scaled. There is always a puddle, a toilet cistern, a
+ * rain-butt; what a district's mains and wells decide is how much of its water you can drink without
+ * boiling it. That asymmetry is the whole design: dirty water is universal, clean water is a place,
+ * and `recipe.purify.*` is the bridge between them (which is why T59 also took those two recipes off
+ * the workbench — see `sim/economy.ts#craftable`).
+ */
+export const CLEAN_WATER_ITEM = "item.water";
+
+/**
+ * The district water level at which {@link CLEAN_WATER_ITEM}'s weight is exactly what
+ * {@link ITEM_LOOT_WEIGHT} states. Above it a district is wetter than the city's average, below it
+ * drier. 50 is the midpoint of the 0-100 band the region baselines are authored in, and the six
+ * shipped districts sit either side of it: downtown 10, rivermouth 20, mercy-hospital 30,
+ * the-terraces 45, ironworks 55, hillcrest 80.
+ */
+export const WATER_LEVEL_NEUTRAL = 50;
+
+/**
+ * The `RegionState.water` a region that authors none is seeded with — {@link WATER_LEVEL_NEUTRAL}, i.e.
+ * an ordinary district (M5 task T59).
+ *
+ * It defaulted to 0 from T3 until this task, which was harmless while nothing read the field and became
+ * a silent statement the moment something did: without this, every fixture and every content set that
+ * says nothing about water would be declaring itself a desert. Same spirit as {@link DEFAULT_RICHNESS}
+ * — an unauthored thing is an ordinary thing, never the worst possible thing. All six shipped districts
+ * author `baseline.water`, so the live city is untouched by this default.
+ */
+export const DEFAULT_REGION_WATER = WATER_LEVEL_NEUTRAL;
+
+/**
+ * Points of a district's drinkable-water stock one clean unit costs.
+ *
+ * Water is now **finite and contested exactly as loot is** (GDD X rule 4) — this is the debit that
+ * makes it so, and it is the reason `RegionState.water` is a stock rather than a flag. The six shipped
+ * districts hold **240 points** between them, which at 4 points a unit is **58 drinkable units** once
+ * each district's floor is taken (`measure/t59.ts --water` prints the table) — about 66 player-days of
+ * water if none of it is lost to a companion or to the mains failing. Drinking a district dry does not
+ * take it to nothing: {@link itemLootWeight}'s floor leaves a 1-in-N trickle, which is a forgotten
+ * bottle rather than a well, and is what keeps the table's SHAPE fixed. Swept — see
+ * `docs/qa/QA_REVIEW_T59.md`.
+ */
+export const WATER_POINTS_PER_UNIT = 4;
+
+/**
+ * How much drinkable water a district still offers: **its own table, throttled by the city's mains.**
+ *
+ * `RegionState.water` and `world.water` have both existed since T3 and, until this task, **neither
+ * had a single reader anywhere in the engine** — the 2026-09 design review's dead-wiring list missed
+ * them, and FR-SIM-08 ("global infrastructure decay: power, water, roads, bridges") was therefore
+ * two-thirds implemented: the grid drains, the roads wear, and the water simply sat there. The city
+ * had authored where its water is (downtown 10 ... hillcrest 80) and nothing had ever asked.
+ *
+ * `world.water` is now drained alongside `world.powerGrid` by the weather tick (`sim/weather.ts`) —
+ * the pumps stop when the power does — so the clean-water supply tightens across a run rather than
+ * across a single search, which is the scarcity curve GDD XVI asks for and the loot stock alone cannot
+ * give. No new state and no save rung: both fields were already in the shape.
+ *
+ * Defensive against a hand-edited save: both terms go through {@link waterPct}, which is total — a NaN,
+ * an infinity or a negative degrades to 0 rather than propagating. `clampPct`, the module's existing
+ * clamp, is NOT total (`Math.trunc(NaN)` is NaN and every comparison against it is false), and the
+ * first cut of this function used it; T59's own test caught the hole, which is the third NaN-into-the-
+ * save finding in three tasks (T83, T84, here) and the reason this one is spelled out.
+ */
+export function drinkableWaterOf(
+  region: { readonly water: number },
+  world: { readonly water: number } | undefined,
+): number {
+  const mains = world === undefined ? 100 : waterPct(world.water);
+  return waterPct(Math.trunc((waterPct(region.water) * mains) / 100));
+}
+
+/** {@link clampPct}, made total: anything that is not a finite number reads as 0. */
+function waterPct(n: number): number {
+  return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.trunc(n))) : 0;
+}
+
+/**
+ * The weight one ordinary item draws at BEFORE normalisation; {@link BASE_LOOT_WEIGHT} if untiered.
+ *
+ * `waterLevel` (T59) scales {@link CLEAN_WATER_ITEM} **and no other row**; its absence is the plain
+ * table lookup.
+ *
+ * **It is NOT "the exact pre-T59 lookup", and an audit was right to object to a first draft that said
+ * so.** T59 also added `item.water` to {@link ITEM_LOOT_WEIGHT} at 48, where it previously fell
+ * through to {@link BASE_LOOT_WEIGHT}'s 18 — so a no-level caller reads 48 now and read 18 before,
+ * deliberately, and every table that contains water moved with it. T59 is a BALANCE PASS: it changes
+ * what runs do, by design, and the only thing the optional parameter buys is that a caller with no
+ * district in hand is not silently handed some other district's weather. Nothing here is byte-
+ * identical and nothing claims to be.
+ *
+ * A floor of 1 keeps the row drawable in a bone-dry district: somebody always left a bottle in a
+ * drawer, and a table row that vanishes would change the table's SHAPE rather than its odds (the
+ * `floor(f*len)` hazard). Unlike the first cut's, this floor is reachable — at level 0 it is what
+ * decides the weight.
+ */
+export function itemLootWeight(id: string, waterLevel?: number): number {
   const w = ITEM_LOOT_WEIGHT[id];
-  return w === undefined ? BASE_LOOT_WEIGHT : w;
+  const base = w === undefined ? BASE_LOOT_WEIGHT : w;
+  if (waterLevel === undefined || id !== CLEAN_WATER_ITEM) return base;
+  // **Linear in the district's level, and it really does reach the floor.** A first cut used a
+  // compressed spread — `(NEUTRAL + level) / 2*NEUTRAL`, running x0.5 to x1.5 — so that the start
+  // district would not read drier than it did before T59. An adversarial audit killed it with one
+  // measurement: at x0.5 a bone-dry district in a dead city still weighted this row **24**, ABOVE the
+  // pre-T59 flat 18, and 200 searches at `region.water = 0` and `world.water = 0` pulled **147 clean
+  // units out of a stock the engine said was empty**. The district's water was decorative, the "and no
+  // more" in {@link WATER_POINTS_PER_UNIT} was false, and the `Math.max(1, …)` below could never
+  // engage — the exact dead-guard pattern `unitsForPoints` documents three screens down.
+  //
+  // Linear fixes all three at once, and the number that made the compressed form tempting survives
+  // anyway: at {@link ITEM_LOOT_WEIGHT}'s 48 the START district (rivermouth, water 20) comes out at
+  // **19 against the pre-T59 18**. T59 does not make the opening drier. It makes the rest of the city
+  // wetter — hillcrest 76, ironworks 52 — and lets a district you have drunk dry fall to a 1-in-N
+  // trickle, which is a bottle in a drawer rather than a well.
+  return Math.max(1, Math.trunc((base * waterPct(waterLevel)) / WATER_LEVEL_NEUTRAL));
 }
 
 /**
@@ -239,10 +402,10 @@ export function itemLootWeight(id: string): number {
  * so the result is stable across runs and platforms. Every row keeps a positive weight, so tiering can
  * make a find rare but never removes it from the table.
  */
-export function tieredOrdinary(ids: readonly string[]): readonly Weighted<string>[] {
+export function tieredOrdinary(ids: readonly string[], waterLevel?: number): readonly Weighted<string>[] {
   const n = ids.length;
   if (n === 0) return [];
-  const raw = ids.map(itemLootWeight);
+  const raw = ids.map((id) => itemLootWeight(id, waterLevel));
   const rawTotal = raw.reduce((a, b) => a + b, 0);
   if (rawTotal <= 0) return ids.map((value) => ({ value, weight: BASE_LOOT_WEIGHT }));
   const target = n * BASE_LOOT_WEIGHT;
@@ -327,12 +490,27 @@ export function searchYieldCap(regionLoot: number, searchPct: number, richness: 
   // district. The early-game cost is paid in words instead: `availableActions` labels a search at a
   // zero cap "it looks stripped", because a choice the player is not warned about is the dishonest
   // half of a dead affordance.
-  const cap = Math.trunc((regionLoot * richness) / 800) - Math.trunc(searchPct / 34);
+  // **800 -> 400 and 34 -> 17 (M5 task T59).** The first halves the denominator, so a district's stock
+  // buys twice the cap; the second tracks {@link SEARCH_GAIN}'s 34 -> 17, so the penalty is **one point
+  // per SEARCH** in both trees — which is the property worth keeping, and is not the same as "one point
+  // per third of the node" (an audit caught a first draft saying that: at searchPct 34, a third of the
+  // way through, the penalty is now 2). Relative to the doubled base the curve is the shape it always
+  // was, with one exception worth stating: a fully stripped node pays 5 where exact doubling of the old
+  // 2 would be 4, so the last search of a node is slightly leaner than it used to be. Measured pre-T59 where the player was actually
+  // STANDING, over 120 runs across five policies: the cap averaged **4.45** and a search returned
+  // **1.20 items**, so a WHOLE RUN produced **4.2 items** — out of which the two-component recipes
+  // (`recipe.purify.filter`, every `recipe.shelter.*`) simply cannot be assembled: a settler searching
+  // the generic table held `item.charcoal` and `item.cloth` at the same time on **0.00 turns a run**.
+  // After T59 the mean cap is 9.15, a search returns 1.58 and a run produces 9.8. The pair is set
+  // together: doubling the cap without also slowing the contest (see {@link LOOT_CONTEST_DIVISOR})
+  // would have emptied the city twice as fast.
+  const cap = Math.trunc((regionLoot * richness) / 400) - Math.trunc(searchPct / 17);
   // The `Math.min(regionLoot, …)` is the pre-T84 clamp, kept — and it is worth being exact about what
   // it does now, because a mutation run removed it and nothing failed. It is **unreachable at today's
-  // ceiling**: `cap <= trunc(loot * RICHNESS_MAX / 800) = trunc(0.3125 * loot) <= loot` for every
+  // ceiling**: `cap <= trunc(loot * RICHNESS_MAX / 400) = trunc(0.625 * loot) <= loot` for every
   // non-negative loot, so the arithmetic already guarantees what the clamp asserts. It is a backstop
-  // tied to {@link RICHNESS_MAX}, and it starts binding the moment that ceiling passes 800.
+  // tied to {@link RICHNESS_MAX}, and T59's halving of the denominator moved the point at which it
+  // starts binding from a ceiling above 800 to one above 400 — closer, and still out of reach.
   return Math.max(0, Math.min(regionLoot, cap));
 }
 
@@ -356,8 +534,23 @@ export function searchYieldCap(regionLoot: number, searchPct: number, richness: 
  * **Swept, not chosen** — see `docs/qa/QA_REVIEW_T84.md`. The competing pressure is the pack: pre-T84
  * peak load was **19 of 40** with PACK_HEAVY touched on **0.7%** of turns, so the GDD's "what do I leave
  * behind?" was never asked; too generous a divisor turns the pack from a question into a wall.
+ *
+ * ### 3 -> 2 (M5 task T59), and the pressure it is set against
+ *
+ * An audit rightly objected that a first cut moved this silently, hiding behind T84's sweep while
+ * halving it. The reason is the same one that moved {@link searchYieldCap}'s denominator: a whole
+ * pre-T59 run produced **4.2 items**, out of which no two-component recipe in the game can be
+ * assembled. The two dials are set together and are worth 9.6 items a run between them.
+ *
+ * The counter-pressure T84 names is the pack, and T59 measures it rather than assuming: `measure/t59.ts
+ * --scarcity` reports peak load and the share of turns at or above `PACK_HEAVY`, on both trees. **It
+ * bites now, and it did not before.** Share of a run's turns at or over `PACK_HEAVY`, pre -> post:
+ * settler 0.9% -> 38.9%, forager 0.0% -> 26.6%, medic 6.1% -> 61.1%; peak load 22.0 -> 33.3 against a
+ * `CARRY_CAPACITY` of 40. T84 shipped the haul and declared honestly that the leave-behind CHOICE was
+ * not yet forced; this is the pass that forces it, and it is the one place where T59 made the game
+ * harder rather than kinder.
  */
-export const LOOT_POINTS_PER_ITEM = 3;
+export const LOOT_POINTS_PER_ITEM = 2;
 
 /** How many items `points` of regional stock become. At least one whenever a search yields at all. */
 export function unitsForPoints(points: number): number {
@@ -441,20 +634,55 @@ export function resolveSearch(
   if (region === undefined || region.loot <= 0) return empty(state);
 
   const rawCap = searchYieldCap(region.loot, node.searchPct, richness);
-  // Scarcity FIND-RATE dial (T56): a harder mode's smaller yieldCap makes a THIN search come up empty — the
-  // player finds less. Survivor / unset ⇒ lootYield 1 ⇒ yieldCap === rawCap and the guard is exactly the
-  // prior `cap <= 0` (byte-identical). The finite-stock DEBIT below draws against the RAW cap, so the
-  // region's depletion pacing stays owned by `lootContest`; lootYield gates find-success, not depletion. The
-  // dial never touches the loot TABLE, so the floor(f·len) pick hazard (T50) never arises. drawInt is one
-  // stream step regardless of range, so a Survivor search draws bit-identically.
-  const yieldCap = scaleInt(rawCap, profileOf(state).lootYield);
-  if (yieldCap <= 0) return empty(state);
+  if (rawCap <= 0) return empty(state);
 
   const drawn = drawInt(state.rng, state.meta.seed, "loot", 1, rawCap);
   const offered = Math.min(region.loot, drawn.value);
-  const units = unitsForPoints(offered);
+  /**
+   * **Scarcity YIELD dial** (T56, re-sited by T60 · closes PL-M4-54).
+   *
+   * T56 spent this dial on the yield CAP, where it could only deny a search that was already nearly
+   * empty-handed. Measured across 120 runs, that was worth **0.1 turns** at Nightmare's 0.6 against an
+   * identity control — a dial the player cannot feel is a difficulty mode that does not exist, and
+   * three of the five dials measured that way. The cap gate could not have worked: the draw is
+   * `1..rawCap` and `rawCap` is large wherever there is anything to find, so `scaleInt(rawCap, 0.6)`
+   * lands at zero only on a node that was about to give nothing anyway.
+   *
+   * It now scales the POINTS -> ITEMS conversion, which is the sentence the dial's name has always
+   * claimed: the same rummage through the same district comes away with less. Nothing else moves —
+   *
+   * - the **draw** is untouched (`1..rawCap`, one stream step), so the district still offers what it
+   *   always offered and only the haul changes;
+   * - the **debit** below still charges the full `offered` for a complete haul, so how fast the world
+   *   drains stays owned by `lootContest`, exactly as before. The two scarcity dials keep separate
+   *   jobs: this one is what YOU get, that one is what the WORLD takes;
+   * - the loot TABLE is never touched, so the `floor(f·len)` pick hazard (T50) cannot arise;
+   * - `scaleInt` short-circuits at 1, so Survivor / unset is `unitsForPoints(offered)` unchanged and a
+   *   baseline run draws and hauls bit-for-bit as before.
+   *
+   * The dial scales the **points**, not the units, and that is measured rather than taste. Units are a
+   * small integer whose modal value is 1, and a multiplicative dial on a small integer is a switch, not
+   * a dial: truncating one unit by 0.8 and by 0.6 both give NOTHING, so the first 20% of tightening
+   * cost 3.3 items a run and the next 20% cost 1.5. Rounding instead of truncating fixes that end and
+   * breaks the other — a one-unit haul then survives every multiplier down to 0.5, so 0.6 and 0.5
+   * become the same dial (7.1 vs 7.0 items). Points are the larger number and carry the fraction:
+   * scaled there, the haul runs **9.5 / 7.0 / 6.0 / 5.5** items a run at 1.0 / 0.8 / 0.6 / 0.5 —
+   * monotone across the whole range, with no cliff at either end. (Rebuild sweep: the dial is edited
+   * and the tree re-run, so `measure/t60.ts` cannot print it. What it does show is that the dial buys
+   * items, not turns: survival sits at 49.4 turns against a 51.5 control at every setting below 1,
+   * because after T59 a run is bounded by water rather than by what is in the pack.)
+   *
+   * A scaled-to-zero haul is a search that found nothing: the stream has still advanced its one step
+   * (so the next search is a different draw, not the same one forever), and the district is debited
+   * nothing, because nothing left it — the same rule the full-pack branch follows.
+   */
+  const units = unitsForPoints(scaleInt(offered, profileOf(state).lootYield));
 
-  const entries = includeWeapons ? lootEntriesFor(kind, includeRadio, includeEconomy) : undefined;
+  // T59: how much of this district's water you can drink without boiling it. Scales exactly one row of
+  // the weighted table and is passed only on the weighted (weapon-pool) path — the untouched uniform
+  // `drawPick` path below has no weights to scale, so a pool-less run is unaffected by this task too.
+  const waterLevel = drinkableWaterOf(region, state.world);
+  const entries = includeWeapons ? lootEntriesFor(kind, includeRadio, includeEconomy, waterLevel) : undefined;
   const table = entries === undefined ? lootTableFor(kind, includeRadio, includeEconomy) : undefined;
 
   let rng = drawn.rng;
@@ -496,19 +724,49 @@ export function resolveSearch(
   // therefore slightly wasteful of the district's stock, which is the right pressure: the well is
   // spent whether or not you had room for what came out of it.
   //
-  // No clamp is needed and none is pretended: `units === ceil(offered / P)`, so a partial haul has
-  // `found.length <= units - 1` and `found.length * P <= P * (units - 1) < offered` always, and
-  // `found.length >= 1` on this branch. The first cut wrapped this in `Math.max(1, Math.min(offered,
-  // ...))`, two guards an exhaustive probe over `offered` 1..60 showed can never engage — a comment
-  // claiming protection that the arithmetic already gives is worse than no comment.
-  const taken = found.length === 0 ? 0 : found.length === units ? offered : found.length * LOOT_POINTS_PER_ITEM;
+  // No clamp is needed and none is pretended: `units <= ceil(offered / P)` (T60 scales it DOWN and
+  // never up), so a partial haul has `found.length <= units - 1` and therefore
+  // `found.length * P <= P * (units - 1) < offered` always, and `found.length >= 1` on this branch.
+  // The first cut wrapped this in `Math.max(1, Math.min(offered, ...))`, two guards an exhaustive probe
+  // over `offered` 1..60 showed can never engage — a comment claiming protection that the arithmetic
+  // already gives is worse than no comment.
+  //
+  // `found.length === units` is a COMPLETE haul, scaled or not, and pays the whole `offered`: the
+  // district was rummaged either way. That is what keeps `lootYield` out of the depletion rate.
+  // T60: `units === 0` is the dial DENYING a haul, and it still costs the district what it offered —
+  // the rummage happened, the shelf was turned over, the scaling is about what you could carry away
+  // from it. Forgiving it made harder modes drain the world MORE SLOWLY than Survivor: an audit
+  // measured Nightmare debiting 10.4% fewer points than Survivor over identical draws, slower in every
+  // one of 14 (loot, searchPct) cells, which is backwards for a scarcity mode and contradicts this
+  // site's own claim that depletion stays owned by `lootContest`. It is NOT the full-pack rule: there,
+  // the goods really did stay in the world.
+  const taken = units === 0 ? offered : found.length === 0 ? 0 : found.length === units ? offered : found.length * LOOT_POINTS_PER_ITEM;
+
+  /**
+   * T59: every clean unit that left also costs the district {@link WATER_POINTS_PER_UNIT} of its own
+   * drinkable stock. Debited from `found`, i.e. from what was actually CARRIED AWAY — the same rule
+   * the loot debit follows, and for the same reason: a unit the pack refused never left the district.
+   * Dirty water costs nothing, because it was never the scarce thing.
+   */
+  const waterTaken = found.reduce((n, id) => (id === CLEAN_WATER_ITEM ? n + WATER_POINTS_PER_UNIT : n), 0);
+  const regionNext =
+    taken > 0 || waterTaken > 0
+      ? {
+          ...region,
+          ...(taken > 0 ? { loot: clampPct(region.loot - taken) } : {}),
+          // `waterPct`, not `clampPct`. An audit found the first cut writing `clampPct(NaN)` — which is
+          // NaN — straight into the save from a hand-edited `region.water`, where it serialises as
+          // `null` and the save no longer loads. That is the third NaN-into-the-save finding in three
+          // tasks (T83, T84, T59) and the second in THIS task: the guard was written for the READ and
+          // the defect was on the WRITE. If a field can come out of a save, clamp it totally on both.
+          ...(waterTaken > 0 ? { water: waterPct(region.water - waterTaken) } : {}),
+        }
+      : region;
 
   const next: GameState = {
     ...carried,
     rng,
-    ...(taken > 0
-      ? { regions: { ...carried.regions, [node.regionId]: { ...region, loot: clampPct(region.loot - taken) } } }
-      : {}),
+    ...(regionNext !== region ? { regions: { ...carried.regions, [node.regionId]: regionNext } } : {}),
   };
   return { state: next, found, offered, taken, packFull };
 }

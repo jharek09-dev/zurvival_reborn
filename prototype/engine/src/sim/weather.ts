@@ -131,11 +131,35 @@ export function tickWeather(state: GameState, hours: number): GameState {
   const powerBank = bankHours(state.world.powerDrainHours, eff.powerPressure * h, WEATHER_DRAIN_PRESSURE_HOURS);
   const powerGrid = Math.max(0, state.world.powerGrid - powerBank.steps);
   const powerClockMoved = powerBank.rest !== (state.world.powerDrainHours ?? 0);
+  /**
+   * **The mains follow the grid DOWN, and never back up** (M5 task T59 · FR-SIM-08 · GDD IV "water
+   * pressure drops" · GDD IV "Infrastructure decay: civilization dies slowly and visibly").
+   *
+   * `world.water` was seeded at 100 by `createInitialState` and read by NOTHING, for eleven
+   * milestones — the water third of FR-SIM-08's "power, water, roads, bridges" was simply not
+   * implemented, and the 2026-09 design review's dead-wiring list missed it. It is wired here rather
+   * than given a drain of its own, because it does not have one: **pumps need power.**
+   *
+   * The asymmetry is deliberate and an audit is why it is spelled out. `sim/jobs.ts` lets a built
+   * `room.generator` push `world.powerGrid` back toward 100 by burning fuel, so a first draft's claim
+   * that "a run in which the grid never fails is a run in which the taps never fail either" was
+   * exactly backwards for the only player who can do anything about it. It is also the wrong fiction:
+   * a generator in your basement lights your building, it does not repressurise a city's water mains.
+   * So the drain is **monotone** — `world.water` falls with the grid and has no writer that raises it —
+   * which is what "civilization dies slowly and visibly" means, and is the one clock in the game that
+   * a player cannot bargain with.
+   *
+   * What reads it: `sim/loot.ts#drinkableWaterOf`, which throttles every district's clean-water yield
+   * by it. So a long run's clean water dries up city-wide as the lights go out, and the purify recipes
+   * stop being an alternative and become the supply.
+   */
+  const water = Math.max(0, state.world.water - powerBank.steps);
   const roadBank = bankHours(state.world.roadDrainHours, eff.roadPressure * h, WEATHER_DRAIN_PRESSURE_HOURS);
   const roadClockMoved = roadBank.rest !== (state.world.roadDrainHours ?? 0);
   const world =
     weather === state.world.weather &&
     powerGrid === state.world.powerGrid &&
+    water === state.world.water &&
     !powerClockMoved &&
     !roadClockMoved
       ? state.world
@@ -143,6 +167,7 @@ export function tickWeather(state: GameState, hours: number): GameState {
           ...state.world,
           weather,
           powerGrid,
+          water,
           ...(powerClockMoved ? { powerDrainHours: powerBank.rest } : {}),
           ...(roadClockMoved ? { roadDrainHours: roadBank.rest } : {}),
         };

@@ -4,6 +4,7 @@
   "title": "Across the street",
   "premise": "Two survivors, neither stopping.",
   "repeatable": true,
+  "tone": "relief",
   "cooldownHours": 120,
   "tags": ["passing-stranger"],
   "requirements": {

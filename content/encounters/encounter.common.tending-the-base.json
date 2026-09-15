@@ -4,6 +4,7 @@
   "title": "Tending the base",
   "premise": "The ordinary upkeep of a place that's yours.",
   "repeatable": true,
+  "tone": "relief",
   "cooldownHours": 72,
   "tags": ["holding-the-base"],
   "requirements": {

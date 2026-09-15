@@ -140,11 +140,14 @@ describe("search", () => {
     const t1 = take(state, graph, "search").state;
     expect(t1.nodes["node.x.a"]!.searchPct).toBe(SEARCH_GAIN);
     expect(t1.meta.hour).toBe(state.meta.hour + SEARCH_COST);
-    const t2 = take(t1, graph, "search").state;
-    const t3 = take(t2, graph, "search").state;
-    expect(t3.nodes["node.x.a"]!.searchPct).toBe(100);
+    // T59: SEARCH_GAIN 34 -> 17, so a node takes SIX searches to strip rather than three — at
+    // SEARCH_COST 1 rather than 2, i.e. the identical six in-game hours for twice the decisions.
+    let s = t1;
+    for (let i = 0; i < 5; i += 1) s = take(s, graph, "search").state;
+    expect(s.nodes["node.x.a"]!.searchPct).toBe(100);
+    expect(s.meta.hour).toBe(state.meta.hour + 6 * SEARCH_COST);
     // fully searched ⇒ search no longer offered
-    expect(availableActions(t3, graph).some((c) => c.id === "search")).toBe(false);
+    expect(availableActions(s, graph).some((c) => c.id === "search")).toBe(false);
   });
 });
 

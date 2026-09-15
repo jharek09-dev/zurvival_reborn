@@ -4,6 +4,7 @@
   "title": "Birdsong",
   "premise": "A place life has quietly taken back.",
   "repeatable": true,
+  "tone": "relief",
   "cooldownHours": 96,
   "tags": ["living-thing"],
   "requirements": {

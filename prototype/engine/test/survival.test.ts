@@ -36,6 +36,9 @@ import {
   type Wound,
 } from "../src/index.js";
 
+/** T59: every action that STOPS, i.e. every action that now applies wound care. */
+const STOPPING = (id: string): boolean => id.startsWith("rest") || id.startsWith("sleep") || id.startsWith("quarantine");
+
 /**
  * T22 — survival pressure. Needs bite and can be fed; an untreated bite drives a lethal infection
  * that treatment halts; neglect ends the run. The Survival Triangle actually pulls each turn.
@@ -88,8 +91,10 @@ describe("needs drift by the hours spent (T22)", () => {
 
   it("a real run raises thirst enough to matter within a handful of turns", () => {
     let { state, graph } = run();
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 18; i++) {
       // T72 rebalance: turns are cheaper (search 2h), so "a handful" is a couple turns longer to bite.
+      // T59: cheaper again (search 1h, six searches to a node), so it is twice as many turns to the
+      // same IN-GAME hours — which is the point of that pair, and this test measures the hours.
       const c = availableActions(state, graph).find((x) => x.id === "search") ?? availableActions(state, graph)[0]!;
       state = applyAction(state, c.action, graph).state;
     }
@@ -101,11 +106,15 @@ describe("needs drift by the hours spent (T22)", () => {
 
 describe("eat and drink spend a scavenged item to relieve a need (T22)", () => {
   it("drink is offered only when thirsty and carrying water, and lowers thirst", () => {
-    const dry = withInv(withNeeds(run().state, { thirst: 50 }), [["item.water", 2]]);
+    // T59: the offer threshold is the relief's OWN value (reliefOfferAt), so taking the offer the
+    // moment it appears wastes nothing. At 34 — the flat pre-T59 threshold — it wasted 21 of 55.
+    const dry = withInv(withNeeds(run().state, { thirst: DRINK_RELIEF }), [["item.water", 2]]);
     expect(canDrink(dry)).toBe(true);
     const after = drink(dry);
-    expect(after.player.condition.needs.thirst).toBe(50 - DRINK_RELIEF < 0 ? 0 : 50 - DRINK_RELIEF);
+    expect(after.player.condition.needs.thirst).toBe(0); // exactly emptied — nothing thrown away
     expect(after.player.inventory.find((e) => e.type === "item.water")!.quantity).toBe(1); // one spent
+    // ...and one point short of the threshold it is not yet offered, which is what makes that true.
+    expect(canDrink(withInv(withNeeds(run().state, { thirst: DRINK_RELIEF - 1 }), [["item.water", 2]]))).toBe(false);
     // not offered when not thirsty, or when carrying no water.
     expect(canDrink(withInv(withNeeds(run().state, { thirst: 0 }), [["item.water", 1]]))).toBe(false);
     expect(canDrink(withInv(withNeeds(run().state, { thirst: 80 }), [["item.scrap", 1]]))).toBe(false);
@@ -167,7 +176,12 @@ describe("an untreated bite drives infection; treatment halts it (T22)", () => {
     for (let i = 0; i < 60; i++) {
       const choices = availableActions(state, graph);
       if (choices.length === 0) { died = true; break; }
-      const c = choices.find((x) => x.id === "drink") ?? choices.find((x) => x.id === "rest")!;
+      // T59: NEVER STOP. A deliberate rest / sleep / quarantine now applies care (GDD VI "restored by
+      // treatment and rest"), and stopping through a bite closes it — which is the whole point of the
+      // change and would make this an "ignored bite" that was not ignored. Drinking and walking is the
+      // neglect being tested. (An audit caught a first fix excluding only `rest`.)
+      const c = choices.find((x) => x.id === "drink") ?? choices.find((x) => x.id === "eat")
+        ?? choices.find((x) => x.id === "search") ?? choices.find((x) => !STOPPING(x.id))!;
       state = applyAction(state, c.action, graph).state;
     }
     expect(died).toBe(true);

@@ -17,6 +17,7 @@ import { buildRegionGraph } from "./regionGraph.js";
 import { discoverAround, markScoutedHere } from "./fogOfWar.js";
 import { seedStarterHordes } from "../sim/hordes.js";
 import { seedRoutes } from "../sim/routes.js";
+import { DEFAULT_REGION_WATER } from "../sim/loot.js";
 import { spawnNpcs, type NPCDef } from "../sim/npcs.js";
 import { registerArcs } from "../sim/story.js";
 import { seedFactions, type FactionDef } from "../sim/social.js";
@@ -63,7 +64,12 @@ export function seedRegionState(regionDefs: readonly RegionDef[]): {
       loot: pct(b.loot, 0),
       survivorActivity: pct(b.survivorActivity, 0),
       power: pct(b.power, 0),
-      water: pct(b.water, 0),
+      // T59: a region that authors no `water` is a NEUTRAL district, not a bone-dry one. `water` had no
+      // reader at all until T59 gave it one (`sim/loot.ts#drinkableWaterOf`), so the old default of 0
+      // was arbitrary; keeping it would have silently declared every unauthored fixture a desert and
+      // halved its clean-water weight. All six shipped districts author the field, so the live city is
+      // unchanged. See `sim/loot.ts#WATER_LEVEL_NEUTRAL`.
+      water: pct(b.water, DEFAULT_REGION_WATER),
       fire: 0,
       // Roads start fully passable; they degrade during play, never tick up on their own.
       roads: 100,

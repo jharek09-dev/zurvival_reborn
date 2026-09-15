@@ -401,9 +401,67 @@ export const PARTY_STREAM = "party";
  * shared with T76's horde overrun, which draws from its own `OVERRUN_WOUNDS`: this table bites one
  * time in two, which is right for one walker with its hands on you and would turn a two-wound overrun
  * into a ~75% infection sentence. `sim/overrun.ts` carries that arithmetic.
+ *
+ * Unchanged by T59. One in two is right for a body you are trading blows with **by choice**; the
+ * number PL-M5-27 was raised about is the one below, which used to be this same table.
  */
 const WALKER_WOUNDS: readonly { readonly type: ContentId; readonly severity: number }[] = [
   { type: "wound.laceration", severity: 30 },
+  { type: "wound.bite", severity: 40 },
+];
+
+/**
+ * The named wounds a **parting blow** inflicts — the hit you take when a slip away is detected (M5
+ * task T59 · PL-M5-27 · FR-CBT-06).
+ *
+ * ### Why this is no longer {@link WALKER_WOUNDS}
+ *
+ * Because T77 changed one half of a product and not the other. T77 composed the stealth read properly
+ * and **roughly doubled the detection rate on a slip** (29.9% -> 60.5% on a worst-case policy). The
+ * wound table it drew from bit one time in two and was left alone — so the *infection rate per slip*
+ * doubled with the detection rate, and T77's own parking-lot note said so and handed the number here:
+ * *"T59/T60 own this number, and the balance passes were scheduled after the systems work precisely so
+ * it could be settled against the finished shape."*
+ *
+ * The finished shape, measured over 24 runs of a bot that **never enters a fight** and slips away from
+ * everything (the most careful play the build allows): **5.79 wounds and 1.17 bites a run**, against
+ * **0.13 medical items found** — and a bite is an untreated infection clock that ends the run, because
+ * `item.antiseptic` came out of a search 0.08 times a run. Slipping away — the cautious verb, the one
+ * the Survival Triangle sells as buying Safety with Time — was the commonest way a careful run
+ * acquired the thing that killed it.
+ *
+ * ### The number
+ *
+ * One in four, which is the pre-T77 infection-per-slip rate restored: T77 doubled the detection roll,
+ * so halving the bite share leaves the product where the design last measured it. The rest of the
+ * table is what a blow landed on a back that is already moving actually is — claws and a turned ankle,
+ * not teeth finding purchase. This is the same reasoning `sim/overrun.ts` used to refuse to share this
+ * table at all, one milestone earlier, and it is a number rather than a taste.
+ *
+ * Measured with the same instrument on both trees (`measure/t59.ts --slip`), as the share of a
+ * DETECTED slip's wounds that are bites, for the three policies that slip at all:
+ *
+ * |          | pre-T59 | post-T59 |
+ * | -------- | ------- | -------- |
+ * | drifter  |  58.3%  |  18.2%   |
+ * | medic    |  49.2%  |  15.9%   |
+ * | forager  |  28.6%  |  20.8%   |
+ *
+ * **And the honest other half, which an audit had to force out of a first draft: per RUN the careful
+ * bot is carrying MORE, not less.** Its wounds go 5.79 -> 11.17 and its peak burden 157.7 -> 288.3,
+ * because T59's other dials roughly doubled how many turns it survives and therefore how many times it
+ * slips (2.17 -> 5.96 slips a run). This table is a per-slip claim and nothing more: PL-M5-27 asked
+ * what one detected slip costs, and that is what moved. The run-level burden against
+ * {@link LAST_STAND_AT}'s 80 is the mortality curve, which T59 declares open (PL-M5-62/65) rather than
+ * claiming to have closed.
+ *
+ * Note the ankle-grab path (`GRASP_SEVERITY`) is untouched: a crawler that has hold of your leg is not
+ * a parting blow, and it inflicts its own fixed wound without drawing from any table.
+ */
+export const PARTING_WOUNDS: readonly { readonly type: ContentId; readonly severity: number }[] = [
+  { type: "wound.laceration", severity: 30 },
+  { type: "wound.laceration", severity: 30 },
+  { type: "wound.sprain", severity: 25 },
   { type: "wound.bite", severity: 40 },
 ];
 
@@ -1100,7 +1158,7 @@ function resolveEscape(state: GameState, graph: RegionGraph, to: NodeId, clearCo
       const condition = inflictNamedWound(next.player.condition, grasp, GRASP_SEVERITY, "leg", next.meta.day, next.meta.hour);
       next = { ...next, player: { ...next.player, condition } };
     } else {
-      const pick = drawPick(next.rng, next.meta.seed, "combat", WALKER_WOUNDS);
+      const pick = drawPick(next.rng, next.meta.seed, "combat", PARTING_WOUNDS);
       const condition = inflictNamedWound(next.player.condition, pick.value.type, pick.value.severity, "back", next.meta.day, next.meta.hour);
       next = { ...next, rng: pick.rng, player: { ...next.player, condition } };
     }

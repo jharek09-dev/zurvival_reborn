@@ -47,6 +47,9 @@ import {
   type Wound,
 } from "../src/index.js";
 
+/** T59: every action that STOPS, i.e. every action that now applies wound care. */
+const STOPPING = (id: string): boolean => id.startsWith("rest") || id.startsWith("sleep") || id.startsWith("quarantine");
+
 /**
  * T49 — infection as staged identity. A hidden, staged sickness (asymptomatic → symptomatic → advanced →
  * terminal) that is a *harder way to keep playing* (FR-INJ-08), never an instant Game Over: it alters
@@ -171,8 +174,15 @@ describe("terminal is playable; the run ends only at a delayed succumb (T49 · F
         reachedTerminal = true;
         playedAtTerminal++;
       }
-      // survive needs; never treat the bite — let the infection win.
-      const c = choices.find((x) => x.id === "drink") ?? choices.find((x) => x.id === "eat") ?? choices.find((x) => x.id === "rest")!;
+      // Survive needs; never treat the bite — let the infection win. T59: STOPPING is no longer a
+      // neutral way to pass time. A deliberate rest / sleep / quarantine applies REST_WOUND_CARE per
+      // hour (GDD VI "Health is restored by treatment and rest"), so stopping through a bite CLOSES it
+      // and halts the infection driver — which is exactly the counterplay that change exists to create,
+      // and exactly what this test must not do if it is to be about an IGNORED bite. An audit pointed
+      // out that a first fix excluded only `rest` and still admitted `sleep` and `quarantine`, both of
+      // which apply care; it passed by accident, because this bot never claims a base.
+      const c = choices.find((x) => x.id === "drink") ?? choices.find((x) => x.id === "eat")
+        ?? choices.find((x) => x.id === "search") ?? choices.find((x) => !STOPPING(x.id))!;
       state = applyAction(state, c.action, graph).state;
     }
     expect(reachedTerminal).toBe(true);
@@ -377,5 +387,25 @@ describe("infection is deterministic and save-lossless (T49)", () => {
       if (state.history.some((h) => h.type === "infection.staged")) sawStaged = true;
     }
     expect(sawStaged).toBe(true);
+  });
+});
+
+describe("the per-hour rate is a dial, and a junk dial is never a cure (T60 · `infectionRisk`)", () => {
+  it("a rate that truncates to nothing reads as the BASE rate, not as a stopped fever", () => {
+    // `Number.isFinite(rate) && rate > 0 ? Math.trunc(rate) : BITE_INFECT_RATE` passes 0.5 and then
+    // returns 0 — the fever stops entirely, which is the one outcome the guard exists to prevent. An
+    // audit found it by asking for 0.5; a mutation sweep confirmed nothing caught it. Truncate first,
+    // then test.
+    const open: Infection = { stage: "none", progression: 0 };
+    const after = (rate: number): number => advanceInfection(open, true, 24, rate).progression;
+    for (const junk of [0.5, 0.9, 0.99, 0, -1, -0.5, NaN, Infinity, -Infinity]) {
+      expect(after(junk)).toBe(24 * BITE_INFECT_RATE);
+    }
+    // A whole rate is honoured, in both directions.
+    expect(after(1)).toBe(24);
+    expect(after(2)).toBe(48);
+    expect(after(4)).toBe(96);
+    // ...and the default is still the constant, so every pre-T60 caller is byte-identical.
+    expect(advanceInfection(open, true, 24).progression).toBe(24 * BITE_INFECT_RATE);
   });
 });

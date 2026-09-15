@@ -12,7 +12,7 @@
   ],
   "purifyFrom": "item.water-dirty",
   "purifyTo": "item.water",
-  "purifyUnitsPerCraft": 2,
+  "purifyUnitsPerCraft": 4,
   "timeCost": 1,
-  "description": "FR-ECO-05. Converts up to 2 carried dirty-water units per batch, debiting fuel once — the power loop's sink. Known from the start; the honest gate on dirty water (you can never drink it directly)."
+  "description": "FR-ECO-05. Converts up to 4 carried dirty-water units per batch, debiting fuel once — the power loop's sink. Known from the start, and since M5 task T59 craftable in the FIELD as well as at the bench (sim/economy.ts#BENCHLESS_CATEGORIES): boiling a canteen over a fire is field survival, not workshop work, and gating it on a claimed base made FR-ECO-05 unreachable — measured over 120 pre-T59 runs across five policies, a purify choice was offered 0.00 times. T59 also moved the batch 2 -> 4. Before T59 the FILTER strictly dominated the boil: cheaper inputs (charcoal + cloth weigh 1 each against fuel's 6), commoner inputs (fuel drops only in industrial nodes, 0.02 a run), AND a bigger batch (3 against 2) — a recipe worse on every axis is a power tier, which GDD Part IX forbids for weapons and this recipe's sibling already claimed not to be. A first cut fixed it by taking the filter down to 2, and an audit killed that: the filter is the ONLY reachable water bridge (post-T59 measurement shows 0.00 boils and every purify a filter), so nerfing it nerfed the whole point of the task. The boil is now the rare, heavy, single-component, BIG batch and the filter the common, light, two-component, smaller one. Neither dominates; the one you can actually reach was not made worse."
 }

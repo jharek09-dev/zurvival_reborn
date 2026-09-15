@@ -24,6 +24,9 @@ import {
 } from "../../engine/src/index.js";
 import { describeStatus, renderScene } from "../src/index.js";
 
+/** T59: every action that STOPS, i.e. every action that now applies wound care. */
+const STOPPING = (id: string): boolean => id.startsWith("rest") || id.startsWith("sleep") || id.startsWith("quarantine");
+
 /**
  * T49 — the comprehension gate (retires the "infection-as-identity is confusing" tripwire, PRD §10):
  * a player must be able to act on the infection from *symptoms alone*, with the hidden number never
@@ -188,7 +191,10 @@ describe("a bite-driven run surfaces staged symptoms + the cure through the clie
       const choices = availableActions(cur, boot.graph);
       if (choices.some((c) => c.id === "treat-infection")) sawCureOffer = true;
       if (/fever|senses|failing|giving out/i.test(statusText(cur))) sawSymptom = true;
-      const c = choices.find((x) => x.id === "drink") ?? choices.find((x) => x.id === "rest");
+      // T59: never STOP. A deliberate rest / sleep / quarantine applies care to the worst wound
+      // (GDD VI), so stopping through the bite closes it and the symptoms this test is waiting for
+      // never arrive. Drink, or move. (An audit caught a first fix excluding only `rest`.)
+      const c = choices.find((x) => x.id === "drink") ?? choices.find((x) => !STOPPING(x.id));
       if (!c) break;
       cur = applyAction(cur, c.action, boot.graph).state;
     }

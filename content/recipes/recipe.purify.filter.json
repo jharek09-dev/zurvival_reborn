@@ -18,5 +18,5 @@
   "purifyTo": "item.water",
   "purifyUnitsPerCraft": 3,
   "timeCost": 1,
-  "description": "The SCR-10 'Water filter — 1 charcoal · 1 cloth' path: a fuel-free alternative to boiling that spends components instead. Known from the start; a real economy choice (fuel vs charcoal+cloth)."
+  "description": "The SCR-10 'Water filter — 1 charcoal · 1 cloth' path: a fuel-free alternative to boiling that spends components instead. Known from the start, and since M5 task T59 craftable in the FIELD as well as at the bench. Batch size is UNCHANGED at 3 — a first T59 cut took it to 2 to stop it dominating the boil and an audit reversed that, because measurement says this is the only purify path a run actually reaches; the boil went up to 4 instead. T59 also added item.cloth to the generic loot table (sim/loot.ts#ECONOMY_LOOT): this recipe's two components dropped in DISJOINT node kinds — charcoal in generic/industrial, cloth in store/residential — so a settler, which searches almost entirely generic, held both at once on 0.00 turns a run while carrying dirty water on 36% of them. The bridge existed and had no deck."
 }
