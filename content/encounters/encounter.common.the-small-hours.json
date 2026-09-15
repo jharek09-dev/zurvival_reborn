@@ -4,6 +4,7 @@
   "title": "The small hours",
   "premise": "The mind, unsupervised, at three in the morning.",
   "repeatable": true,
+  "tone": "tension",
   "cooldownHours": 72,
   "tags": ["night-nerves"],
   "requirements": {

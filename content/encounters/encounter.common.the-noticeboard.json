@@ -4,6 +4,7 @@
   "title": "The noticeboard",
   "premise": "The city's last messages, layered over each other.",
   "repeatable": true,
+  "tone": "neutral",
   "cooldownHours": 96,
   "tags": ["city-voices"],
   "requirements": {

@@ -178,6 +178,7 @@ export {
   ENEMY_CRAWLER,
   ENEMY_BLOATED,
   ENEMY_RIOT,
+  PARTING_WOUNDS,
 } from "./combat/combat.js";
 export type { EnemyDef } from "./combat/combat.js";
 export {
@@ -239,6 +240,7 @@ export {
   runEndReason,
   RUN_END_REASONS,
   LAST_STAND_AT,
+  lastStandAt,
   inLastStand,
   isRunOver,
   endingNarration,
@@ -246,6 +248,11 @@ export {
   THIRST_RATE,
   FATIGUE_RATE,
   NEED_FATAL,
+  // M5 task T59 — the balance pass's new survivability dials.
+  REST_WOUND_CARE,
+  REST_WOUND_CARE_MAX,
+  RELIEF_OFFER_CEILING,
+  reliefOfferAt,
   EAT_COST,
   DRINK_COST,
   TREAT_COST,
@@ -439,6 +446,12 @@ export {
   type SearchHaul,
   ITEM_LOOT_WEIGHT,
   itemLootWeight,
+  // M5 task T59 — water as a property of place (FR-SIM-08's missing third).
+  CLEAN_WATER_ITEM,
+  DEFAULT_REGION_WATER,
+  WATER_LEVEL_NEUTRAL,
+  WATER_POINTS_PER_UNIT,
+  drinkableWaterOf,
   tieredOrdinary,
   DEFAULT_RICHNESS,
   RICHNESS_MIN,
@@ -664,6 +677,17 @@ export {
   DIRECTOR_LOW_BAND,
   DIRECTOR_HIGH_BAND,
   DIRECTOR_STEP,
+  // T60 — the inputs GDD Part IV names that the controller had never read: time since the last real
+  // threat, and the tide's signed distance from its phase target.
+  DIRECTOR_THREAT_BEATS,
+  DIRECTOR_COASTING_TURNS,
+  DIRECTOR_LEAN_HIGH,
+  threatening,
+  crested,
+  directorIntent,
+  turnsSinceThreat,
+  coasting,
+  tideLean,
   type DirectorBeat,
 } from "./sim/director.js";
 
@@ -997,6 +1021,13 @@ export {
   type EncounterStage,
   type EncounterDef,
   type ActiveEncounter,
+  // T60 — the director's bias on the ambient pool (GDD IV "biases, never forces").
+  DIRECTOR_TONE_LEAN,
+  DEFAULT_TONE,
+  tonesAuthored,
+  ambientWeights,
+  type AmbientWeight,
+  type EncounterTone,
 } from "./sim/events.js";
 
 // Core action loop — move/search/rest, time cost, scene (T12, DESIGN §5/§10)

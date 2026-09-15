@@ -4,6 +4,7 @@
   "title": "The stray",
   "premise": "A living thing, keeping its distance.",
   "repeatable": true,
+  "tone": "relief",
   "cooldownHours": 96,
   "tags": ["living-thing"],
   "requirements": {

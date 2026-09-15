@@ -75,15 +75,27 @@
  * left this as a per-turn rate on purpose, and the daily relief ration is what bounds it.
  */
 
-import type { GameState, RegionState, Wound } from "../state/types.js";
+import type { GameState, HistoryEvent, RegionState, Wound } from "../state/types.js";
 import { isSymptomatic } from "./infection.js";
 import { profileOf, scaleInt } from "./difficulty.js";
 import { woundBurden, woundRemainder } from "./wounds.js";
 import { bankHours, stepToward, wholeHours } from "./clocks.js";
+import { PHASE_THREAT_TARGET } from "./timeOfDay.js";
+import type { Phase } from "../state/types.js";
 
 // --- bands & steps (tunable) ----------------------------------------------------------------
 
-/** Pressure below this (and no distress) ⇒ escalate; above the high band (or distress) ⇒ relief. */
+/**
+ * The T30 pressure bands, **both now historical**, kept because five tasks of recorded baselines
+ * compare against them and `telemetry/pacing.ts`'s `bandOf` still reports them.
+ *
+ * `DIRECTOR_LOW_BAND` was "pressure below this (and no distress) ⇒ escalate". Nothing reads it now:
+ * T60 replaced that trigger with {@link coasting}, and `grep` finds this constant only in `bandOf`,
+ * in prose, and in the re-export. `DIRECTOR_HIGH_BAND` is still read by {@link directorBeat} as a
+ * relief trigger, but measurement says it is unreachable — peak pressure lands in the low 40s to low
+ * 50s against a band of 70 — so the reachable relief trigger is {@link DIRECTOR_LEAN_HIGH}. Neither
+ * constant should be treated as live tuning; see the `telemetry/pacing.ts` header for the numbers.
+ */
 export const DIRECTOR_LOW_BAND = 25;
 export const DIRECTOR_HIGH_BAND = 70;
 /** The clamped per-tick nudge the director applies to a region danger dial. */
@@ -109,6 +121,205 @@ export const DIRECTOR_RELIEF_PER_DAY = 4;
 export const DIRECTOR_BIAS_MAX = 10;
 /** A region's bias decays one point toward zero per this many in-game hours, banked (T78). */
 export const DIRECTOR_BIAS_DECAY_HOURS = 24;
+
+// --- coasting: GDD IV's second-named input, read at last (M5 task T60) -----------------------
+
+/**
+ * The Living-History beats that count as **a real threat happening to this survivor** — the input
+ * GDD Part IV names second in the director's own list (*"it tracks recent tension, **time since the
+ * last real threat**, resource desperation, emotional highs and lows, and repetition"*).
+ *
+ * ### Why an explicit set rather than a prefix rule
+ *
+ * Because the log is mostly not about the player. Measured over 6,301 turns across five policies
+ * (`measure/t60.ts --beats`), a run writes ~127 history beats and **60.3 of them are `horde.move`** —
+ * off-screen masses stepping between nodes, 47% of the whole log. `npc.died` adds another 15.1, for
+ * survivors the player has never met. A prefix rule over `horde.` or a "something was written this
+ * turn" rule reads the map moving as the player being threatened: with the naive rule the streak is 0
+ * on 100% of turns and the whole signal is dead. With this set it is **mean 4.91 turns, max 43, and
+ * >= {@link DIRECTOR_COASTING_TURNS} on 45.7% of turns** — a live, oscillating read.
+ *
+ * (Every figure in this block is what `--beats` prints TODAY. An audit caught the first cut quoting
+ * numbers taken before {@link threatening} started excusing relief and neutral scenes — measured, in
+ * the same task, and then never re-derived after the correction landed. A comment that cites a tool is
+ * making a promise about what the tool says.)
+ *
+ * T87's audit concluded that *any suffix rule has that failure somewhere*; a prefix rule has the
+ * mirror of it, and this is where it bites. So the membership is written out, and
+ * `test/pacing60.test.ts` asserts both halves: that the commonest of these really do fire in played
+ * runs, and that the four commonest beats the log produces (`horde.move`, `npc.died`, `route.change`,
+ * `weather.change`) are **not** members.
+ *
+ * ### The set is closed; the beat-TYPE namespace is not
+ *
+ * A first cut of this comment ended "a content set cannot quietly join this list", and an audit
+ * disproved it in one file. `logHistory` (`sim/events.ts`) appends a beat whose `type` is whatever the
+ * content says, and the schema constrains that string to `minLength: 1` — so a choice effect of
+ * `{"kind":"logHistory","event":"combat.cleared"}` forges a threat, pins the quiet clock at 0, and
+ * suppresses the escalate beat for as long as the scene keeps firing. The asymmetry is at least in the
+ * safe direction: a forged `encounter.begin` carries no tone, and {@link threatening} fails closed, so
+ * content can counterfeit a threat but never a false calm. `prototype/harness/test/content.test.ts`
+ * now asserts that no authored `logHistory` event collides with this set, which is the guard the
+ * sentence promised.
+ */
+export const DIRECTOR_THREAT_BEATS: ReadonlySet<string> = new Set([
+  "combat.cleared",     // a fight resolved — the loudest thing that happens to a survivor
+  "horde.overrun",      // a mass walked over them
+  "encounter.begin",    // a scene engaged them (12.5 a run: the liveliest channel in the game)
+  "infection.staged",   // the fever took a step
+  "siege.breached",
+  "siege.repelled",
+  "siege.held",
+  "stand.spent",
+]);
+
+/**
+ * Turns since the last real threat, read off the append-only log — **derived, never stored** (the T79
+ * precedent that has kept five tasks' worth of new axes out of the save).
+ *
+ * Scans backwards and stops at the first hit. Measured, that is **mean 15.1 entries, p95 78, max 281**
+ * — and on **8.5% of turns there is no threat beat in the log at all**, where the scan is the whole
+ * history (the worst measured turn read 281 of 299 entries). The first cut of this comment claimed the
+ * cost was "the length of the current quiet streak … not the length of the run"; an audit measured
+ * every factor in that product wrong and the "not the length of the run" half false one turn in twelve.
+ * It is not a performance problem at shipping run lengths — runs end around turn 50 with ~127-beat
+ * logs, so the absolute cost is tens of microseconds a turn, and `history` has no cap only because
+ * nothing yet needs one — but the bound is O(history), and anything that lengthens runs should re-read
+ * this. A run with no threat beat at all reads as the whole run so far, which is correct: nothing has
+ * happened yet.
+ *
+ * Total about a hand-edited save: `Number.isSafeInteger`, not `Number.isFinite`. `loadGame` does not
+ * validate `meta.turn`, so a hand-edited `"turn": 1e308` is a perfectly FINITE number — and an audit
+ * showed it end to end: every tick reads as coasting for the rest of the run and `directorBias` pins at
+ * its cap, which is precisely the "escalate forever" the first cut of this sentence called impossible.
+ * A safe-integer clock also makes the subtraction total for free: two safe integers cannot differ by
+ * more than 2^53, so no clamp is needed on the result and none is pretended (the first fix added one, a
+ * mutation sweep showed it could never engage, and a guard that cannot engage is the thing this file
+ * has criticised elsewhere). Either stamp out of range reads as 0 turns since — i.e. NOT coasting.
+ */
+/**
+ * Whether one logged beat is **a threat to this survivor**, which is {@link DIRECTOR_THREAT_BEATS}
+ * membership plus one correction the first measurement of this controller forced.
+ *
+ * ### The sensor and the actuator were the same wire
+ *
+ * `encounter.begin` is both the beat that says "something happened to you" AND the channel the
+ * escalate beat acts through ({@link DIRECTOR_TONE_LEAN}). Wired naively, the loop blinds itself the
+ * instant it acts: firing a scene resets the coasting clock, so "coasting" can only ever mean "the
+ * encounter system is idle" — the one state in which the encounter pool cannot be leaned. On exactly
+ * that wiring — which no longer exists, so this figure is **not re-derivable from the harness** — the
+ * escalate beat reached the weighted ambient pick **6 times in 120 runs** (0.8% of 767 picks), against
+ * 8.8% of turns spent in the beat. What IS re-derivable is the state after the correction:
+ * `measure/t60.ts --lean` puts the escalate beat at 23.8% of turns and 330 of the 1,831 ambient tables
+ * a run consults.
+ *
+ * The correction is not a tuning one. A scene only counts as a threat if it WAS one, which is what the
+ * tone field already says: `birdsong` is not the world coming for you, and a director that treats
+ * being consoled as an event it must now stop escalating about is reading its own output as its input.
+ */
+export function threatening(e: HistoryEvent): boolean {
+  if (!DIRECTOR_THREAT_BEATS.has(e.type)) return false;
+  if (e.type !== "encounter.begin") return true;
+  const tone = (e.data as { tone?: unknown } | null)?.tone;
+  // Fail CLOSED, and the difference is not cosmetic. The excusing condition is written as an explicit
+  // membership test rather than as `tone !== "tension"`, because `data` comes off a save and can be
+  // anything: under the negated form a hand-edited `tone: "x"` — or `42`, or `"TENSION"` — reads as
+  // "not a threat" on EVERY beat, the quiet clock never starts, and the run escalates forever. A beat
+  // is excused only when it says, in the exact vocabulary, that it was not a threat; absent (a pre-T60
+  // save, or a pool that authors no tone) and unrecognised both keep the pre-T60 reading, which is that
+  // every scene is a threat. `test/pacing60.test.ts` caught this on the first run of the first draft.
+  return tone !== "relief" && tone !== "neutral";
+}
+
+export function turnsSinceThreat(state: GameState): number {
+  const now = state.meta.turn;
+  if (!Number.isSafeInteger(Math.trunc(now))) return 0;
+  for (let i = state.history.length - 1; i >= 0; i -= 1) {
+    const e = state.history[i]!;
+    if (!threatening(e)) continue;
+    if (!Number.isSafeInteger(Math.trunc(e.turn))) return 0;
+    return Math.max(0, Math.trunc(now) - Math.trunc(e.turn));
+  }
+  return Math.max(0, Math.trunc(now));
+}
+
+
+
+/** Quiet turns at/above which the player reads as COASTING and the director tightens (T60). */
+export const DIRECTOR_COASTING_TURNS = 3;
+
+/** Is the player coasting — nothing has happened to them for {@link DIRECTOR_COASTING_TURNS} turns? */
+export function coasting(state: GameState): boolean {
+  return turnsSinceThreat(state) >= DIRECTOR_COASTING_TURNS;
+}
+
+// --- the tide's lean: the reachable half of the high band (M5 task T60) ----------------------
+
+/**
+ * How far the city-wide tide sits **above what this hour is pulling it toward** — the signal that
+ * replaces an absolute high band the game never reaches.
+ *
+ * ### The arithmetic of a dead band, measured
+ *
+ * `DIRECTOR_HIGH_BAND` is 70 and {@link pressureRead} blends the tide with the player's region threat.
+ * Measured over 120 runs across five policies (`measure/t60.ts --pacing`): **peak pressure 41.6-50.4
+ * by policy, so `highPressureTurns` is 0.0% and `oscillations` is 0.00 in every policy.** The
+ * relief-by-pressure branch has never fired in this game; every relief beat ever taken came from
+ * {@link playerDistressed} or, since T60, from the lean below.
+ *
+ * The cause is not the number, it is what the number is read off. `driftRegions` pulls each district
+ * onto its anchor, and it largely succeeds: the player's region sits EXACTLY on its anchor on **40% of
+ * turns and within a point of it on 63%**. (The first cut of this comment said 90%, repeated it in two
+ * other files, and an audit could not reproduce it under any reading — the corrected figure is what
+ * `--pacing` prints, and it is still the point: a dial held within a point of its authored value is
+ * not a dial that can carry a 45-point band.) So the only thing in the pressure read with real travel
+ * is the tide — and averaging a ~33-point tide swing with a near-pinned dial halves it to ~16, inside
+ * a 45-point band. **A 16-point signal cannot cross a 45-point band**, and no retuning of 25/70 changes
+ * that; a band on a relaxed dial measures the relaxation.
+ *
+ * The lean does move: measured **-30 to +13, mean -4.5**, because the tide chases a phase target that
+ * jumps 25-40 points between phases and closes the gap at 3 points an hour. It is negative on the climb
+ * into dusk and night and positive through the morning after — so a pacing controller reading it plays
+ * a **diurnal** beat, which is the cycle of tension GDD Part III asks for and the shape a zombie city
+ * should have anyway.
+ *
+ * Pure state read: no graph, no baseline, no new field. `meta.phase` and `world.globalThreat` are both
+ * already in the save.
+ */
+export function tideLean(state: GameState): number {
+  // `hasOwnProperty`, not a bare index. `PHASE_THREAT_TARGET` is a plain object literal, so a
+  // prototype key off a hand-edited save — `"constructor"`, `"toString"`, `"__proto__"`,
+  // `"valueOf"`, `"hasOwnProperty"` — resolves to a truthy INHERITED member, sails past a
+  // `=== undefined` fallback, and returns NaN, which then reaches `PacingSample.tideLean` and both
+  // summary fields. `sim/difficulty.ts`'s `profileOf` fixed this exact bug and wrote down the reason;
+  // the first cut of this function reintroduced it four files away. An audit caught it, and the only
+  // thing standing between it and a NaN was `loadGame`'s phase whitelist — i.e. luck, at one remove.
+  const phase = state.meta.phase as string;
+  if (!Object.prototype.hasOwnProperty.call(PHASE_THREAT_TARGET, phase)) return 0;
+  const target = PHASE_THREAT_TARGET[phase as Phase];
+  const tide = state.world.globalThreat;
+  if (!Number.isFinite(tide) || !Number.isFinite(target)) return 0;
+  return Math.trunc(tide) - target;
+}
+
+/**
+ * The lean at/above which the world reads as **hotter than this hour ought to be**, and the director
+ * eases off. Set from the measured distribution: `>= 8` covers 8.1% of turns, against the absolute
+ * high band's 0.0%. Below it the lean is ordinary weather, not a crest. **A pure tuning magnitude**:
+ * a mutation sweep moved it to 9 and nothing failed, which is correct — its only justification is that
+ * share, and a unit test pinning 8 over 9 would be pinning taste. Declared, as T59 declared
+ * `LOOT_POINTS_PER_ITEM`.
+ *
+ * **It is a daylight signal, and that is a consequence rather than a decision.** `PHASE_THREAT_TARGET`
+ * is asymmetric — night's target is 55 and the tide closes a gap at 3 points an hour, so it tops out
+ * around 49 and the lean at night is non-positive by construction. Measured by phase, `>= 8` fires on
+ * 30.8% of dawn turns and 13.8% of morning turns and on **zero of 1,698 turns** of late afternoon,
+ * dusk, night and early morning. So this branch eases off when the sun is up and never when it is
+ * down, and it is the sole cause of a relief beat on 1.9% of turns against `playerDistressed`'s 57.5%.
+ * Declared rather than fixed: making it symmetric means retuning `PHASE_THREAT_TARGET`, which is T28's
+ * diurnal curve and a bigger change than a pacing pass should make. See PL-M5-84.
+ */
+export const DIRECTOR_LEAN_HIGH = 8;
 
 const clampPct = (n: number): number => Math.max(0, Math.min(100, Math.trunc(n)));
 
@@ -167,6 +378,27 @@ export function pressureRead(state: GameState): number {
   return clampPct(Math.trunc((state.world.globalThreat + regionThreat) / 2));
 }
 
+/**
+ * **Is the district the player is standing in already at the top?** The escalate beat's legality clamp
+ * (T60), and the T30 invariant "the director cannot manufacture an impossible state" made checkable.
+ *
+ * Asks the REGION, not {@link pressureRead}'s blend: a district at threat 100 and density 100 under a
+ * cold tide blends to 50, which is why the first cut escalated a maxed-out district ten times running.
+ * Both dials, because either one at the ceiling means the nudge has nowhere to put its point — and the
+ * nudge would then be a no-op that still spends a beat and still leans the drift anchor.
+ *
+ * Total: a missing node or region, or a non-finite dial off a hand-edited save, reads as CRESTED —
+ * fail-closed, i.e. the director declines to escalate something it cannot measure.
+ */
+export function crested(state: GameState): boolean {
+  const here = state.nodes[state.player.location];
+  const region = here === undefined ? undefined : state.regions[here.regionId];
+  if (region === undefined) return true;
+  const { threat, zombieDensity } = region;
+  if (!Number.isFinite(threat) || !Number.isFinite(zombieDensity)) return true;
+  return threat >= 100 || zombieDensity >= 100;
+}
+
 /** Relief beats already spent today (0 when the ration's day stamp is not today, or absent). */
 export function reliefSpent(state: GameState): number {
   // `wholeHours` is the shared scrub for saved integer counters: a hand-edited NaN / negative / fraction
@@ -216,16 +448,86 @@ export function decayBias(region: RegionState, hours: number): RegionState {
   return { ...region, directorBias: next, directorBiasHours: rest };
 }
 
-/** The pacing beat the director takes this tick, from pressure + distress, honouring the daily relief ration. */
+/**
+ * The pacing beat the director takes this tick — **from the two inputs GDD Part IV names, plus the
+ * ration** (M5 task T60).
+ *
+ * ### What changed, and why the old form could not be tuned
+ *
+ * T60's brief was *"tune the Director's escalate/relief bands against pacing telemetry"*. Measured
+ * first (`measure/t60.ts`, 120 runs across five policies), both bands turned out to be unreachable
+ * rather than mistuned:
+ *
+ *   - the **high** band (70) is never crossed — peak pressure 41.6-50.4 by policy,
+ *     `highPressureTurns` **0.0%**, `oscillations` **0.00**. See {@link tideLean} for the arithmetic.
+ *   - the **low** band (25) is crossed only while `globalThreat` climbs from 0 on day one: **every
+ *     escalate beat in a run was a day-1 beat** (72/72, 116/116, 106/106 by policy). PL-M5-33 said so
+ *     after T78 and it was still true after T59.
+ *
+ * So the beats were: relief when distressed, and hold. And the consequence, measured end to end, was
+ * that **turning the entire Apocalypse Director off changed a run by 0.1 turns** (50.0 -> 49.9, day
+ * 4.16 -> 4.13, encounters 11.74 -> 11.78, combats 3.51 -> 3.39). T30's Definition of Done says
+ * disabling the director changes the pacing metrics; on a region-density probe under distress it did
+ * (T78 restored that), and on everything a player could feel it did not.
+ *
+ * **Those four figures are the PRE-T60 tree and cannot be re-derived from the harness**, which runs the
+ * tree it is in — an audit rightly flagged the first cut for stating them in the present tense. What
+ * `measure/t60.ts --onoff` prints today is 51.5 turns on against 51.8 off. That is still only a third
+ * of a turn, and deliberately so: the director's job is the SHAPE of a run, not its length, and the
+ * shape shows in `--lean` (a) — the escalate beat asks for 46.7% tension against a hold turn's 23.2%
+ * — and in the death mix, which reorders between the two.
+ *
+ * The two reads below are the fix, and neither is a new number in an old place:
+ *
+ *   - **escalate on {@link coasting}** — *"time since the last real threat"*, GDD IV's own second-named
+ *     input, read off the Living History and live at 45.7% of turns. "Tightening when the player is
+ *     coasting" is a fact about the PLAYER; the low band was a fact about a dial the drift pins.
+ *   - **relief on {@link tideLean}** at/above {@link DIRECTOR_LEAN_HIGH}, which restores a reachable
+ *     high side (8.1% of turns against the absolute band's 0.0%).
+ *
+ * ### The legality clamp is on the DISTRICT, not on the blend
+ *
+ * A first cut of this function wrote `coasting(state) && pressureRead(state) < DIRECTOR_HIGH_BAND` and
+ * a comment saying that kept the T30 invariant. Both halves were wrong, and an audit showed it twice
+ * over. The clause is **dead code**: the branch above already returns on `pressureRead >=
+ * DIRECTOR_HIGH_BAND`, so it can never be false — deleting it passed the entire suite. And it was the
+ * wrong quantity anyway: `pressureRead` is `(globalThreat + regionThreat) / 2`, a blend, so a district
+ * at threat 100 and density 100 with a cold tide reads 50 and was escalated ten times in a row, its
+ * `directorBias` driven to the +10 cap. The clamp now asks the district itself, which is what "cannot
+ * manufacture an impossible state" was always about.
+ *
+ * `DIRECTOR_LOW_BAND` is no longer read by this function at all — see its own doc.
+ */
 export type DirectorBeat = "escalate" | "relief" | "hold";
-export function directorBeat(state: GameState): DirectorBeat {
+
+/**
+ * **What the director WANTS this turn**, before the relief ration is applied — the beat as a read of
+ * the player's situation, with nothing about bookkeeping in it.
+ *
+ * Split out of {@link directorBeat} by T60's audit, which found the two questions silently disagreeing
+ * across the pipeline. `tickDirector` runs at stage 11 and SPENDS the ration; the encounter pool reads
+ * the beat at stage 13, by which point `reliefSpent` is one higher — so on the day's last rationed
+ * relief the nudge landed and the pool was then handed the identity lean. Measured, the ration is
+ * exhausted often enough that `directorBeat` reported `hold` to the pool on **39.9% of turns**, and
+ * the tone lean is the only authority this controller has that a player can feel.
+ *
+ * So the ration governs the NUDGE (a bounded, persisted lean on a district's drift anchor, which is
+ * what T78 rationed and why), and the tone lean — cheap, unpersisted, one turn's offer — follows the
+ * want. Telemetry records both, because the gap between them is a real thing about a run.
+ */
+export function directorIntent(state: GameState): DirectorBeat {
   if (!directorEnabled(state)) return "hold";
-  if (playerDistressed(state) || pressureRead(state) >= DIRECTOR_HIGH_BAND) {
-    // T78: the ration. A capped-out day reads `hold` — the beat the telemetry sees is the beat taken.
-    return reliefSpent(state) >= DIRECTOR_RELIEF_PER_DAY ? "hold" : "relief";
-  }
-  if (pressureRead(state) < DIRECTOR_LOW_BAND) return "escalate";
+  if (playerDistressed(state) || tideLean(state) >= DIRECTOR_LEAN_HIGH || pressureRead(state) >= DIRECTOR_HIGH_BAND) return "relief";
+  // T60: the player is coasting — and the district they are standing in still has somewhere to go.
+  if (coasting(state) && !crested(state)) return "escalate";
   return "hold";
+}
+
+export function directorBeat(state: GameState): DirectorBeat {
+  const want = directorIntent(state);
+  // T78: the ration. A capped-out day reads `hold` — the beat the NUDGE takes is the beat reported.
+  if (want === "relief" && reliefSpent(state) >= DIRECTOR_RELIEF_PER_DAY) return "hold";
+  return want;
 }
 
 /**

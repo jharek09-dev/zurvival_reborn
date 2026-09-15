@@ -23,7 +23,7 @@
 import type { GameState, Needs } from "../state/types.js";
 import type { Action } from "../pipeline/contract.js";
 import { isWounded, treatWound, woundBurden, woundRemainder, worstWound } from "./wounds.js";
-import { advanceInfection, hasSuccumbed, stageFatigue } from "./infection.js";
+import { advanceInfection, BITE_INFECT_RATE, hasSuccumbed, stageFatigue } from "./infection.js";
 import { wonEnding } from "./project.js";
 import { profileOf, scaleInt } from "./difficulty.js";
 
@@ -53,6 +53,70 @@ export const SLEEP_RECOVERY_PER_HOUR = 10;
 /** A need at this value is fatal — starvation / dehydration ends the run. */
 export const NEED_FATAL = 100;
 
+/**
+ * Care one in-game hour of a deliberate `rest` / `sleep` / `quarantine` applies to the worst open wound
+ * (M5 task T59 · **GDD VI "Recovery, and dying anyway": _"Health is restored by treatment and rest, not
+ * by walking it off."_**).
+ *
+ * ### Why a balance pass is shipping a mechanism
+ *
+ * Because the alternative was provably nothing. Two measurements, each over 96 bot runs across four
+ * policies, both against the pre-T59 tree:
+ *
+ *   - **`REST_RECOVERY` 45 -> 5 and 45 -> 80 are BOTH byte-identical to doing nothing**, and
+ *     `FATIGUE_RATE` 2 -> 1 likewise (2 -> 8 moves the mean run by 0.1 turns). Fatigue climbed, was
+ *     displayed, was relieved by a four-hour action — and *no setting of either dial changed a single
+ *     measured outcome*. The Survival Triangle had a corner that cost nothing, against GDD XVI rule 2
+ *     ("no strategy escapes the triangle; every corner has a price").
+ *   - A **cautious** bot that never enters a fight still takes **5.79 wounds a run and finds 0.13
+ *     medical items** — a 45:1 deficit — and therefore treats **0.00** times. `woundBurden` is
+ *     monotonic without an item, so {@link LAST_STAND_AT}'s 80 is a countdown for a player who has
+ *     done nothing wrong: that bot ends at burden **157.7**, twice the line, having never chosen to
+ *     fight anything. (Post-T59 the same bot reaches 288.3, because it lives long enough to slip away
+ *     from twice as many things — the counterplay is now reachable, the curve is not fixed, and
+ *     PL-M5-62/65 own the rest.)
+ *
+ * So the wound economy's only counterplay was an item the city does not produce. GDD VI names a second
+ * one in so many words, and the engine did not have it.
+ *
+ * ### Why this is not FR-INJ-04
+ *
+ * FR-INJ-04 is *"health is treated, not **auto**-regenerated"*, and the word doing the work is `auto`.
+ * Nothing here is automatic: the care is applied by {@link updateCondition} **only for an action the
+ * player deliberately chose** — `rest`, `sleep`, `quarantine` — and every one of those costs hours, and
+ * every hour costs hunger, thirst, the director's drift, the region's contest and a night moving
+ * closer. Walking it off still does nothing; time still does nothing. What heals you is stopping, and
+ * stopping is the most expensive thing in a game whose clocks are all per-hour. That is the Time corner
+ * of the triangle finally having a price to pay with.
+ *
+ * `wounds.ts` keeps its invariant intact: nothing there regenerates, and this goes through the same
+ * {@link treatWound} an item does, so a wound still leaves the body only when its care completes.
+ *
+ * **4 is the swept value** — a 4-hour rest applies 16 care, a little under a wound-specific item's
+ * {@link TREAT_CARE} of 25 and a little over the generic {@link TREAT_CARE_GENERIC} of 10, and a bite's
+ * severity of 40 therefore costs **ten in-game hours of lying still** to close by rest alone. See
+ * `docs/qa/QA_REVIEW_T59.md`.
+ */
+export const REST_WOUND_CARE = 4;
+
+/**
+ * The most care ONE stop can apply, however long it is (M5 task T59).
+ *
+ * **This cap is an audit finding, and the number it prevents is embarrassing.** The dial above was
+ * swept for the four-hour `rest` and then applied per hour to every stopping action alike, so what
+ * actually shipped in the first cut was `rest` 16, `quarantine` 32 and a full night's `sleep` at a
+ * claimed base **36** — one-and-a-half times {@link TREAT_CARE}, the best a wound-specific medical item
+ * can do, for no item, every single night, in the pass whose entire scarcity thesis is that medical
+ * items do not exist (0.13 a run). It also let `quarantine` double-dip: cure the infection AND close
+ * the bite driving it, in two doses.
+ *
+ * 16 — one four-hour rest's worth — is the cap, so lying still LONGER rests you rather than operating
+ * on you, and a matched medical item is still strictly the better medicine. The floor this leaves is
+ * the one the design wants: stopping is how a survivor with nothing gets better, slowly, at the price
+ * of every hour it takes.
+ */
+export const REST_WOUND_CARE_MAX = 16;
+
 // --- consumables ----------------------------------------------------------------------------
 
 export const FOOD_ITEM = "item.canned-food";
@@ -81,7 +145,64 @@ const FOOD_PRIORITY: readonly string[] = ["item.food-fresh", FOOD_ITEM, "item.fo
 /** Care a matching medical item applies to a wound; a generic item applies the lesser amount. */
 export const TREAT_CARE = 25;
 export const TREAT_CARE_GENERIC = 10;
-/** A need must be at least this pressing before its eat/drink option is surfaced (avoids clutter). */
+/**
+ * The highest a need may climb before its relief is offered regardless (M5 task T59).
+ *
+ * The offer threshold is normally the relief's OWN value ({@link reliefOfferAt}) so that taking the
+ * offer wastes nothing; this is the safety ceiling on that rule, so a future pass that raises a relief
+ * past it cannot quietly push the prompt into the last hours of a life. At 70 the player still has 30
+ * points of head-room — 15 in-game hours of thirst — between the first prompt and {@link NEED_FATAL}.
+ */
+export const RELIEF_OFFER_CEILING = 70;
+
+/**
+ * A need must be at least this pressing before its relief is surfaced — **the relief's own value**,
+ * capped at {@link RELIEF_OFFER_CEILING}.
+ *
+ * ### The defect this replaces
+ *
+ * It was a flat 34 for every relief, and the needs are clamped at 0, so **the game invited the player
+ * to waste the thing they die of.** A canteen buys {@link DRINK_RELIEF} = 55 points of thirst back;
+ * offered at 34, taking it immediately threw away 21 of the 55 — **38% of every unit of water in the
+ * game** — and a ration threw 11 of {@link EAT_RELIEF}'s 45 away. A player who waited got 60% more out
+ * of the same pack than a player who trusted the interface, which is the interface teaching the wrong
+ * play: GDD XVI's balancing method and ACCESSIBILITY §6 both rule that out ("difficulty should come
+ * from meaningful scarcity and decisions, never from opaque text, fiddly input, or missable
+ * information").
+ *
+ * ### Why it is derived rather than a second dial
+ *
+ * Because the two numbers are the same decision, and a balance pass should not leave behind a
+ * threshold that can drift out of sync with the thing it thresholds. Raise {@link DRINK_RELIEF} in
+ * T60 and the prompt follows it for free; there is no second constant to remember.
+ *
+ * **Callers must pass the relief that will ACTUALLY be applied, not the constant.** An audit found the
+ * first cut passing the raw constant while `drink`/`eat` apply `scaleInt(relief, needRelief)` — so on
+ * Story (needRelief 1.3) the prompt appeared 16 points early and poured 22.5% of the canteen away
+ * after all, and on Nightmare (0.7) it was withheld for 17 points of thirst it did not need to be,
+ * which is a survivability regression on the hardest mode inside the survivability pass. {@link canEat}
+ * and {@link canDrink} therefore scale first and threshold second.
+ *
+ * Defensive against a nonsense relief: floored at 1 and truncated, so a hand-edited or NaN relief
+ * cannot produce a threshold that is never (or always) met.
+ */
+export function reliefOfferAt(relief: number): number {
+  const r = Number.isFinite(relief) ? Math.trunc(relief) : 1;
+  return Math.min(Math.max(1, r), RELIEF_OFFER_CEILING);
+}
+
+/**
+ * The pre-T59 flat threshold, kept only as the name the T22 tuning notes and several test files refer
+ * to, and as the number the T59 write-up compares against.
+ *
+ * **It is not deprecated and it is not unused, and an audit caught a first draft claiming both.**
+ * `sim/encounters.ts` gates `give-food` / `give-water` on it in four places, and **that is deliberate
+ * and stays** — see the note at the first of those sites. Sharing is offered the moment someone is
+ * visibly in need, because it is the moral verb GDD X's "last can" exists to protect, not an
+ * efficiency one; the player's own eat/drink is the efficiency one and moved to {@link reliefOfferAt}.
+ * Measured consequence of conflating them: `npc.ruth`, the Vertical Slice's desperate survivor, stops
+ * being offered water at all, because her authored need sits between the two thresholds.
+ */
 export const RELIEF_OFFER_AT = 34;
 
 // --- wound effects (bridge: type id → effect / who treats it, mirroring content/wounds/) -----
@@ -188,19 +309,43 @@ export function updateCondition(state: GameState, action: Action): GameState {
   // Staged infection (T49 · FR-INJ-05/08): the driver advances it while an untreated bite is open, and
   // the fever's stage then adds its own fatigue — infection is a *harder way to keep playing*, felt as
   // consequence, not as a bar. Both inert while healthy, so every prior (bite-free) run is byte-identical.
-  const infection = advanceInfection(cond.infection, biteOpen, hours);
+  // T60: the fever's speed is the difficulty set's first CONSEQUENCE dial (PL-M4-57). Scaled here
+  // rather than inside `advanceInfection`, which is pure and stateless and stays that way; `scaleInt`
+  // short-circuits at 1, so a Survivor / unset run passes the flat `BITE_INFECT_RATE` and is
+  // byte-identical. Against a base of 2 the four modes land on 1 / 2 / 3 / 4 — one whole step each.
+  const infection = advanceInfection(cond.infection, biteOpen, hours, scaleInt(BITE_INFECT_RATE, profileOf(state).infectionRisk));
   const feverFatigue = stageFatigue(infection.stage, hours);
   if (feverFatigue > 0) needs = { ...needs, fatigue: clampPct(needs.fatigue + feverFatigue) };
 
-  return { ...state, player: { ...state.player, condition: { ...cond, needs, infection } } };
+  // T59: a deliberate rest/sleep/quarantine advances the worst wound's care (GDD VI). Applied LAST, so
+  // this turn's wound-decline (the extra fatigue, the infection driver above) is charged against the
+  // wounds as they were when the hours began — you were hurt for those hours whether or not you spent
+  // them lying still. `isRest` already covers `quarantine` (isolation IS rest, T49).
+  const restCare = isRest || isSleep ? Math.min(REST_WOUND_CARE * hours, REST_WOUND_CARE_MAX) : 0;
+  const rested = restCare > 0 ? treatWound(cond, restCare) : cond;
+  return { ...state, player: { ...state.player, condition: { ...rested, needs, infection } } };
 }
 
 // --- eat / drink / treat --------------------------------------------------------------------
 
 /** The food the player would eat right now (fresh first, then canned, then spoiled), or null if carrying none. */
 const foodOnHand = (s: GameState): string | null => FOOD_PRIORITY.find((f) => carries(s, f)) ?? null;
-export const canEat = (s: GameState): boolean => foodOnHand(s) !== null && s.player.condition.needs.hunger >= RELIEF_OFFER_AT;
-export const canDrink = (s: GameState): boolean => carries(s, WATER_ITEM) && s.player.condition.needs.thirst >= RELIEF_OFFER_AT;
+/**
+ * T59: each relief is offered at the value it will ACTUALLY buy back — the constant run through the
+ * run's own `needRelief` dial, exactly as `eat`/`drink` do when they apply it — so taking the offer the
+ * moment it appears wastes (almost) nothing on every difficulty mode, not just Survivor. `canEat` reads
+ * the relief of the food the player would actually reach for, which is fresh-first: a pack holding
+ * fresh food (relief 60) prompts later than one holding only cans (45), which is correct, because the
+ * better meal is worth waiting for.
+ */
+export const canEat = (s: GameState): boolean => {
+  const food = foodOnHand(s);
+  if (food === null) return false;
+  const relief = scaleInt(FOOD_RELIEF[food] ?? EAT_RELIEF, profileOf(s).needRelief);
+  return s.player.condition.needs.hunger >= reliefOfferAt(relief);
+};
+export const canDrink = (s: GameState): boolean =>
+  carries(s, WATER_ITEM) && s.player.condition.needs.thirst >= reliefOfferAt(scaleInt(DRINK_RELIEF, profileOf(s).needRelief));
 
 /** A medical item the player carries that best treats their worst wound, or null. */
 export function treatmentItem(state: GameState): { readonly item: string; readonly care: number } | null {
@@ -320,8 +465,10 @@ export const RUN_END_REASONS: readonly RunEndReason[] = Object.keys(ALL_END_REAS
  * spends whatever they have left" is **T62's to author**, and this is the trigger it hangs on
  * (PL-M5-44).
  *
- * **Not balanced against difficulty modes** (`sim/difficulty.ts`): it is a flat number on Story and
- * Ironman alike, which is almost certainly wrong, and is T59/T60's to settle (PL-M5-45).
+ * **T60 gave it a difficulty dial** (`woundTolerance`), closing the headline half of PL-M5-45 after
+ * four consecutive tasks had re-declared it flat. This constant is now the SURVIVOR value and the
+ * identity; {@link lastStandAt} is what a run actually reads. Nothing should compare a burden against
+ * this constant directly — a direct comparison is a mode-blind one, which is the defect PL-M5-45 named.
  */
 export const LAST_STAND_AT = 80;
 
@@ -341,7 +488,25 @@ export const LAST_STAND_AT = 80;
  * that owns the grab owns setting it, and this one owns what it costs.
  */
 export function inLastStand(state: GameState): boolean {
-  return state.combat?.grabbed === true && woundBurden(state.player.condition) >= LAST_STAND_AT;
+  return state.combat?.grabbed === true && woundBurden(state.player.condition) >= lastStandAt(state);
+}
+
+/**
+ * {@link LAST_STAND_AT} for THIS run — the flat threshold scaled by the mode's `woundTolerance`
+ * (T60 · closes the headline half of PL-M5-45, which four consecutive tasks had re-declared).
+ *
+ * Lower is harsher, so this is the one dial in the set that runs downward with difficulty. Floored at
+ * 1 rather than at 0: a threshold of 0 would mean every grab is instantly fatal regardless of injury,
+ * which is not "harsh" but "broken". **That floor is declared, not tested** — the four shipped profiles
+ * bottom out at 56, so a mutation sweep cannot tell `Math.max(1, …)` from the bare `scaleInt` and
+ * neither can a test; it is a bound on a future retune (PL-M4-53), and it ships for that reason.
+ * `scaleInt` short-circuits at 1, so Survivor / unset returns the flat 80 exactly.
+ *
+ * The dial's RESOLUTION is coarse and worth knowing before retuning it: see `woundTolerance`'s own doc
+ * in `sim/difficulty.ts` for the 40-point atom in the burden distribution and the cliff at 0.5.
+ */
+export function lastStandAt(state: GameState): number {
+  return Math.max(1, scaleInt(LAST_STAND_AT, profileOf(state).woundTolerance));
 }
 
 /**

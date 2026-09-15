@@ -480,7 +480,12 @@ describe("a found weapon becomes a tracked artifact in a hand (T81)", () => {
     expect(found, "no weapon reached a hand in 400 played searches").not.toBeNull();
     expect(WEAPONS[found!]!.kind).toBe("melee");
     expect(weaponFor(s).id).toBe(found);            // ...and the empty hands took it up
-    expect(gearChoices(s)).toEqual([]);             // nothing else to switch to yet
+    // T59 doubled what a single search hands over (LOOT_POINTS_PER_ITEM 3 -> 2 against a cap that also
+    // doubled), so one search can now return a second weapon and `gearChoices` offers the swap. What
+    // this test is about is the PIPELINE reaching the pool at all, so it asserts the invariant that
+    // survives the haul size: every switch offered is to a weapon this run actually found.
+    const heldIds = new Set(s.player.inventory.filter((e) => e.itemId !== undefined).map((e) => e.itemId!));
+    for (const c of gearChoices(s)) expect(heldIds.has(c.action.params?.["itemId"] as string)).toBe(true);
   });
 
   it("the same played search on a POOL-LESS run never hands out a weapon", () => {

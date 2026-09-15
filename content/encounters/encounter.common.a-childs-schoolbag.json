@@ -4,6 +4,7 @@
   "title": "A child's schoolbag",
   "premise": "A small backpack, still packed, no child.",
   "repeatable": true,
+  "tone": "neutral",
   "cooldownHours": 120,
   "tags": ["city-voices"],
   "requirements": {

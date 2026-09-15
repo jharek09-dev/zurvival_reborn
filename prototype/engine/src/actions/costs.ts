@@ -15,7 +15,9 @@
 
 /** Time cost, in in-game hours, of each core action (FR-CORE-03). Rebalanced T72 (playtest time-economy pass). */
 export const MOVE_COST = 2;
-export const SEARCH_COST = 2; // T72: 3→2 (a node still takes 3 searches to strip clean ⇒ 6h, was 9h)
+// T59: 2→1, with SEARCH_GAIN 34→17 — a node still takes SIX HOURS to strip clean, in six searches
+// rather than three. The hours are identical; the decisions double. See `actions/coreActions.ts#SEARCH_GAIN`.
+export const SEARCH_COST = 1; // T72: 3→2 (a node took 3 searches to strip clean ⇒ 6h, was 9h)
 export const REST_COST = 4; // T72: 6→4 (the away-from-base rest; "Sleep until morning" is the in-base recovery)
 /** Managing the pack costs no in-game time (T18). */
 export const DROP_COST = 0;

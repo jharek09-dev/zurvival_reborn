@@ -92,8 +92,13 @@ export function woundPlayer(state: GameState, def: WoundDef, site: string): Game
  * reaches full treatment (`treated >= severity`) is **removed** — the only way a wound leaves the
  * body (FR-INJ-04). No open wound at the target ⇒ the condition is returned unchanged. Pure.
  *
- * `care` must be a positive integer (a treatment action's effectiveness); this is the sole path by
- * which the wound list improves, so time/rest/movement can never call it implicitly.
+ * `care` must be a positive integer (a treatment action's effectiveness). This is still the sole path
+ * by which the wound list improves, and **time and movement can never call it** — but since T59 a
+ * *deliberate* stop can: `sim/survival.ts#updateCondition` calls it for a `rest` / `sleep` /
+ * `quarantine`, capped at `REST_WOUND_CARE_MAX`, which is GDD Part VI's "restored by treatment and
+ * rest". FR-INJ-04 forbids AUTO-regeneration, and an action the player chose and paid hours for is not
+ * automatic; `wounds.test.ts` holds both halves of that reading. Nothing in the passage of time, and
+ * nothing in walking, reaches this function.
  */
 export function treatWound(condition: CharacterState, care: number, site?: string): CharacterState {
   const amount = Math.max(0, Math.trunc(care));

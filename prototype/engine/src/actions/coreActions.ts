@@ -24,6 +24,7 @@ import { resolveSearch, richnessAuthored, richnessOf, searchYieldCap } from "../
 import { dropItem, dropArtifact, inventoryWeight, itemName, CARRY_CAPACITY, PACK_HEAVY } from "../sim/inventory.js";
 import { NOISE_SEARCH } from "../sim/noise.js";
 import { phaseSearchNoise } from "../sim/timeOfDay.js";
+import { profileOf, scaleInt } from "../sim/difficulty.js";
 import { routeWear, extraCostOf, isBlocked, conditionOf } from "../sim/routes.js";
 import { ZOMBIE_SCREAMER } from "../sim/zombies.js";
 import {
@@ -104,8 +105,29 @@ import { closingNarration } from "../sim/ending.js";
 export { MOVE_COST, SEARCH_COST, REST_COST, DROP_COST, SCOUT_COST, NOTE_COST } from "./costs.js";
 import { MOVE_COST, SEARCH_COST, REST_COST, DROP_COST, SCOUT_COST, NOTE_COST } from "./costs.js";
 
-/** How much a single search advances a node's searchPct (3 searches exhaust a node). */
-export const SEARCH_GAIN = 34;
+/**
+ * How much a single search advances a node's searchPct (**six** searches exhaust a node).
+ *
+ * **34 -> 17 (M5 task T59), set together with `SEARCH_COST` 2 -> 1.** The pair holds the node's time
+ * economy EXACTLY: a node took 3 searches x 2h = 6h to strip clean before this task and takes 6 x 1h =
+ * 6h after it. Nothing about how long the city takes to pick over changed; what changed is that the
+ * player gets **six decisions where they had three**, which is the only lever in the build that buys
+ * run length in *decisions* (the GDD's "full run: 2-6 hours") without buying it in survival hours.
+ *
+ * It matters because the search verb is rarer than its central place in the game suggests: measured
+ * pre-T59 over 120 runs across five policies (`measure/t59.ts`), `search` was offered on **28.1% of
+ * turns** — a fight, a walker, an active encounter or a node already stripped pre-empt it — and taken
+ * **3.5 times in a whole run**, which is the entire scavenging content of a life. After T59 it is
+ * offered on 31.2% of turns and taken 6.2 times — the offer rate barely moves, because what pre-empts
+ * a search is a fight or a walker, not the clock; what moved is how much of a node is left to search.
+ *
+ * `claim` requires `searchPct >= 100`, so a safehouse now costs six searches rather than three; the
+ * settler policy's claim rate moves **83.3% -> 62.5%** of runs, which is a price paid deliberately for
+ * the decisions (and measured, rather than discovered later). PL-M5-57/58 already record that the base
+ * layer does not bind for want of materials rather than for want of a base, so this is the cheaper of
+ * the two things to spend.
+ */
+export const SEARCH_GAIN = 17;
 
 /**
  * How far the `scout` verb sees (M5 task T84 · FR-MAP-02). Two route steps: one further than arriving
@@ -275,8 +297,17 @@ export function availableActions(state: GameState, graph: RegionGraph): readonly
     // shipped city have a zero cap, rising as the district thins — and the pre-T84 tree reaches 32 of
     // 180 once a region is down to a third, so this is a pre-existing shape that per-node richness
     // makes visible earlier, not one it invents.
+    //
+    // T60: the label reads the DIFFICULTY DIAL too, because T60 re-sited `lootYield` onto the
+    // points→items conversion and re-opened this exact dishonesty for two of the four modes. On
+    // Hardcore and Nightmare a node whose cap is 1 can only ever offer one point, which scales to a
+    // haul of zero — the node is unyieldable and was still advertised as "Search A". `scaleInt` is the
+    // best case (the cap, not the draw), so this says "it looks stripped" only when NO draw could pay,
+    // never when an unlucky one merely did not. Survivor / unset short-circuits to the T84 test
+    // exactly. This is the T56 gate formula in its proper place: an honest label, not the dial itself.
     const stock = state.regions[node.regionId]?.loot ?? 0;
-    const yieldable = searchYieldCap(stock, node.searchPct, richnessAuthored(graph) ? richnessOf(graph, here) : undefined) > 0;
+    const cap = searchYieldCap(stock, node.searchPct, richnessAuthored(graph) ? richnessOf(graph, here) : undefined);
+    const yieldable = scaleInt(cap, profileOf(state).lootYield) > 0;
     const searchLabel = yieldable ? `Search ${name}` : `Search ${name} — it looks stripped`;
     choices.push({ id: "search", label: searchLabel, timeCost: SEARCH_COST, action: searchAction });
   }

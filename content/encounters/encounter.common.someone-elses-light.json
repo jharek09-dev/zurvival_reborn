@@ -1,0 +1,48 @@
+{
+  "id": "encounter.common.someone-elses-light",
+  "category": "environmental",
+  "title": "Someone Else's Light",
+  "premise": "A window lit in the small hours, and whoever left it on.",
+  "repeatable": true,
+  "tone": "relief",
+  "cooldownHours": 96,
+  "tags": ["living-thing"],
+  "requirements": {
+    "nodeKinds": ["generic", "residential", "store", "industrial", "police", "medical"],
+    "phases": ["dusk", "night"]
+  },
+  "stages": [
+    {
+      "id": "s",
+      "narration": "Four floors up, one window is lit — a steady, ordinary yellow, the colour of a room with someone in it. No signal, no message, nothing meant for you. Just a light somebody decided was worth the risk tonight.",
+      "choices": [
+        {
+          "id": "watch",
+          "label": "Stand under it a while",
+          "timeCost": 2,
+          "effects": [
+            { "kind": "adjustMind", "stress": -12, "morale": 4 }
+          ]
+        },
+        {
+          "id": "mark",
+          "label": "Mark the building — someone is holding out here",
+          "timeCost": 1,
+          "effects": [
+            { "kind": "revealDiscovery", "discovery": "disc.city.lit-window" },
+            { "kind": "adjustMind", "stress": -3 }
+          ]
+        },
+        {
+          "id": "on",
+          "label": "A light is a thing that draws them. Keep moving",
+          "timeCost": 0,
+          "effects": [
+            { "kind": "adjustMind", "stress": 2 }
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": "T60 \u00b7 the measured counterweight to `the-small-hours`. The toned ambient pool had four relief scenes and not one was eligible at night: birdsong is dawn/morning, tending-the-base needs a shelter, across-the-street and the-stray are node-kind gated. Meanwhile the-small-hours is a TENSION scene gated on stress, so it becomes eligible exactly when the player is in trouble \u2014 i.e. exactly when the director is asking for relief. Measured (`measure/t60.ts --lean`, table (c)), the relief beat has the pool's FEWEST relief-toned rows eligible, 0.72 against its 1.36 tension rows. A lean can only choose between eligible rows, so no multiplier fixes that; only content can. Deliberately un-gated on need or stress and available in every node kind, because the point is that it is there when nothing else is. Same shape as birdsong (sit / mark / press on) so the relief is priced the same. It did NOT close the gap on its own \u2014 post-fix the relief beat still delivers slightly more tension than a hold turn does \u2014 and that is PL-M5-83, not a claim made here."
+}

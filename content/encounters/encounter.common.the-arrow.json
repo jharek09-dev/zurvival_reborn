@@ -4,6 +4,7 @@
   "title": "The arrow",
   "premise": "A direction sprayed on a wall — and an argument about it.",
   "repeatable": true,
+  "tone": "neutral",
   "cooldownHours": 96,
   "tags": ["city-voices"],
   "requirements": {

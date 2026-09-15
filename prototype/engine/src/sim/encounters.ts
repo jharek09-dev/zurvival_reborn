@@ -110,6 +110,23 @@ export function encounterPeople(state: GameState, graph?: RegionGraph): readonly
         action: { type: "talk", choiceId: `talk:${id}`, timeCost: TALK_COST, params: { npc: id } },
       });
     }
+    /**
+     * **Sharing keeps the flat {@link RELIEF_OFFER_AT}, and T59 kept it on purpose.**
+     *
+     * The player's own `eat`/`drink` moved to `reliefOfferAt` because offering a canteen at 34 when it
+     * buys back 55 taught the player to pour a third of it away — an efficiency question, and the
+     * interface should not sabotage the answer. Sharing is not that question. It is the moral one, and
+     * GDD X's canonical "last can" says the economy's job is to eventually make food a moral choice.
+     * Surfacing "share water with Ruth" the moment she is visibly thirsty is what makes the choice
+     * exist; hiding it until she is nearly dead would make the game quieter and kinder, not harder.
+     * The waste is real and it is the player's to accept or to wait out — which is the sacrifice.
+     *
+     * An audit read the two sites as one inconsistency. They are two different decisions, and the
+     * measured consequence of "fixing" it is that `npc.ruth`, the Vertical Slice's authored desperate
+     * survivor, stops being offered water at all (`test/encounters.test.ts`): her authored need sits
+     * between the two thresholds. Content authored against the low bar is the reason the low bar
+     * stays.
+     */
     if (engagesAtAll && carries(state, FOOD_ITEM) && npc.needs.hunger >= RELIEF_OFFER_AT) {
       choices.push({
         id: `give-food:${id}`,

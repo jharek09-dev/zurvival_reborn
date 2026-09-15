@@ -356,9 +356,9 @@ describe("shelter is deterministic, save-lossless, integer-only (ADR-0001)", () 
   const slice = (): GameState => {
     const { state, graph } = run();
     let s = withScrap(state, 3);
-    s = take(s, graph, "search").state;
-    s = take(s, graph, "search").state;
-    s = take(s, graph, "search").state; // searched clean
+    // T59: SEARCH_GAIN 34 -> 17, so a node takes SIX searches to strip clean (at SEARCH_COST 1 rather
+    // than 2 — the same six in-game hours, twice the decisions). `claim-shelter` still requires 100%.
+    for (let i = 0; i < 6; i += 1) s = take(s, graph, "search").state; // searched clean
     s = take(s, graph, "claim-shelter").state;
     s = take(s, graph, "fortify").state;
     s = take(s, graph, "rest").state;

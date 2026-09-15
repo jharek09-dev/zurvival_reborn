@@ -14,8 +14,12 @@ import {
   ENEMY_FOR_ZOMBIE,
   WEAPONS,
   ITEM_WEIGHTS,
+  LOOT_CONTEST_DIVISOR,
+  lootTableFor,
   LOOT_TABLES,
   weaponLootFor,
+  DIRECTOR_THREAT_BEATS,
+  type EncounterDef,
   type FactionDef,
   type NodeDef,
   type NpcLead,
@@ -363,7 +367,7 @@ describe("shipped content — the weapon roster (T81 · FR-CBT-04 · GDD IX)", (
 describe("shipped content — the base tradeoff layer (T85 · FR-SHL-04 · GDD XI)", () => {
   interface RecipeJson {
     id: string; category: string; inputs: { item: string; qty: number }[];
-    installsRoom?: string; room?: string; timeCost: number;
+    installsRoom?: string; room?: string; timeCost: number; description?: string;
     purifyFrom?: string; purifyTo?: string; purifyUnitsPerCraft?: number;
   }
   interface JobJson { id: string; room: string; produces?: { item: string; qty: number }; consumes?: { item: string; qty: number }; hoursPerCycle?: number }
@@ -426,12 +430,98 @@ describe("shipped content — the base tradeoff layer (T85 · FR-SHL-04 · GDD X
     }
   });
 
+  it("a FIELD recipe can be assembled from what one kind of place yields", () => {
+    /**
+     * T59 mutation survivor: removing `item.cloth` from the generic loot table changed nothing any test
+     * could see. That row is not decoration — it is what makes `recipe.purify.filter` assemblable at
+     * all. Its two components used to drop in DISJOINT node kinds (charcoal in generic/industrial,
+     * cloth in store/residential), so a settler searching almost entirely generic held both at once on
+     * 0.00 turns a run while carrying dirty water on 36% of them. This is the T85 cistern defect, and
+     * the property that stops it recurring.
+     *
+     * Scoped to the categories craftable AWAY from the bench (`sim/economy.ts#BENCHLESS_CATEGORIES`),
+     * deliberately. A bench recipe is assembled over days out of a stash and may legitimately want
+     * components from opposite ends of the city; a field recipe is what you make from what is in the
+     * building you are standing in.
+     */
+    const kindsWith = (item: string): Set<string> => {
+      const out = new Set<string>();
+      for (const kind of Object.keys(LOOT_TABLES)) {
+        if (lootTableFor(kind, true, true).includes(item)) out.add(kind);
+      }
+      return out;
+    };
+    const field = recipes.filter((r) => r.category === "purify");
+    expect(field.length, "there are field recipes to check").toBeGreaterThan(0);
+    for (const r of field) {
+      const sets = r.inputs.map((io) => kindsWith(io.item));
+      const shared = [...sets[0]!].filter((k) => sets.every((set) => set.has(k)));
+      expect(shared, `${r.id}: no single node kind yields ${r.inputs.map((i) => i.item).join(" + ")}`).not.toEqual([]);
+    }
+  });
+
+  it("no district strips itself before a run can reach it", () => {
+    /**
+     * T59 mutation survivor: `LOOT_CONTEST_DIVISOR` could go back to 50 and nothing failed. The number
+     * on its own is a magnitude and pinning it would be a test asserting a constant against itself
+     * (T85's lesson). What IS assertable is the relationship between the dial and the CONTENT: with the
+     * player asleep, rivals take `activity x 24 / DIVISOR` points a day, and a district that empties
+     * itself inside the Shock phase (GDD XVI's first phase) was never contested — it was already over.
+     * Five days is the floor; at the pre-T59 50 the two liveliest districts emptied on days 2.1 and 2.3.
+     *
+     * This fails if the dial drifts OR if a content pass authors a district the dial cannot support,
+     * which is the pair that actually has to agree.
+     */
+    for (const r of loadDefs<{ id: string; baseline?: { loot?: number; survivorActivity?: number } }>("regions")) {
+      const loot = r.baseline?.loot ?? 0;
+      const activity = r.baseline?.survivorActivity ?? 0;
+      if (activity === 0) continue; // a district nobody else is working never empties on its own
+      const days = loot / ((activity * 24) / LOOT_CONTEST_DIVISOR);
+      expect(days, `${r.id} empties itself on day ${days.toFixed(1)}`).toBeGreaterThanOrEqual(5);
+    }
+  });
+
+  it("a recipe's description never contradicts its own fields", () => {
+    /**
+     * T59 audit finding: `recipe.purify.boil` shipped `purifyUnitsPerCraft: 3` with a description that
+     * still read *"Converts up to 2 carried dirty-water units per batch"* — and it was embedded verbatim
+     * in the built single-file client, where a player would read it. Prose is a claim about mechanics
+     * (T61's lesson), so it gets a gate like any other claim. The check is narrow on purpose: it reads
+     * the numbers a description actually states about its own fields, and says nothing about the rest.
+     */
+    for (const r of recipes) {
+      const batch = /\bup to (\d+) carried\b/.exec(r.description ?? "");
+      if (batch !== null) {
+        expect(Number(batch[1]), `${r.id} description states a batch size`).toBe(r.purifyUnitsPerCraft);
+      }
+      for (const io of r.inputs) {
+        const label = io.item.replace("item.", "").replace(/-/g, " ");
+        const stated = new RegExp(`(\\d+)\\s*(?:x|\u00d7)\\s*${label}\\b`, "i").exec(r.description ?? "");
+        if (stated !== null) expect(Number(stated[1]), `${r.id} states ${io.item}`).toBe(io.qty);
+      }
+    }
+  });
+
   it("the two purify paths are a real choice: neither strictly dominates the other", () => {
     const boil = recipes.find((r) => r.id === "recipe.purify.boil")!;
     const filter = recipes.find((r) => r.id === "recipe.purify.filter")!;
-    // The filter yields more per craft but spends two components against the boil's one.
-    expect(filter.purifyUnitsPerCraft!).toBeGreaterThan(boil.purifyUnitsPerCraft!);
-    expect(filter.inputs.length).toBeGreaterThan(boil.inputs.length);
+    /**
+     * **T59 INVERTED THIS, because the pre-T59 assertion was satisfied by a recipe that dominated.**
+     * The filter used to yield MORE per craft (3 against 2) while also spending cheaper, lighter and
+     * commoner inputs — `item.charcoal` and `item.cloth` weigh 1 each against `item.fuel`'s 6 — so
+     * "two components against one" was not a cost at all and the boil was strictly dominated. A recipe
+     * that is worse on every axis is a power tier, which GDD Part IX forbids for weapons and this
+     * file's own sibling description claims not to be ("a real economy choice").
+     *
+     * They now trade honestly: the boil is the rare, heavy, single-component, BIG batch; the filter the
+     * common, light, two-component, small one. The test asserts the trade rather than a direction, so
+     * it cannot be satisfied again by one side simply being better.
+     */
+    const weight = (r: typeof boil): number =>
+      r.inputs.reduce((n, io) => n + (ITEM_WEIGHTS[io.item] ?? 2) * Math.max(1, io.qty), 0);
+    expect(boil.purifyUnitsPerCraft!).toBeGreaterThan(filter.purifyUnitsPerCraft!); // boil: the bigger batch
+    expect(filter.inputs.length).toBeGreaterThan(boil.inputs.length);                // filter: more parts
+    expect(weight(filter)).toBeLessThan(weight(boil));                               // filter: lighter parts
   });
 
   it("every room recipe's inputs can actually be found somewhere in the city", () => {
@@ -443,5 +533,72 @@ describe("shipped content — the base tradeoff layer (T85 · FR-SHL-04 · GDD X
     for (const r of recipes.filter((x) => x.installsRoom !== undefined)) {
       for (const i of r.inputs) expect(findable.has(i.item), `${r.id} needs ${i.item}, which no loot table holds`).toBe(true);
     }
+  });
+});
+
+describe("shipped content — the director's ambient tones (T60 · GDD Part IV)", () => {
+  const encounters = loadDefs<EncounterDef>("encounters");
+  const repeatables = encounters.filter((e) => e.repeatable === true);
+
+  it("every repeatable declares a tone, so the director's lean has a full table to work on", () => {
+    // The lean is gated on `tonesAuthored`, which is satisfied by ONE toned row — so a pool where most
+    // rows are silently `neutral` would pass the gate and then read as a director that barely leans.
+    // Either the set is authored or it is not; this asserts the former for the shipped city.
+    const untoned = repeatables.filter((e) => e.tone === undefined).map((e) => e.id);
+    expect(untoned).toEqual([]);
+    expect(repeatables.length).toBeGreaterThanOrEqual(13);
+  });
+
+  it("all three tones are represented, and no single tone owns the pool", () => {
+    const by = (tone: string): number => repeatables.filter((e) => e.tone === tone).length;
+    for (const tone of ["tension", "relief", "neutral"]) expect(by(tone)).toBeGreaterThanOrEqual(3);
+    // "biases, never forces" is a claim about the TABLE as much as about the arithmetic: a pool that is
+    // three-quarters one tone leaves the lean nothing to choose between.
+    for (const tone of ["tension", "relief", "neutral"]) expect(by(tone) / repeatables.length).toBeLessThan(0.5);
+  });
+
+  it("the pool has something kind to offer at night, when the director most often asks for relief", () => {
+    // Measured on the shipped city (`measure/t60.ts --lean`, table (c)): when the director asks for
+    // relief it has **0.72** relief-toned rows eligible on average — the FEWEST of any beat — against
+    // **1.36** tension rows, the MOST. The cause is in the requirements, not in the lean:
+    // `the-small-hours` is a tension scene gated ON stress, so it becomes eligible exactly when the
+    // player is in trouble, while every relief scene was gated to dawn/morning, to a shelter, or to a
+    // node kind. A lean can only choose between rows that are eligible, so no multiplier can fix that
+    // — only content can. This asserts the shape of the fix; PL-M5-83 tracks the magnitude.
+    // AUTHORED for the night, not merely phase-agnostic. A first cut defaulted a missing `phases` to
+    // `["night"]`, so `the-stray` and `across-the-street` — both ungated, both pre-T60 — satisfied it on
+    // their own: an audit deleted the scene this test exists for and the suite stayed green.
+    const nightly = (e: EncounterDef): boolean => {
+      const req = (e.requirements ?? {}) as { phases?: string[]; requiresShelter?: boolean };
+      return req.phases?.includes("night") === true && req.requiresShelter !== true;
+    };
+    const kindAtNight = repeatables.filter((e) => e.tone === "relief" && nightly(e));
+    expect(kindAtNight.map((e) => e.id)).toContain("encounter.common.someone-elses-light");
+    // ...and the tense, stress-gated scene it answers is still there — this is a counterweight, not a
+    // replacement. If that scene is ever removed, this pair should be re-read rather than half-deleted.
+    expect(repeatables.some((e) => e.id === "encounter.common.the-small-hours" && e.tone === "tension")).toBe(true);
+  });
+
+  it("no authored `logHistory` event forges an engine beat the director treats as a threat", () => {
+    // `logHistory` appends a history beat whose `type` is whatever the content says, and the schema
+    // constrains it to `minLength: 1`. So a choice effect of `{"kind":"logHistory","event":
+    // "combat.cleared"}` counterfeits a threat, pins `turnsSinceThreat` at 0 and suppresses the
+    // escalate beat for as long as that scene keeps firing — an audit demonstrated it end to end. The
+    // engine cannot police this without breaking every authored beat type, so the guard lives here,
+    // where the shipped content is the thing under test.
+    const authored = new Set<string>();
+    const walk = (x: unknown): void => {
+      if (Array.isArray(x)) { for (const y of x) walk(y); return; }
+      if (x === null || typeof x !== "object") return;
+      const o = x as { kind?: unknown; event?: unknown };
+      if (o.kind === "logHistory" && typeof o.event === "string") authored.add(o.event);
+      for (const v of Object.values(x as Record<string, unknown>)) walk(v);
+    };
+    for (const sub of ["encounters", "radio", "jobs", "projects", "stands", "endings", "npcs", "arcs"]) {
+      try { walk(loadDefs<unknown>(sub)); } catch { /* a content type this build does not ship */ }
+    }
+    expect(authored.size).toBeGreaterThan(0); // the scan found something, so a green result means something
+    const forged = [...authored].filter((e) => DIRECTOR_THREAT_BEATS.has(e));
+    expect(forged).toEqual([]);
   });
 });

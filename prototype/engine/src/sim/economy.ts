@@ -184,6 +184,29 @@ function atWorkbench(state: GameState): boolean {
   return state.player.shelterId !== null && state.player.location === state.player.shelterId;
 }
 
+/**
+ * The recipe categories that need no bench — **purification, and only purification** (M5 task T59).
+ *
+ * Boiling a canteen over a fire and wringing water through charcoal and cloth are field survival, not
+ * workshop work, and the GDD gates crafting by *"blueprints the player finds or is taught, by
+ * components, and by having the right shelter room"* (Part X) — `recipe.purify.boil` and
+ * `recipe.purify.filter` require none of the three. They were nevertheless unreachable outside a
+ * claimed base, because {@link craftable} gated every category on {@link atWorkbench} alike, and both
+ * files' own descriptions say *"known from the start"*.
+ *
+ * Measured on the pre-T59 tree over **120 runs across five policies** (`measure/t59.ts --water`): a
+ * purify choice was offered **0.00 times** and taken **0.00 times**, in every single run. The two
+ * gates bind in series and the measurement separates them cleanly — the `medic` policy carried a
+ * filter's components alongside dirty water on **4.50 turns a run** and never had a bench to use them
+ * at; the `settler` policy had a bench in **83% of runs** and held those components together on
+ * **0.00 turns**. Meanwhile dirty water is the commoner find of the pair (0.57 a run against clean
+ * 0.42) and is in hand on 36-55% of every run's turns. The whole of FR-ECO-05 was decoration.
+ *
+ * Deliberately narrow: every other category still needs the bench. A shelter recipe builds a room and
+ * a repair needs a vice, but water is what you die of, and you die of it in the field.
+ */
+const BENCHLESS_CATEGORIES: ReadonlySet<string> = new Set(["purify"]);
+
 /** The rooms installed at the player's shelter node (empty off a shelter). */
 function shelterRooms(state: GameState): readonly ContentId[] {
   const id = state.player.shelterId;
@@ -221,14 +244,15 @@ function repairTarget(state: GameState, recipe: RecipeDef): InventoryEntry | nul
 }
 
 /**
- * Is a recipe *craftable right now*? Gated on: the economy is active, the player is at the workbench, the
- * required blueprint is learned, the required room is built, every input is carried, and any
- * category-specific target exists (a repair needs a worn artifact; a purify needs its dirty input). Every
- * clause is false on a prior golden run (no recipe pool ⇒ `economyActive` false), so the choice list is
- * byte-identical unless the player is genuinely at the bench with the parts.
+ * Is a recipe *craftable right now*? Gated on: the economy is active, the player is at the workbench
+ * **unless the recipe's category is in {@link BENCHLESS_CATEGORIES}** (T59 — purification is field
+ * work), the required blueprint is learned, the required room is built, every input is carried, and any
+ * category-specific target exists (a repair needs a worn artifact; a purify needs its dirty input).
+ * `economyActive` is still the outermost clause, so a run with no recipe pool offers nothing at all.
  */
 export function craftable(state: GameState, graph: RegionGraph | undefined, recipe: RecipeDef): boolean {
-  if (!economyActive(graph) || !atWorkbench(state)) return false;
+  if (!economyActive(graph)) return false;
+  if (!atWorkbench(state) && !BENCHLESS_CATEGORIES.has(recipe.category)) return false;
   if (!blueprintOK(state, recipe) || !roomOK(state, recipe)) return false;
   // A room already installed at the shelter can't be built again — else the bench keeps offering it and a
   // re-craft would silently burn the inputs for nothing (the room-install is a no-op when already present).
@@ -254,14 +278,23 @@ export interface WorkshopRow {
 }
 
 /**
- * Every recipe the bench could show right now — those whose blueprint/room gates are met — each flagged
- * craftable or, if only a component is short, carrying its stated missing part. Empty off the workbench or
- * with no recipe pool. This is the honest SCR-10 screen: missing parts are *stated*, never a mystery.
+ * Every recipe the player could act on right now — those whose blueprint/room gates are met — each
+ * flagged craftable or, if only a component is short, carrying its stated missing part. This is the
+ * honest SCR-10 screen: missing parts are *stated*, never a mystery.
+ *
+ * **Off the workbench it is not empty any more** (M5 task T59, from an adversarial audit): it lists the
+ * {@link BENCHLESS_CATEGORIES} rows. Leaving it bench-only would have made the two recipes this task
+ * exists to put in the player's hands the only two whose shortfall can never be explained to them —
+ * "needs: charcoal x1 · cloth x1" is precisely the information a survivor deciding what to pick up
+ * needs, and ACCESSIBILITY §6 (the clause T59 itself invokes over the relief threshold) rules out
+ * hiding it. With no recipe pool it is still empty.
  */
 export function workshopListing(state: GameState, graph: RegionGraph | undefined): readonly WorkshopRow[] {
-  if (!economyActive(graph) || !atWorkbench(state)) return [];
+  if (!economyActive(graph)) return [];
+  const bench = atWorkbench(state);
   const rows: WorkshopRow[] = [];
   for (const recipe of recipePool(graph)) {
+    if (!bench && !BENCHLESS_CATEGORIES.has(recipe.category)) continue; // out in the field, field work only
     if (!blueprintOK(state, recipe) || !roomOK(state, recipe)) continue; // a locked recipe isn't shown at all
     const can = craftable(state, graph, recipe);
     rows.push({ recipe, craftable: can, missing: can ? [] : allMissing(state.player.inventory, recipe) });
@@ -515,15 +548,38 @@ function study(state: GameState, itemType: string): GameState {
 export function resolveEconomyAction(state: GameState, graph: RegionGraph | undefined, action: Action): GameState {
   const recipeId = typeof action.params?.["recipe"] === "string" ? (action.params["recipe"] as string) : "";
   const recipe = recipeOf(graph, recipeId);
+  /**
+   * **The verb must match the recipe's category** (M5 task T59, from an adversarial audit).
+   *
+   * Until T59 every economy verb required the bench, so a forged action could only ever be resolved
+   * somewhere `craftable` already said yes — the type/category mismatch was unreachable. Making
+   * `purify` benchless opened it: a hand-built `{type:"craft", choiceId:"purify:recipe.purify.boil"}`
+   * was ACCEPTED anywhere on the map, because `assertLegal` only compares the `choiceId` against the
+   * offered list and this switch never asked whether a `craft` was being run against a purify recipe.
+   * Reproduced: it burned the fuel, purified nothing, and wrote a `craft.done` beat into the
+   * append-only Living History for a craft that never happened.
+   *
+   * Nothing material was forged TODAY, because no shipped purify recipe authors an `output`, an
+   * `installsRoom` or a mint — which is exactly the kind of accident that stops being harmless the
+   * first time a content set does. This is T87's "a forged action finished the whole project from
+   * another district" in a smaller key, and the same fix: re-derive the verb from the DATA rather
+   * than trusting the caller's label.
+   */
+  const verbMatches = (want: RecipeDef["category"] | "craft"): boolean => {
+    if (recipe === undefined) return false;
+    // `craft` is the residual verb — everything that is not a repair or a purify goes through it,
+    // exactly as `economyChoices` assigns the ids.
+    return want === "craft" ? recipe.category !== "repair" && recipe.category !== "purify" : recipe.category === want;
+  };
   switch (action.type) {
     case "craft":
-      return recipe !== undefined && craftable(state, graph, recipe) ? craft(state, recipe) : state;
+      return verbMatches("craft") && craftable(state, graph, recipe!) ? craft(state, recipe!) : state;
     case "repair": {
       const itemId = typeof action.params?.["itemId"] === "string" ? (action.params["itemId"] as string) : "";
-      return recipe !== undefined && craftable(state, graph, recipe) ? repair(state, recipe, itemId) : state;
+      return verbMatches("repair") && craftable(state, graph, recipe!) ? repair(state, recipe!, itemId) : state;
     }
     case "purify":
-      return recipe !== undefined && craftable(state, graph, recipe) ? purify(state, recipe) : state;
+      return verbMatches("purify") && craftable(state, graph, recipe!) ? purify(state, recipe!) : state;
     case "study": {
       const item = typeof action.params?.["item"] === "string" ? (action.params["item"] as string) : "";
       // Re-validate like the other verbs: the economy must be active (dark without a pool) and the item a

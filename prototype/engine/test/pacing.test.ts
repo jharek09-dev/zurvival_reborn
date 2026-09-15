@@ -87,10 +87,28 @@ describe("summarizePacing folds a run into pacing metrics (T32)", () => {
 describe("the T30 DoD via T32 — disabling the director changes pacing, never breaks bounds", () => {
   it("director-on and director-off runs produce different pacing metrics from the same seed", () => {
     const { state, graph } = run();
-    const on = summarizePacing(worldRun(state, graph, 60));
-    const off = summarizePacing(worldRun(disable(state), graph, 60));
-    // the metrics move (the director is actually shaping pacing)
-    expect(on.meanPressure).not.toBe(off.meanPressure);
+    // T60: this assertion used to read `meanPressure`, and it passed by a single point — the pre-T60
+    // escalate beat fired on day one and nudged the region once. Measurement then showed the whole
+    // absolute-pressure read is dead (`highPressureTurns` 0.0% of turns and `oscillations` 0.00 across
+    // 120 played runs; see the `telemetry/pacing.ts` header), so an assertion resting on it was one
+    // tuning change away from being a test of nothing. It now reads the BEAT, which is what "the
+    // director is shaping pacing" always meant, and it reads it off a PLAYED run, because after T60 the
+    // decision is a fact about the player: an off-screen timeline has no player and no turns, so every
+    // beat in one is `hold` whether the director is on or off — true, and useless as a discriminator.
+    const on = summarizePacing(playedRun(state, graph, 60));
+    const off = summarizePacing(playedRun(disable(state), graph, 60));
+    expect(on.samples).toBe(off.samples);
+    // Off, the controller is provably inert: one beat, no switches, for the whole run.
+    expect(off.holdTurns).toBe(off.samples);
+    expect(off.escalateTurns).toBe(0);
+    expect(off.reliefTurns).toBe(0);
+    expect(off.beatSwitches).toBe(0);
+    // On, it is provably not.
+    expect(on.escalateTurns + on.reliefTurns).toBeGreaterThan(0);
+    expect(on.beatSwitches).toBeGreaterThan(0);
+    expect(on.holdTurns).toBeLessThan(on.samples);
+    // The quiet clock is a live, moving read in a played run — not pinned at 0 (the naive-rule failure).
+    expect(on.longestQuietStreak).toBeGreaterThanOrEqual(1);
     // ...and every captured sample stayed legal in both runs (no impossible state)
     for (const samples of [worldRun(state, graph, 60), worldRun(disable(state), graph, 60)]) {
       for (const s of samples) {

@@ -4,6 +4,7 @@
   "title": "The killing floor",
   "premise": "You come back to a room you already made a mess of.",
   "repeatable": true,
+  "tone": "tension",
   "cooldownHours": 72,
   "tags": ["aftermath"],
   "requirements": {

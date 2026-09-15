@@ -18,6 +18,9 @@ import {
   DIRECTOR_RELIEF_PER_DAY,
   DIRECTOR_BIAS_MAX,
   DIRECTOR_BIAS_DECAY_HOURS,
+  DIRECTOR_COASTING_TURNS,
+  turnsSinceThreat,
+  coasting,
   directorBias,
   decayBias,
   driftAnchor,
@@ -50,17 +53,50 @@ const region = (o: Partial<RegionState>): RegionState => ({
   threat: 0, zombieDensity: 0, loot: 0, survivorActivity: 0, power: 0, water: 0, fire: 0, roads: 100, storyFlags: {},
   ...o,
 });
+/**
+ * A fixture that has been QUIET long enough to read as coasting (T60).
+ *
+ * Before T60 the escalate beat fired on a low *pressure* read, which a fresh `startRun` fixture
+ * satisfies at turn 0 — so every escalate test below could build its state and assert immediately.
+ * T60 moved the trigger onto GDD Part IV's own second-named input, "time since the last real threat",
+ * which is a fact about the PLAYER and is measured in player turns: a run at turn 0 has not been quiet,
+ * it has not *started*. `advanceWorld` deliberately does not bump `meta.turn` (only `advanceClock`
+ * does, on a player action), so a fixture that fast-forwards the world still has to say how many turns
+ * the player spent doing it. That is what this stamps, and nothing else about these tests changed.
+ */
+const quiet = (s: GameState): GameState => ({ ...s, meta: { ...s.meta, turn: DIRECTOR_COASTING_TURNS } });
+
 const wounded = (s: GameState, wounds: readonly Wound[]): GameState => ({
   ...s,
   player: { ...s.player, condition: { ...s.player.condition, wounds } },
 });
 
 describe("director beat from pressure + distress (T30 · FR-SIM-10)", () => {
-  it("escalates a calm, undistressed run", () => {
+  it("escalates a calm, undistressed run once it has been quiet — and not before (T60)", () => {
     const { state } = run();
     expect(pressureRead(state)).toBeLessThan(25);
     expect(playerDistressed(state)).toBe(false);
-    expect(directorBeat(state)).toBe("escalate");
+    // Both halves, because T60 replaced the trigger and a one-sided assert would pass on a stuck
+    // `escalate` as happily as on a working one: a run that has not been quiet yet is left alone...
+    expect(turnsSinceThreat(state)).toBe(0);
+    expect(coasting(state)).toBe(false);
+    expect(directorBeat(state)).toBe("hold");
+    // ...and the same state, quiet for the threshold, gets the beat.
+    expect(coasting(quiet(state))).toBe(true);
+    expect(directorBeat(quiet(state))).toBe("escalate");
+  });
+
+  it("the quiet clock counts player turns, so a world fast-forwarded with nobody playing never coasts (T60)", () => {
+    // The mirror of the test above, pinned because it is the one place the new input can read as a bug:
+    // `advanceWorld` moves the world in HOURS and leaves `meta.turn` alone, which is correct — "the
+    // player is coasting" is not a claim you can make about a player who has not taken a turn.
+    const { state, graph } = run();
+    const idled = advanceWorld(state, 24 * 8, graph);
+    expect(idled).not.toBe(state);                 // the world moved...
+    expect(idled.meta).toEqual(state.meta);        // ...and the player's clock did not, at all
+    expect(idled.meta.turn).toBe(0);
+    expect(turnsSinceThreat(idled)).toBe(0);
+    expect(coasting(idled)).toBe(false);
   });
 
   it("gives relief when pressure is high", () => {
@@ -94,7 +130,7 @@ describe("distress is weight or shock, not the existence of a scab (T78 · close
     const scab = wounded(state, [{ type: "wound.laceration", site: "arm", severity: 30, treated: 20, inflictedDay: 1 }]);
     expect(woundBurden(scab.player.condition)).toBe(10);
     expect(playerDistressed(scab)).toBe(false);
-    expect(directorBeat(scab)).toBe("escalate"); // calm fixture region ⇒ the director gets back to work
+    expect(directorBeat(quiet(scab))).toBe("escalate"); // calm, quiet fixture ⇒ the director gets back to work
   });
 
   it("burden at the threshold is distress; one point under it is not (the literal is load-bearing)", () => {
@@ -222,7 +258,7 @@ describe("relief is rationed — at most DIRECTOR_RELIEF_PER_DAY beats a day (T7
 
   it("escalate is not rationed and never touches the ration fields", () => {
     const { state } = run();
-    let s = state;
+    let s = quiet(state);
     for (let i = 0; i < DIRECTOR_RELIEF_PER_DAY + 2; i++) {
       expect(directorBeat(s)).toBe("escalate");
       s = tickDirector(s, 2);
@@ -263,7 +299,7 @@ describe("a beat leans the region's drift anchor — `directorBias` (T78, the me
   it("escalate leans +step and relief −1, clamped to ±DIRECTOR_BIAS_MAX; the literal is load-bearing", () => {
     expect(DIRECTOR_BIAS_MAX).toBe(10);
     const { state } = run();
-    let s = state;
+    let s = quiet(state);
     for (let i = 0; i < DIRECTOR_BIAS_MAX + 3; i++) {
       expect(directorBeat(s)).toBe("escalate");
       s = tickDirector(s, 2);
@@ -371,7 +407,8 @@ describe("a beat leans the region's drift anchor — `directorBias` (T78, the me
   });
 
   it("on Story the escalate step truncates to 0: the director never escalates and never leans a district upward (declared, not a bug)", () => {
-    const { state } = startRun({ ...opts, difficulty: "story" }, REGIONS, NODES);
+    const { state: fresh } = startRun({ ...opts, difficulty: "story" }, REGIONS, NODES);
+    const state = quiet(fresh);
     expect(directorBeat(state)).toBe("escalate");
     let s = state;
     for (let i = 0; i < 10; i++) s = tickDirector(s, 2);
@@ -424,7 +461,8 @@ describe("a beat leans the region's drift anchor — `directorBias` (T78, the me
 
 describe("director nudges are bounded and region-only (T30)", () => {
   it("escalate raises the current region's density + threat by one, clamped", () => {
-    const { state } = run();
+    const { state: fresh } = run();
+    const state = quiet(fresh);
     const after = tickDirector(state, 6);
     expect(after.regions["region.x"]!.zombieDensity).toBe(density(state) + 1);
     expect(after.regions["region.x"]!.threat).toBe(state.regions["region.x"]!.threat + 1);
@@ -459,7 +497,9 @@ describe("the director counters off-screen de-escalation (T30 · addresses PL-M2
   it("an idle district stays denser with the director on than off, and both stay legal", () => {
     // fix the phase to midday (calm tide) so escalation is the dominant signal, then idle for days
     const { state, graph } = run();
-    const base = { ...state, meta: { ...state.meta, phase: "midday" as const }, world: { ...state.world, globalThreat: 10 } };
+    // `quiet` because T60 moved escalate onto player turns: eight days of world time are the CONSEQUENCE
+    // of a player's turns (sleeping, travelling), and `advanceWorld` alone does not stamp them.
+    const base = quiet({ ...state, meta: { ...state.meta, phase: "midday" as const }, world: { ...state.world, globalThreat: 10 } });
     const on = advanceWorld(base, 24 * 8, graph);        // 8 idle days, director on
     const off = advanceWorld(disable(base), 24 * 8, graph); // 8 idle days, director off
     expect(density(on)).toBeGreaterThan(density(off)); // the world festers when unwatched

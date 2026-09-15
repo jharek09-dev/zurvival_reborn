@@ -4,6 +4,7 @@
   "title": "The note",
   "premise": "A folded note where a wallet used to be.",
   "repeatable": true,
+  "tone": "tension",
   "cooldownHours": 120,
   "tags": ["the-dead"],
   "requirements": {

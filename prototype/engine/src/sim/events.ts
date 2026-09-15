@@ -66,6 +66,8 @@ import { isRunOver } from "./survival.js";
 import { overrunsPlayer } from "./hordes.js";
 import { addBodies } from "./roster.js";
 import { ZOMBIE_WALKER } from "./zombies.js";
+import { directorIntent, type DirectorBeat } from "./director.js";
+import { profileOf, scaleInt } from "./difficulty.js";
 
 // --- categories -------------------------------------------------------------------------------
 
@@ -203,6 +205,12 @@ export interface EncounterDef {
    */
   readonly weight?: number;
   /**
+   * What this beat does to the run's **tension** (M5 task T60 · GDD Part IV) — the handle the
+   * Apocalypse Director biases the ambient pool with. Absent ⇒ {@link DEFAULT_TONE}, which never moves.
+   * Read only for the repeatable tier; a one-shot is picked by fit and never weighted.
+   */
+  readonly tone?: EncounterTone;
+  /**
    * Cooldown (hours) before a **repeatable** encounter may fire again (T48 · FR-ENC-02) — ENFORCED: a
    * repeatable whose last `encounter.begin` beat (Living History) is within this window is ineligible.
    * The core anti-repeat lever; set it ≥ the recency window so a re-fire never reads as verbatim. No
@@ -211,6 +219,20 @@ export interface EncounterDef {
   readonly cooldownHours?: number;
   readonly notes?: string;
 }
+
+/**
+ * What a beat does to the run's tension — the axis the director bids on (M5 task T60).
+ *
+ * Deliberately **not** {@link EncounterCategory} and deliberately **not** `tags`. Category is about
+ * what kind of thing happened and does not separate tension from relief at all: `environmental` holds
+ * both `birdsong` (a living thing, and the quiet to hear it) and `the-uncovered` (bodies under a
+ * tarpaulin). Tags are documented as *"free-form; no engine meaning beyond grouping"*, and giving them
+ * engine meaning would mean a content author changing the director by naming a theme. So the author
+ * says what the beat IS, in one word, and the engine reads exactly that.
+ */
+export type EncounterTone = "tension" | "relief" | "neutral";
+/** The tone an unauthored beat reads as — the one the director never moves. */
+export const DEFAULT_TONE: EncounterTone = "neutral";
 
 // --- T48 selection constants (weighting + cooldowns · FR-ENC-01/02) ---------------------------
 
@@ -706,12 +728,102 @@ export function selectEncounter(state: GameState, graph: RegionGraph): Encounter
   return bestByFit(oneShot.length > 0 ? oneShot : ambient);
 }
 
+/**
+ * **How far the director leans the ambient pool, per beat and tone** (M5 task T60 · GDD Part IV:
+ * *"biases (never forces) what the simulation offers next"*), as a percentage of the row's weight.
+ * 100 leaves a row exactly where it was.
+ *
+ * This is where the director stops being a number on a district and becomes something a player meets.
+ * Measured on the pre-T60 tree, the whole controller was worth nothing: **turning the Apocalypse
+ * Director off changed a run by 0.1 turns** (50.0 -> 49.9 over 120 runs across five policies), because
+ * its entire authority was a clamped +-1 a tick on two dials of one region — and `driftRegions` pulls
+ * those straight back onto the anchor (measured today, the player's region sits exactly on its anchor
+ * on 40% of turns and within a point of it on 63%). Even forcing an escalate beat on every single tick
+ * moved the run 0.8 turns, and a 6x wider bias cap on top of that moved it 1.2.
+ *
+ * **Those three figures are rebuild sweeps on a tree that no longer exists** — a constant was edited,
+ * the tree re-run, the constant restored — so `measure/t60.ts` cannot reproduce them and does not
+ * pretend to; `docs/qa/QA_REVIEW_T60.md` records how each was taken. Everything below IS re-derivable:
+ * `--lean` prints the table this constant produces, `--pacing` the pressure and anchor readings.
+ *
+ * The encounter pool is the opposite of that: it fires **12.5 times a run**, it is the liveliest channel
+ * in the game (T86 said the same when it looked for one), and what it offers is felt immediately.
+ *
+ * Measured after the wiring, on the ambient table itself (`--lean` (a)): an escalate beat asks for
+ * **46.7% tension against a hold turn's 23.2%**. The relief half is weaker — 29.8% relief against
+ * 35.8% — and the cause is eligibility rather than arithmetic: when the director asks for relief the
+ * pool has 0.72 relief-toned rows eligible on average, its fewest, against 1.36 tension rows, its most.
+ * A lean can only choose between rows that are eligible. See PL-M5-83.
+ *
+ * `hold` is the identity row and is written out rather than defaulted, so the table reads as what it is
+ * — three beats, three columns, one of which does nothing.
+ */
+export const DIRECTOR_TONE_LEAN: { readonly [beat in DirectorBeat]: { readonly [tone in EncounterTone]: number } } = {
+  escalate: { tension: 200, relief: 50, neutral: 100 },
+  relief: { tension: 50, relief: 200, neutral: 100 },
+  hold: { tension: 100, relief: 100, neutral: 100 },
+};
+
+/**
+ * Whether this content set authors a {@link EncounterTone} anywhere — the **active-system gate** for
+ * the whole director-bias axis (T83's `safehousesAuthored` precedent, applied to a content FIELD).
+ *
+ * A pool that says nothing about tone gets the arithmetic it always had, exactly: every row reads
+ * `neutral`, every lean is 100, and `weightOf` returns the pre-T60 integer. Cheap — a scan of the
+ * already-indexed pool, once per weighted pick, and the weighted pick happens only when two or more
+ * repeatables are eligible.
+ */
+export function tonesAuthored(graph: RegionGraph | undefined): boolean {
+  for (const def of encounterPool(graph)) if (def.tone !== undefined) return true;
+  return false;
+}
+
+/**
+ * The director's lean on one row, as a percentage. 100 (identity) unless the pool authors tones AND
+ * the beat is not `hold`. `directorAggression` (T56's pacing dial) scales the lean's DISTANCE from
+ * identity, which is that dial's first real job: before T60 it scaled an escalate nudge that fired
+ * only on day one, and measured 0.2 turns of difference between Survivor and Nightmare.
+ */
+/**
+ * The floor on a down-lean, as a percentage. **Declared, not tested**: at the four shipped
+ * `directorAggression` values the reciprocal never reaches it (Nightmare's 3 gives an up-lean of 400
+ * and a down-lean of exactly 100·100/400 = 25, which IS the floor but equals the unfloored value), so a
+ * mutation sweep cannot distinguish `Math.max(TONE_LEAN_FLOOR, …)` from the bare division and no
+ * honest test can either. It becomes reachable the moment a retune takes aggression above 4, which
+ * PL-M4-53 says is exactly the kind of thing a later pass may do — which is why it ships rather than
+ * being deleted as dead. Kept deliberately.
+ */
+const TONE_LEAN_FLOOR = 25;
+
+function toneLean(beat: DirectorBeat, tone: EncounterTone, aggression: number): number {
+  const lean = DIRECTOR_TONE_LEAN[beat][tone];
+  if (lean === 100) return 100;
+  // The aggression dial applies to ESCALATE ONLY. `difficulty.ts` documents it as "a multiplier on the
+  // Director's escalate nudge", `director.ts`'s `nudge` says relief "is deliberately unscaled — a
+  // harder mode escalates a coasting run harder, it does not yank away the comeback rope the GDD's
+  // failure-spiral prevention promises (GDD XVI rule 4)", and `director.ts` says Story's director never
+  // escalates at all. A first cut passed `aggression` on every beat and made all three false in the
+  // same task: Hardcore leaned the relief beat 0.003:1 against tension, and Story's director escalated
+  // through the one channel T60 calls its only real authority.
+  if (beat !== "escalate") return lean;
+  if (aggression === 1) return lean; // Survivor / unset: the table value, untouched.
+  // Up-lean scales; down-lean is its reciprocal, so the dial stays a ROTATION of the odds rather than
+  // a ratchet. The first cut scaled the linear distance from 100 and clamped at 1, which saturated:
+  // `100 + trunc(-50 * 2)` is 0 for EVERY aggression >= 2, so Hardcore and Nightmare were numerically
+  // identical on the suppression side while the amplification side kept growing — a 2x dial step
+  // bought a 64x odds step, and at 212:1 the disfavoured row is not biased down, it is removed. GDD IV
+  // says "biases (never forces)", so the floor is a real weight, not 1%.
+  const up = Math.max(1, 100 + scaleInt(DIRECTOR_TONE_LEAN.escalate.tension - 100, aggression));
+  return lean > 100 ? up : Math.max(TONE_LEAN_FLOOR, Math.trunc((100 * 100) / up));
+}
+
 /** Integer selection weight for a repeatable: base, scaled up by id-freshness and (2×) tag-diversity. */
 function weightOf(
   def: EncounterDef,
   now: number,
   lastById: Map<string, number>,
   lastByTag: Map<string, number>,
+  lean: (tone: EncounterTone) => number = () => 100,
 ): number {
   const base = Math.max(1, Math.trunc(def.weight ?? BASE_WEIGHT));
   const lastId = lastById.get(def.id);
@@ -722,17 +834,71 @@ function weightOf(
     const s = lt === undefined ? STALE_CAP_HOURS : Math.min(STALE_CAP_HOURS, now - lt);
     if (s < tagScore) tagScore = s; // the most-recently-fired shared tag dominates → suppress the theme
   }
-  return base * (1 + idScore + 2 * tagScore);
+  const w = base * (1 + idScore + 2 * tagScore);
+  // T60: the director's lean, last, so it scales the fully-diversified weight rather than the base —
+  // a beat the pool is already suppressing for recency stays suppressed. Floored at 1: the director
+  // biases, it never removes a row from the table (GDD IV "biases, never forces", and the `floor(f·len)`
+  // shape hazard the pool gates exist for).
+  const pct = lean(def.tone ?? DEFAULT_TONE);
+  return pct === 100 ? w : Math.max(1, Math.trunc((w * pct) / 100));
 }
 
-/** Weighted-random pick over ≥2 eligible repeatables, drawing once from the `encounter` stream. */
-function weightedPick(state: GameState, graph: RegionGraph, ambient: readonly EncounterDef[]): { def: EncounterDef; rng: RngState } {
+/** One row of the ambient table as the director has left it: the selection odds, laid out. */
+export interface AmbientWeight {
+  readonly id: ContentId;
+  readonly tone: EncounterTone;
+  /** The integer selection weight, tone lean included. */
+  readonly weight: number;
+}
+
+/**
+ * **The ambient table for this exact state, weights and all** (T60) — pure, no draw, no stream step.
+ *
+ * The telemetry seam for the director's lean, and it exists because the obvious way to measure the
+ * lean does not work. Counting the tones that actually FIRED, split by the beat that was live, is
+ * confounded three ways at once: about half of all scenes are scripted one-shots the lean never
+ * touches (T48), the beat correlates with WHERE the player is and therefore with which rows are
+ * eligible at all, and the `1 + idScore + 2·tagScore` recency term dominates the weight — so the
+ * measured delivery-level split reads as noise or backwards even where the lean is working exactly as
+ * written. This returns what the director actually asked for, which is the thing to measure.
+ *
+ * Same shape as `samplePacing`: a client or a harness calls it on states it already has, nothing in
+ * the pipeline calls it, and a seeded run is unaffected by whether anyone looks.
+ */
+export function ambientWeights(state: GameState, graph: RegionGraph): readonly AmbientWeight[] {
+  const { oneShot, ambient } = eligibleTiers(state, graph);
+  // Exactly `chooseEncounter`'s short-circuits, in the same order. The single-candidate case is the one
+  // an audit caught missing: `chooseEncounter` returns `ambient[0]` with NO draw, so a table reported
+  // there is a table nothing drew from. It was 20.5% of everything this function reported, and it
+  // halved the apparent strength of the lean in the one measurement that exists to isolate it.
+  if (oneShot.length > 0 || ambient.length === 0 || ambient.length === 1) return [];
+  const { sorted, weights } = ambientTable(state, graph, ambient);
+  return sorted.map((d, i) => ({ id: d.id, tone: d.tone ?? DEFAULT_TONE, weight: weights[i]! }));
+}
+
+/** The one place the ambient weights are computed — {@link weightedPick} draws on it, telemetry reads it. */
+function ambientTable(
+  state: GameState,
+  graph: RegionGraph,
+  ambient: readonly EncounterDef[],
+): { sorted: readonly EncounterDef[]; weights: readonly number[] } {
   const now = absNow(state);
   const fires = recentFires(state, COOLDOWN_MAX_HOURS);
   const lastById = lastFireById(fires);
   const lastByTag = lastFireByTag(fires, encounterPool(graph));
   const sorted = [...ambient].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)); // stable, seed-independent order
-  const weights = sorted.map((d) => weightOf(d, now, lastById, lastByTag));
+  // T60: the director's bid on this turn's offer. Gated on the pool authoring any tone at all, so a
+  // tone-less set draws bit-for-bit as before; `directorBeat` already returns `hold` when the director
+  // is disabled, which is the identity row.
+  const beat = tonesAuthored(graph) ? directorIntent(state) : "hold";
+  const aggression = profileOf(state).directorAggression;
+  const lean = (tone: EncounterTone): number => toneLean(beat, tone, aggression);
+  return { sorted, weights: sorted.map((d) => weightOf(d, now, lastById, lastByTag, lean)) };
+}
+
+/** Weighted-random pick over ≥2 eligible repeatables, drawing once from the `encounter` stream. */
+function weightedPick(state: GameState, graph: RegionGraph, ambient: readonly EncounterDef[]): { def: EncounterDef; rng: RngState } {
+  const { sorted, weights } = ambientTable(state, graph, ambient);
   const total = weights.reduce((a, b) => a + b, 0);
   const { rng, value: roll } = drawInt(state.rng, state.meta.seed, ENCOUNTER_STREAM, 0, total - 1);
   let acc = 0;
@@ -788,7 +954,18 @@ export function evaluateEvents(state: GameState, graph: RegionGraph | undefined)
   const withRng = rng === state.rng ? state : { ...state, rng };
   const active: ActiveEncounter = { encounter: def.id, stage: def.stages[0]!.id, node: state.player.location };
   const engaged = setActive(withRng, active);
-  return appendBeat(engaged, beat(engaged, "encounter.begin", [def.id, active.node], { encounter: def.id, category: def.category }));
+  // T60: the scene's tone rides on the beat, so `turnsSinceThreat` can tell a scene that THREATENED the
+  // player from one that consoled them without re-resolving the pool off a save. Omitted entirely when
+  // the content authors no tone, so a tone-less pool writes the pre-T60 payload byte-for-byte.
+  // `def.tone ?? DEFAULT_TONE`, not `def.tone`: `weightOf` reads a missing tone as `neutral`, so a beat
+  // stamped with nothing is `neutral` to the actuator and, because `threatening` fails closed on an
+  // absent tone, a THREAT to the sensor — the same scene, two opposite readings, decided by whether an
+  // author typed the field. Resolving it here makes the two agree. Still gated on the pool authoring a
+  // tone ANYWHERE, so a tone-less content set writes the pre-T60 payload byte-for-byte.
+  const payload = tonesAuthored(graph)
+    ? { encounter: def.id, category: def.category, tone: def.tone ?? DEFAULT_TONE }
+    : { encounter: def.id, category: def.category };
+  return appendBeat(engaged, beat(engaged, "encounter.begin", [def.id, active.node], payload));
 }
 
 // --- choices (availableActions) + narration (sceneOf) -----------------------------------------
