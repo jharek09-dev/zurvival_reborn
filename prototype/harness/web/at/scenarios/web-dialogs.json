@@ -1,0 +1,22 @@
+{
+ "title": "Web client — depth screens and dialogs",
+ "about": "A depth screen is opened, read, tabbed and closed; then a second one. What must hold: EVERY dialog is announced as a dialog on open (in the first T63 build only the first dialog a page opened was — see the note on step 'Enter on Codex'), its content reads as a heading, sub-headings and lists, Tab never leaves it, Escape closes it with focus back on the button that opened it, and closing re-reads NOTHING from the page behind. Orca does not repeat the dialog's NAME on open because the button just pressed carries the same name ('has same name as priorObj' in its log) — the description is spoken instead.",
+ "steps": [
+  {"js": "document.querySelector('[data-screen=companions]').focus()"},
+  {"label": "Enter on Companions", "keys": ["Return"], "focus": "#modal-root dialog .head button", "expect": ["dialog the people with you — condition, trust, orders", "Close push button"]},
+  {"label": "Orca Down — read on", "keys": ["Down"], "expect": ["Companions heading level 2"]},
+  {"label": "Orca Down", "keys": ["Down"], "expect": ["the people with you"]},
+  {"label": "Orca Down", "keys": ["Down"], "expect": ["with you"]},
+  {"label": "Tab", "keys": ["Tab"], "focus": "#modal-root dialog *"},
+  {"label": "Shift+Tab", "keys": ["shift+Tab"], "focus": "#modal-root dialog *"},
+  {"label": "Escape closes; focus returns", "keys": ["Escape"], "wait": 8000, "quietMs": 2000, "focus": "[data-screen=companions]",
+   "expect": ["Companions push button"], "forbid": ["You hear:", "choices."]},
+  {"js": "document.querySelector('[data-screen=codex]').focus()"},
+  {"label": "Enter on Codex — the SECOND dialog is announced too", "keys": ["Return"], "focus": "#modal-root dialog .head button", "expect": ["dialog lore, the radio, rumors, and the memorial", "Close push button"],
+   "note": "Before the Close button was moved ahead of the heading in DOM order, Chromium placed its text caret in the dialog's heading before firing focus; Orca took the caret as the locus, found the Close button inside the same dialog, and announced no dialog at all."},
+  {"label": "Orca H — the dialog's title", "keys": ["h"], "expect": ["Codex heading level 2"]},
+  {"label": "Orca H — first section", "keys": ["h"], "expect": ["heading level 3"]},
+  {"label": "Orca L — next list", "keys": ["l"], "expect": ["/list with \\d+ items?/i"]},
+  {"label": "Escape", "keys": ["Escape"], "wait": 8000, "quietMs": 2000, "focus": "[data-screen=codex]", "expect": ["Codex push button"], "forbid": ["You hear:", "choices."]}
+ ]
+}

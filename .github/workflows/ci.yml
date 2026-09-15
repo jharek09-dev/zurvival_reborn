@@ -61,6 +61,18 @@ jobs:
         working-directory: prototype/harness
         run: npm start
 
+      # --- Web client: the built page, checked through a real Chromium's accessibility tree (T63 · NFR-ACC-01..04) ---
+      # GitHub documents Google Chrome on the ubuntu-latest image (not verified from here — T63 ran this step only in a
+      # container with Chromium). a11y-check.mjs looks on PATH and CHROME_BIN and FAILS — never skips — if it finds none.
+      - name: Web client — build the single-file page
+        working-directory: prototype/harness
+        run: |
+          node web/build-web.mjs "$RUNNER_TEMP/zurvival-bundle.js" --minify
+          node web/build-html.mjs "$RUNNER_TEMP/zurvival-bundle.js" ../../content "$RUNNER_TEMP/zurvival-playable.html"
+      - name: Web client — accessibility check (structure · focus · dialogs · shortcuts · contrast · reflow · targets · motion)
+        working-directory: prototype/harness
+        run: node web/a11y-check.mjs "$RUNNER_TEMP/zurvival-playable.html"
+
       # --- Test Lab: autoplay + invariant checks over the shipped city (side tool, prototype/testlab) ---
       - name: Test Lab — install
         working-directory: prototype/testlab
@@ -92,10 +104,21 @@ jobs:
           fi
           echo "OK — schema gate rejected malformed content as required"
 
-      # --- Accessibility palette gate (T56 pt 2 · NFR-ACC-01/03): contrast + colourblind check of design/tokens.css ---
-      - name: A11y gate — design/tokens.css palette must pass (WCAG contrast + CVD)
+      # --- Accessibility palette gate (T56 pt 2 · NFR-ACC-01/03): contrast + colourblind check of design/tokens.css,
+      #     plus (T63) the client lint over prototype/harness/web/styles.css — token drift, --danger/--info never as text,
+      #     body tokens on every reading surface, and a reduced-motion off switch for any motion ---
+      - name: A11y gate — design/tokens.css palette + the web client stylesheet must pass (WCAG contrast + CVD + client lint)
         working-directory: prototype/content-loader
         run: npm run validate:a11y
+
+      - name: A11y gate — the pre-T63 client stylesheet must be rejected (client lint)
+        working-directory: prototype/content-loader
+        run: |
+          if npm run --silent validate:a11y -- --client test/fixtures/bad-client.css; then
+            echo "::error::a11y client lint ACCEPTED the pre-T63 stylesheet — the lint is not linting"
+            exit 1
+          fi
+          echo "OK — client lint rejected the pre-T63 stylesheet as required"
 
       - name: A11y gate — malformed palette must be rejected
         working-directory: prototype/content-loader

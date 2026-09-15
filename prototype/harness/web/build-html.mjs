@@ -4,7 +4,8 @@
  *   node build-html.mjs <bundle.js> <contentDir> <out.html>
  *
  * Inlines: (1) the esbuild IIFE bundle (global `Zurvival`), (2) CONTENT built from content/*.json,
- * (3) styles.css, (4) ui.js. No external requests, no localStorage — everything lives in the one file.
+ * (3) styles.css, (4) ui.js. No external requests — everything lives in the one file. (The run is never stored;
+ * since T63 the reader settings are, in localStorage — see ui.js `loadSettings`.)
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -44,6 +45,12 @@ const CONTENT = {
 const guardScript = (s) => s.replace(/<\/script/gi, "<\\/script");
 const contentJson = JSON.stringify(CONTENT).replace(/</g, "\u003c");
 
+// T63 (NFR-ACC-02): landmarks, a real heading outline, and ONE announcer. Before T63 the whole scene card was
+// an aria-live region that was emptied and refilled every turn, so a screen reader (Orca, verified) spoke the
+// status, the soundscape and the story interleaved out of order; now focus moves to the scene heading and the
+// announcer speaks one ordered digest (ui.js `announceTurn`). The scene <section> is deliberately NOT a named region:
+// named by its own heading, Orca said the day, time and place twice on every turn ("region Day 1 … / Day 1 … heading");
+// the heading outline already lets a reader jump to it, and the choices keep their named region.
 const SKELETON = `<!doctype html>
 <html lang="en" data-contrast="normal">
 <head>
@@ -54,27 +61,31 @@ const SKELETON = `<!doctype html>
 <style>__CSS__</style>
 </head>
 <body>
+<a class="skip" href="#scene-title">Skip to the scene</a>
+<a class="skip" href="#choices-title">Skip to your choices</a>
 <div id="app">
   <header id="topbar">
     <div class="bar">
-      <div class="meta" id="meta"></div>
+      <h1 class="brand">Zurvival Reborn</h1>
+      <p class="meta" id="meta"></p>
       <div class="topctl">
-        <button class="btn" id="btn-new" title="Start a new run (N)">New</button>
-        <button class="btn" id="btn-save" title="Save this run">Save</button>
-        <button class="btn" id="btn-load" title="Load a saved run">Load</button>
-        <button class="btn ghost iconbtn" id="btn-contrast" aria-label="Toggle high contrast" title="High contrast">◐</button>
-        <button class="btn ghost iconbtn" id="btn-text" aria-label="Cycle larger text" title="Larger text">A+</button>
+        <button type="button" class="btn" id="btn-new">New run</button>
+        <button type="button" class="btn" id="btn-save">Save</button>
+        <button type="button" class="btn" id="btn-load">Load</button>
+        <button type="button" class="btn" id="btn-settings">Settings</button>
       </div>
     </div>
-    <div class="mode" id="mode"></div>
+    <p class="mode" id="mode"></p>
   </header>
   <main id="stage">
-    <div id="pane" role="region" aria-live="polite" aria-label="Scene"></div>
-    <div id="choices" aria-label="Choices"></div>
+    <section id="scene"></section>
+    <section id="choices-wrap" aria-labelledby="choices-title"></section>
   </main>
   <nav id="screens" aria-label="Depth screens"></nav>
 </div>
 <div id="modal-root"></div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+<div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 <noscript>This playable beta needs JavaScript enabled.</noscript>
 <script>__BUNDLE__</script>
 <script>window.CONTENT=__CONTENT__;</script>

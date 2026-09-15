@@ -45,4 +45,7 @@ export {
   DEPTH_SCREENS,
   SCREEN_KEYS,
   screenForKey,
+  screenById,
+  // the same screen as structure — headings and real lists for assistive tech (T63 · NFR-ACC-02)
+  outlineScreen,
 } from "../src/index.js";
